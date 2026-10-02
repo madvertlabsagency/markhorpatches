@@ -10,6 +10,8 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
+  // Extensionless imports so Turbopack/webpack and tsx all resolve the generated files.
+  importFileExtension = ""
 }
 
 datasource db {

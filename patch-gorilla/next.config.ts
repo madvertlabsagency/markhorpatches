@@ -11,6 +11,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  turbopack: { root: import.meta.dirname },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
