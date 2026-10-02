@@ -18,13 +18,10 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (q.trim().length < 2) {
-      setResults([]);
-      return;
-    }
+    if (q.trim().length < 2) return;
     const ctrl = new AbortController();
-    setLoading(true);
     const t = setTimeout(() => {
+      setLoading(true);
       fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
         .then((r) => r.json())
         .then((d: { results: Result[] }) => {
@@ -45,7 +42,8 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     router.push(r.href);
   };
 
-  const grouped = useMemo(() => results.map((r, i) => ({ ...r, i })), [results]);
+  const visible = useMemo(() => (q.trim().length < 2 ? [] : results), [q, results]);
+  const grouped = useMemo(() => visible.map((r, i) => ({ ...r, i })), [visible]);
 
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
@@ -67,15 +65,15 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(a + 1, results.length - 1)); }
+                if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(a + 1, visible.length - 1)); }
                 if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
-                if (e.key === "Enter" && results[active]) go(results[active]);
+                if (e.key === "Enter" && visible[active]) go(visible[active]);
               }}
               placeholder="Search patches, FAQs, guides…"
               role="combobox"
-              aria-expanded={results.length > 0}
+              aria-expanded={visible.length > 0}
               aria-controls="search-results"
-              aria-activedescendant={results[active] ? `sr-${active}` : undefined}
+              aria-activedescendant={visible[active] ? `sr-${active}` : undefined}
               aria-label="Search"
               className="h-16 flex-1 bg-transparent text-lg outline-none placeholder:text-slate/60"
             />
@@ -97,7 +95,7 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                 </li>
               );
             })}
-            {q.trim().length >= 2 && !loading && results.length === 0 && <li className="p-6 text-center text-slate">No results for “{q}”. Try “PVC”, “backing” or “sizing”.</li>}
+            {q.trim().length >= 2 && !loading && visible.length === 0 && <li className="p-6 text-center text-slate">No results for “{q}”. Try “PVC”, “backing” or “sizing”.</li>}
             {q.trim().length < 2 && <li className="p-6 text-center text-sm text-slate">Try “iron-on”, “woven vs embroidered” or “minimum order”.</li>}
           </ul>
         </D.Content>

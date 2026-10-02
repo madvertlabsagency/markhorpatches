@@ -28,7 +28,7 @@ export async function buildPatch(page: Page, opts: { mobile?: boolean } = {}) {
   await expect(page.getByRole("heading", { name: "Add extras" })).toBeVisible();
   await next();
   await expect(page.getByRole("heading", { name: "Review your patch" })).toBeVisible();
-  if (opts.mobile) await page.getByRole("button", { name: /^Add/ }).click();
+  if (opts.mobile) await page.getByRole("button", { name: "Add", exact: true }).click();
   else await page.getByRole("button", { name: /Add to cart/ }).click();
   await page.waitForURL("**/cart");
 }

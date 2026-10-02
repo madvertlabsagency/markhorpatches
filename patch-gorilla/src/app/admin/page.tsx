@@ -7,9 +7,13 @@ import { AdminHeader, Card, Notice, Stat, Table } from "@/components/admin/ui";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
 
+function daysAgo(n: number) {
+  return new Date(Date.now() - n * 86_400_000);
+}
+
 export default async function AdminDashboard() {
   await requireStaff("dashboard:view");
-  const since = new Date(Date.now() - 30 * 86_400_000);
+  const since = daysAgo(30);
   const [orders30, paidAgg, mockups30, pendingProofWork, approvals30, quotes, recent, topItems, crmFailed, sampleReviews] = await Promise.all([
     prisma.order.count({ where: { createdAt: { gte: since }, source: { not: "FREE_MOCKUP" } } }),
     prisma.order.aggregate({ where: { paymentStatus: "PAID", placedAt: { gte: since } }, _sum: { totalCents: true }, _count: true }),

@@ -28,8 +28,8 @@ export function PriceCalculator({ catalog, tables, patchTypeId }: { catalog: Cat
 
   const err = !q.ok ? q.pricingError ?? q.violations[0]?.message : null;
   return (
-    <div className="grid gap-6 rounded-[2rem] bg-white p-5 shadow-lift ring-1 ring-navy/5 sm:p-8 lg:grid-cols-[1.2fr_1fr]">
-      <div className="grid gap-5 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 rounded-[2rem] bg-white p-5 shadow-lift ring-1 ring-navy/5 sm:p-8 lg:grid-cols-[1.2fr_1fr] [&>*]:min-w-0">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 [&>*]:min-w-0">
         <Field label='Width (in)' htmlFor="calc-w" required>
           <Input id="calc-w" type="number" inputMode="decimal" step="0.25" min={pt.minSizeIn} max={pt.maxSizeIn * 1.5} value={w} onChange={(e) => setW(Number(e.target.value))} />
         </Field>

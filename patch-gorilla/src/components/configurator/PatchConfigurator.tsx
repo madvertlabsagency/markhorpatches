@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, ArrowRight, Check, Info, MessageCircle, Pencil, ShoppingBag, Sparkles, Bookmark } from "lucide-react";
@@ -209,7 +211,7 @@ export function PatchConfigurator({ catalog, tables, maxUploadMb, transit, whats
             );
           })}
         </div>
-        <p className="mt-4 text-sm text-slate">Not sure? <a href="/patch-finder" className="font-semibold text-patch hover:underline">Take the 60-second patch finder</a>.</p>
+        <p className="mt-4 text-sm text-slate">Not sure? <Link href="/patch-finder" className="font-semibold text-patch hover:underline">Take the 60-second patch finder</Link>.</p>
       </StepShell>
     ),
     artwork: (
@@ -299,7 +301,7 @@ export function PatchConfigurator({ catalog, tables, maxUploadMb, transit, whats
           {allowedBackings(catalog, pt).map((b) => (
             <OptionCard key={b.id} selected={state.backingId === b.id} onSelect={() => update({ backingId: b.id })} label={b.name}>
               <div className="flex gap-4">
-                {b.imageUrl && (/* eslint-disable-next-line @next/next/no-img-element */ <img src={b.imageUrl} alt="" className="h-14 w-14 shrink-0" />)}
+                {b.imageUrl && <Image src={b.imageUrl} alt="" width={56} height={56} unoptimized className="h-14 w-14 shrink-0" />}
                 <div>
                   <p className="font-semibold">{b.name} <span className="ml-1 text-sm font-semibold text-patch">{modLabel(b)}</span></p>
                   <p className="mt-1 text-sm text-slate">{b.description}</p>
@@ -315,7 +317,7 @@ export function PatchConfigurator({ catalog, tables, maxUploadMb, transit, whats
         <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Border">
           {allowedBorders(catalog, pt, state.shape).map((b) => (
             <OptionCard key={b.id} selected={state.borderId === b.id} onSelect={() => update({ borderId: b.id })} label={b.name}>
-              {b.imageUrl && (/* eslint-disable-next-line @next/next/no-img-element */ <img src={b.imageUrl} alt="" className="mb-3 h-14 w-14" />)}
+              {b.imageUrl && <Image src={b.imageUrl} alt="" width={56} height={56} unoptimized className="mb-3 h-14 w-14" />}
               <p className="font-semibold">{b.name} <span className="ml-1 text-sm text-patch">{modLabel(b)}</span></p>
               <p className="mt-1 text-sm text-slate">{b.description}</p>
             </OptionCard>

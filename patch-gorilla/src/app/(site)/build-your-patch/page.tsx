@@ -28,26 +28,13 @@ export default async function BuildYourPatchPage({ searchParams }: { searchParam
 
   let initial: ConfiguratorProps["initial"] = {};
   let initialArtwork: ConfiguratorProps["initialArtwork"] = null;
-  let editItemId: string | null = null;
 
-  // Edit an existing cart item (only from the visitor's own cart)
+  // Edit an existing cart item (only from the visitor's own cart), or load a saved design
   const edit = one(sp.edit);
   const savedId = one(sp.saved);
-  const source = edit
-    ? await (async () => {
-        const cart = await currentCart();
-        if (!cart) return null;
-        const item = await prisma.cartItem.findFirst({ where: { id: edit, cartId: cart.id }, include: { configuration: { include: { extras: true, artworkFile: true } } } });
-        if (item) editItemId = item.id;
-        return item?.configuration ?? null;
-      })()
-    : savedId
-      ? await (async () => {
-          const user = await getCurrentUser();
-          if (!user?.customer) return null;
-          return prisma.patchConfiguration.findFirst({ where: { id: savedId, customerId: user.customer.id, isSaved: true }, include: { extras: true, artworkFile: true } });
-        })()
-      : null;
+  const editItem = edit ? await loadCartItem(edit) : null;
+  const editItemId: string | null = editItem?.id ?? null;
+  const source = editItem ? editItem.configuration : savedId ? await loadSavedDesign(savedId) : null;
 
   if (source) {
     initial = {
@@ -99,4 +86,16 @@ export default async function BuildYourPatchPage({ searchParams }: { searchParam
       </Container>
     </section>
   );
+}
+
+async function loadCartItem(id: string) {
+  const cart = await currentCart();
+  if (!cart) return null;
+  return prisma.cartItem.findFirst({ where: { id, cartId: cart.id }, include: { configuration: { include: { extras: true, artworkFile: true } } } });
+}
+
+async function loadSavedDesign(id: string) {
+  const user = await getCurrentUser();
+  if (!user?.customer) return null;
+  return prisma.patchConfiguration.findFirst({ where: { id, customerId: user.customer.id, isSaved: true }, include: { extras: true, artworkFile: true } });
 }

@@ -85,7 +85,10 @@ export default async function AdminOrderDetail({ params, searchParams }: { param
                     {proofs.map((p) => (
                       <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-offwhite p-3 text-sm">
                         <div className="flex items-center gap-3">
-                          {p.isImage && p.previewUrl && /* eslint-disable-next-line @next/next/no-img-element */ <img src={p.previewUrl} alt="" className="h-12 w-12 rounded object-contain ring-1 ring-line" />}
+                          {p.isImage && p.previewUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element -- private signed URL
+                            <img src={p.previewUrl} alt="" className="h-12 w-12 rounded object-contain ring-1 ring-line" />
+                          )}
                           <div>
                             <p className="font-semibold">V{p.version} · <Badge tone={p.status === "APPROVED" ? "success" : p.status === "SENT" ? "action" : "neutral"}>{p.status}</Badge></p>
                             {p.approval && <p className="text-xs text-slate">Approved by {p.approval.approvedByEmail} · {formatDate(p.approval.approvedAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>}

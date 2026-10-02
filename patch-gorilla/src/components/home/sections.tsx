@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Headphones, Palette, Receipt, ShieldCheck, Truck, FileCheck2 } from "lucide-react";
 import { Container, Section, SectionHeader } from "@/components/ui/Section";
 import { ButtonLink } from "@/components/ui/Button";
@@ -92,7 +93,7 @@ export function GuaranteeSection({ headline, body, tagline }: { headline: string
           <div className="mt-10 flex justify-center">
             <StickerBadge variant="blue" rotate={-3} className="px-6 py-3 text-3xl">{tagline}</StickerBadge>
           </div>
-          <p className="mx-auto mt-10 max-w-lg text-sm text-white/50">Applies to differences from the approved production specification. See our <a className="underline hover:text-turquoise" href="/refund-policy">refund &amp; remake policy</a>.</p>
+          <p className="mx-auto mt-10 max-w-lg text-sm text-white/50">Applies to differences from the approved production specification. See our <Link className="underline hover:text-turquoise" href="/refund-policy">refund &amp; remake policy</Link>.</p>
         </Reveal>
       </Container>
     </Section>
@@ -107,7 +108,7 @@ export function FAQSection({ faqs, title = "Questions? Answered.", eyebrow = "FA
         <div className="grid gap-12 lg:grid-cols-[0.8fr_1.5fr]">
           <div>
             <SectionHeader eyebrow={eyebrow} title={title} />
-            <p className="mt-6 text-slate">Can&apos;t find it? <a href="/support" className="font-semibold text-patch underline-offset-4 hover:underline">Talk to a patch expert</a>.</p>
+            <p className="mt-6 text-slate">Can&apos;t find it? <Link href="/support" className="font-semibold text-patch underline-offset-4 hover:underline">Talk to a patch expert</Link>.</p>
           </div>
           <Accordion items={faqs.map((f) => ({ id: f.id, q: f.question, a: f.answer }))} />
         </div>

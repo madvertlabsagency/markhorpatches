@@ -2,13 +2,13 @@
 import Link from "next/link";
 import * as D from "@radix-ui/react-dialog";
 import { motion } from "motion/react";
-import { X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { PatchArt } from "@/components/brand/PatchArt";
 import { ButtonLink } from "@/components/ui/Button";
 import { MAIN_NAV, PATCH_NAV } from "@/content/navigation";
 
-export function MobileNavigation({ open, onOpenChange, signedIn, isStaff }: { open: boolean; onOpenChange: (o: boolean) => void; signedIn: boolean; isStaff: boolean }) {
+export function MobileNavigation({ open, onOpenChange, signedIn, isStaff, onSearch }: { open: boolean; onOpenChange: (o: boolean) => void; signedIn: boolean; isStaff: boolean; onSearch: () => void }) {
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
@@ -24,7 +24,10 @@ export function MobileNavigation({ open, onOpenChange, signedIn, isStaff }: { op
             </D.Close>
           </div>
           <div className="relative flex-1 px-4 pb-10 sm:px-6">
-            <p className="eyebrow mt-4 text-white/50">Patches</p>
+            <button type="button" onClick={onSearch} className="mt-2 flex h-12 w-full items-center gap-3 rounded-full bg-white/10 px-5 text-left text-white/70">
+              <Search className="h-5 w-5" aria-hidden /> Search patches, FAQs, guides
+            </button>
+            <p className="eyebrow mt-6 text-white/50">Patches</p>
             <ul className="mt-3 grid grid-cols-2 gap-2">
               {PATCH_NAV.map((p, i) => (
                 <motion.li key={p.href} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 * i }}>

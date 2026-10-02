@@ -14,7 +14,6 @@ export default async function OG() {
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 72, background: "radial-gradient(circle at 80% 20%, #0755B9 0%, #020B1D 60%)", color: "white" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`data:image/png;base64,${logo.toString("base64")}`} width={360} height={74} alt="" />
         <div style={{ display: "flex", flexDirection: "column", fontFamily: "Barlow", fontSize: 120, lineHeight: 0.9, textTransform: "uppercase" }}>
           <span>Custom patches</span>

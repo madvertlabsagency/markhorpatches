@@ -43,7 +43,7 @@ export default async function AdminPricing({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-6">
-      <AdminHeader title="Pricing & options" description="Every price on the site, in the configurator and at checkout is calculated from these tables. Changes apply immediately — no deploy." actions={<a href="/admin/api/pricing-csv" className={btnGhostCls}>Export CSV</a>} />
+      <AdminHeader title="Pricing & options" description="Every price on the site, in the configurator and at checkout is calculated from these tables. Changes apply immediately — no deploy." actions={<a href="/admin/api/pricing-csv" download className={btnGhostCls}>Export CSV</a>} />
       <Notice tone="warn">Demo market pricing — verify production economics before launch. (This note is internal and never shown to customers.)</Notice>
       <Flash sp={sp} />
 

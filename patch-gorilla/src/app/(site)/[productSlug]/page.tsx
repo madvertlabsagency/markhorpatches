@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check } from "lucide-react";
 import { getCatalog } from "@/lib/catalog";
@@ -149,7 +150,7 @@ export default async function ProductPage({ params }: Props) {
           <div className="mt-12 grid gap-6 lg:grid-cols-2">
             <OptionBlock title="Available sizes">
               <div className="flex flex-wrap gap-2">{sizes.map((s) => <span key={s} className="rounded-full bg-ice px-4 py-2 font-display text-lg font-extrabold">{s}&quot;</span>)}</div>
-              <p className="mt-3 text-sm text-slate">Custom sizes from {pt.minSizeIn}&quot; to {pt.maxSizeIn}&quot; (average of width and height). <a href="/size-guide" className="font-semibold text-patch hover:underline">Size guide →</a></p>
+              <p className="mt-3 text-sm text-slate">Custom sizes from {pt.minSizeIn}&quot; to {pt.maxSizeIn}&quot; (average of width and height). <Link href="/size-guide" className="font-semibold text-patch hover:underline">Size guide →</Link></p>
             </OptionBlock>
             <OptionBlock title="Shapes">
               <div className="flex flex-wrap gap-2">{shapes.map((s) => <span key={s} className="rounded-full bg-ice px-4 py-2 text-sm font-semibold">{titleShape(s)}</span>)}</div>

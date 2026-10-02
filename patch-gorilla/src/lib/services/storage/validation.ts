@@ -21,6 +21,7 @@ export function sanitizeFilename(name: string): string {
   const ext = fileExtension(name);
   const stem = name
     .replace(/\.[^.]*$/, "")
+    .replace(/[\/\\]+/g, " ")
     .normalize("NFKD")
     .replace(/[^\w\s.-]/g, "")
     .replace(/[\s.]+/g, "-")

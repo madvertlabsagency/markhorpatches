@@ -47,10 +47,13 @@ export function Header({ cartCount, signedIn, isStaff, startingPrices }: HeaderP
     };
   }, [pathname]);
 
-  useEffect(() => {
+  // Close menus on navigation (derived-state pattern, no effect needed).
+  const [lastPath, setLastPath] = useState(pathname);
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
     setMegaOpen(false);
     setMobileOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -86,8 +89,8 @@ export function Header({ cartCount, signedIn, isStaff, startingPrices }: HeaderP
         )}
         onMouseLeave={scheduleClose}
       >
-        <div className="mx-auto flex h-[var(--header-h)] max-w-[88rem] items-center gap-4 px-4 sm:px-6 lg:px-8">
-          <Logo tone={dark ? "light" : "dark"} priority className="w-[136px] sm:w-[160px] xl:w-[172px]" />
+        <div className="mx-auto flex h-[var(--header-h)] max-w-[88rem] items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
+          <Logo tone={dark ? "light" : "dark"} priority className="w-[112px] min-[380px]:w-[136px] sm:w-[160px] xl:w-[172px]" />
 
           <nav aria-label="Main" className="ml-2 hidden flex-1 items-center gap-0 xl:flex 2xl:ml-4">
             {MAIN_NAV.filter((i) => i.href !== "/support").map((item) => {
@@ -123,14 +126,14 @@ export function Header({ cartCount, signedIn, isStaff, startingPrices }: HeaderP
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-1 sm:gap-2">
-            <button onClick={() => setSearchOpen(true)} aria-label="Search (Ctrl+K)" className={cn("grid h-11 w-11 place-items-center rounded-full transition-colors", dark ? "hover:bg-white/10" : "hover:bg-navy/5")}>
+          <div className="ml-auto flex items-center gap-0.5 sm:gap-2">
+            <button onClick={() => setSearchOpen(true)} aria-label="Search (Ctrl+K)" className={cn("hidden h-11 w-11 place-items-center rounded-full transition-colors min-[380px]:grid", dark ? "hover:bg-white/10" : "hover:bg-navy/5")}>
               <Search className="h-5 w-5" />
             </button>
             <Link href={isStaff ? "/admin" : signedIn ? "/account" : "/login"} aria-label={signedIn ? "My account" : "Sign in"} className={cn("hidden h-11 w-11 place-items-center rounded-full transition-colors sm:grid", dark ? "hover:bg-white/10" : "hover:bg-navy/5")}>
               <User className="h-5 w-5" />
             </Link>
-            <Link href="/cart" aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`} className={cn("relative grid h-11 w-11 place-items-center rounded-full transition-colors", dark ? "hover:bg-white/10" : "hover:bg-navy/5")}>
+            <Link href="/cart" aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`} className={cn("relative grid h-10 w-10 place-items-center sm:h-11 sm:w-11 rounded-full transition-colors", dark ? "hover:bg-white/10" : "hover:bg-navy/5")}>
               <ShoppingBag className="h-5 w-5" />
               <AnimatePresence>
                 {cartCount > 0 && (
@@ -154,10 +157,10 @@ export function Header({ cartCount, signedIn, isStaff, startingPrices }: HeaderP
                 Get a free mockup
               </ButtonLink>
             </Magnetic>
-            <ButtonLink href="/build-your-patch" size="sm" className="md:hidden">
+            <ButtonLink href="/build-your-patch" size="sm" className="h-10 px-3.5 md:hidden">
               Build
             </ButtonLink>
-            <button onClick={() => setMobileOpen(true)} aria-label="Open menu" aria-expanded={mobileOpen} className={cn("grid h-11 w-11 place-items-center rounded-full xl:hidden", dark ? "hover:bg-white/10" : "hover:bg-navy/5")}>
+            <button onClick={() => setMobileOpen(true)} aria-label="Open menu" aria-expanded={mobileOpen} className={cn("grid h-10 w-10 place-items-center rounded-full sm:h-11 sm:w-11 xl:hidden", dark ? "hover:bg-white/10" : "hover:bg-navy/5")}>
               <Menu className="h-6 w-6" />
             </button>
           </div>
@@ -207,7 +210,7 @@ export function Header({ cartCount, signedIn, isStaff, startingPrices }: HeaderP
           )}
         </AnimatePresence>
       </header>
-      <MobileNavigation open={mobileOpen} onOpenChange={setMobileOpen} signedIn={signedIn} isStaff={isStaff} />
+      <MobileNavigation open={mobileOpen} onOpenChange={setMobileOpen} signedIn={signedIn} isStaff={isStaff} onSearch={() => { setMobileOpen(false); setSearchOpen(true); }} />
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
     </>
   );

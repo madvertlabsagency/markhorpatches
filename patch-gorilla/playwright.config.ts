@@ -21,6 +21,7 @@ export default defineConfig({
     command: `npm run start -- -p ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: true,
+    env: { ALLOW_MOCK_PAYMENTS: "true", PAYMENTS_PROVIDER: "mock" },
     timeout: 120_000,
   },
 });

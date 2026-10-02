@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Hero } from "@/components/home/Hero";
 import { Marquee } from "@/components/home/Marquee";
 import { BuilderTeaser } from "@/components/home/BuilderTeaser";
@@ -53,12 +54,12 @@ export default async function HomePage() {
               </StaggerItem>
             ))}
             <StaggerItem>
-              <a href="/custom-patches" className="group relative flex h-full min-h-72 flex-col justify-between overflow-hidden rounded-[var(--radius-patch)] bg-midnight p-7 text-white">
+              <Link href="/custom-patches" className="group relative flex h-full min-h-72 flex-col justify-between overflow-hidden rounded-[var(--radius-patch)] bg-midnight p-7 text-white">
                 <div className="grid-texture-dark absolute inset-0 opacity-50" aria-hidden />
                 <p className="hand relative -rotate-3 text-2xl text-turquoise">Can&apos;t decide?</p>
                 <p className="display relative text-5xl">Compare every patch type</p>
                 <span className="relative font-semibold text-turquoise transition-transform group-hover:translate-x-1">See the full guide →</span>
-              </a>
+              </Link>
             </StaggerItem>
           </Stagger>
         </Container>

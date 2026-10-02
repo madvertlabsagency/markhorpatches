@@ -1,0 +1,59 @@
+name: Patch Gorilla CI
+
+on:
+  push:
+    paths: ["patch-gorilla/**", ".github/workflows/patch-gorilla-ci.yml"]
+  pull_request:
+    paths: ["patch-gorilla/**", ".github/workflows/patch-gorilla-ci.yml"]
+
+defaults:
+  run:
+    working-directory: patch-gorilla
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: patchgorilla
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/patchgorilla
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/patchgorilla_test
+      APP_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+      NEXT_PUBLIC_SITE_URL: http://localhost:3100
+      PAYMENTS_PROVIDER: mock
+      ALLOW_MOCK_PAYMENTS: "true"
+      STORAGE_DRIVER: local
+      EMAIL_PROVIDER: console
+      SEED_ADMIN_EMAIL: admin@example.com
+      SEED_ADMIN_PASSWORD: ci-admin-password-123
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: patch-gorilla/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Create test database
+        run: PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE patchgorilla_test"
+      - run: npm run test:integration
+      - run: npx prisma migrate deploy && npm run db:seed
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: patch-gorilla/test-results
