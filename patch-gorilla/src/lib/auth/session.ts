@@ -46,8 +46,10 @@ export async function requireUser(next = "/account") {
   return user;
 }
 
+/** Signed-in user + their customer record. The customer is only linked once the email is verified. */
 export async function requireCustomer(next = "/account") {
   const user = await requireUser(next);
+  if (!user.emailVerified) return { user, customer: null };
   const customer =
     user.customer ??
     (await prisma.customer.upsert({ where: { email: user.email }, create: { email: user.email, userId: user.id, firstName: user.name ?? undefined }, update: { userId: user.id } }));

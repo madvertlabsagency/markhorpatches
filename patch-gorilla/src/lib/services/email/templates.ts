@@ -16,7 +16,9 @@ export type EmailTemplateName =
   | "delivered"
   | "review_request"
   | "abandoned_cart"
-  | "ops_new_lead";
+  | "ops_new_lead"
+  | "verify_email"
+  | "password_reset";
 
 export interface EmailData {
   firstName?: string | null;
@@ -187,6 +189,24 @@ export function renderEmail(name: EmailTemplateName, d: EmailData, siteUrl: stri
       headline = "New lead";
       body = p(esc(d.summary ?? "")) + itemsTable(d.items) + button("Open in admin", url);
       text = `${d.summary ?? "New lead"} ${url}`;
+      break;
+    case "verify_email":
+      subject = "Confirm your email";
+      preheader = "One click and you're in.";
+      eyebrow = "Your account";
+      headline = "Confirm your email.";
+      body = hi(d.firstName) + p("Confirm your email to see your orders, proofs and saved designs in one place.") + button("Confirm email", url) +
+        p(`<span style="font-size:12px;color:${C.slate}">This link expires in 48 hours. If you didn't create an account, you can ignore this email.</span>`);
+      text = `Confirm your email: ${url}`;
+      break;
+    case "password_reset":
+      subject = "Reset your password";
+      preheader = "A link to choose a new password.";
+      eyebrow = "Your account";
+      headline = "Reset your password.";
+      body = hi(d.firstName) + p("Someone (hopefully you) asked to reset your Patch Gorilla password.") + button("Choose a new password", url) +
+        p(`<span style="font-size:12px;color:${C.slate}">This link expires in 1 hour and works once. If you didn't ask for this, you can ignore it.</span>`);
+      text = `Reset your password: ${url}`;
       break;
   }
 
