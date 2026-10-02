@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: { bodySizeLimit: "2mb" },
+    authInterrupts: true,
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

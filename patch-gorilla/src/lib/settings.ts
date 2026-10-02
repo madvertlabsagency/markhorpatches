@@ -5,7 +5,7 @@ import { DEFAULT_SETTINGS, settingsSchemas, type Settings, type SettingsKey } fr
 
 export { DEFAULT_SETTINGS, settingsSchemas, type Settings, type SettingsKey };
 
-async function loadAll(): Promise<Settings> {
+export async function loadSettings(): Promise<Settings> {
   const rows = await prisma.siteSetting.findMany();
   const out = structuredClone(DEFAULT_SETTINGS) as Settings;
   for (const row of rows) {
@@ -20,7 +20,7 @@ async function loadAll(): Promise<Settings> {
   return out;
 }
 
-export const getSettings = unstable_cache(loadAll, ["site-settings"], { tags: ["settings"], revalidate: 300 });
+export const getSettings = unstable_cache(loadSettings, ["site-settings"], { tags: ["settings"], revalidate: 300 });
 
 export async function saveSetting<K extends SettingsKey>(key: K, value: Settings[K]) {
   const parsed = settingsSchemas[key].parse(value);
