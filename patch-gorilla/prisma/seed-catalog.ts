@@ -167,13 +167,13 @@ export const PRODUCTS: {
 }[] = [
   {
     slug: "custom-patches", patchTypeCode: null, name: "Custom Patches", h1: "Custom Patches for Bold Brands",
-    tagline: "Any design. Any style.",
+    tagline: "Don’t follow the herd.",
     shortDescription: "Embroidered, woven, PVC, chenille, leather, printed and 3D puff patches — built around your artwork.",
-    description: "Every Patch Gorilla order starts with your artwork and ends with a patch you're proud to put your name on. Pick a style, upload your design and get a free digital proof before anything is produced.",
+    description: "Every Markhor Patches order starts with your artwork and ends with a patch you're proud to put your name on. Pick a style, upload your design and get a free digital proof before anything is produced.",
     bestFor: ["Apparel and streetwear brands", "Teams and clubs", "Businesses and uniforms", "Events and creators"],
     canReproduce: ["Logos and wordmarks", "Illustrations", "Photos (printed)", "Gradients (printed / woven)"],
     highlights: ["Free artwork support", "Digital proof before production", "Transparent pricing", "Tracked shipping"],
-    seoTitle: "Custom Patches — Embroidered, PVC, Woven & More | Patch Gorilla",
+    seoTitle: "Custom Patches — Embroidered, PVC, Woven & More | Markhor Patches",
     seoDescription: "Design custom patches online with transparent pricing and a free digital proof. Embroidered, PVC, woven, chenille, leather, printed and 3D puff patches shipped across the U.S.",
   },
   {
@@ -184,7 +184,7 @@ export const PRODUCTS: {
     bestFor: ["Hats and jackets", "Work uniforms", "Brand merch", "Clubs and teams"],
     canReproduce: ["Bold logos and shapes", "Text from about 1/4\" tall", "Up to 12 thread colors", "Metallic, neon and glow threads"],
     highlights: ["Most popular style", "Up to 100% embroidery coverage", "Merrowed, heat-cut or laser-cut edges"],
-    seoTitle: "Custom Embroidered Patches — No Minimum Hassle | Patch Gorilla",
+    seoTitle: "Custom Embroidered Patches — No Minimum Hassle | Markhor Patches",
     seoDescription: "Order custom embroidered patches with a free digital proof. Iron-on, sew-on, Velcro and more. Transparent per-patch pricing and tracked U.S. shipping.",
   },
   {
@@ -195,7 +195,7 @@ export const PRODUCTS: {
     bestFor: ["Detailed logos", "Small lettering", "Clothing labels", "Lightweight apparel"],
     canReproduce: ["Fine lines and small text", "Detailed illustrations", "Subtle color transitions", "Flat, smooth surfaces"],
     highlights: ["Sharper detail than embroidery", "Thin and flexible", "Great for labels"],
-    seoTitle: "Custom Woven Patches — Fine Detail, Flat Finish | Patch Gorilla",
+    seoTitle: "Custom Woven Patches — Fine Detail, Flat Finish | Markhor Patches",
     seoDescription: "Custom woven patches for detailed logos and small text. Free proof, transparent pricing and fast, tracked U.S. shipping.",
   },
   {
@@ -206,7 +206,7 @@ export const PRODUCTS: {
     bestFor: ["Outdoor and tactical gear", "Bags and backpacks", "Rain gear", "Pet products"],
     canReproduce: ["Bold, solid color areas", "2D and 3D layered detail", "Glow-in-the-dark elements", "Custom shapes"],
     highlights: ["Waterproof", "Weather and UV resistant", "Easy to clean"],
-    seoTitle: "Custom PVC Patches — Waterproof & Durable | Patch Gorilla",
+    seoTitle: "Custom PVC Patches — Waterproof & Durable | Markhor Patches",
     seoDescription: "Custom PVC rubber patches for outdoor gear, bags and tactical use. Velcro-ready, free digital proof and transparent pricing.",
   },
   {
@@ -217,7 +217,7 @@ export const PRODUCTS: {
     bestFor: ["Letterman jackets", "Schools and athletics", "Streetwear drops", "Hoodies and totes"],
     canReproduce: ["Large letters and numbers", "Bold, simple shapes", "Felt layering", "Embroidered accents"],
     highlights: ["Iconic varsity texture", "Big, bold presence", "Layered felt"],
-    seoTitle: "Custom Chenille Patches — Varsity Style | Patch Gorilla",
+    seoTitle: "Custom Chenille Patches — Varsity Style | Markhor Patches",
     seoDescription: "Custom chenille patches for letterman jackets, schools and streetwear. Free digital proof and transparent pricing.",
   },
   {
@@ -228,7 +228,7 @@ export const PRODUCTS: {
     bestFor: ["Hats", "Denim and jackets", "Bags and accessories", "Premium merch"],
     canReproduce: ["Logos and wordmarks", "Line art", "Simple illustrations", "Precise outlines"],
     highlights: ["Premium look", "Laser-cut edges", "Genuine or synthetic options"],
-    seoTitle: "Custom Leather Patches for Hats & Apparel | Patch Gorilla",
+    seoTitle: "Custom Leather Patches for Hats & Apparel | Markhor Patches",
     seoDescription: "Custom leather patches for hats, denim and premium apparel. Debossed or laser-engraved. Free proof and transparent pricing.",
   },
   {
@@ -239,7 +239,7 @@ export const PRODUCTS: {
     bestFor: ["Photo-realistic artwork", "Gradients and shading", "Event giveaways", "Budget-friendly runs"],
     canReproduce: ["Photographs", "Gradients", "Unlimited colors", "Fine detail"],
     highlights: ["Unlimited colors", "Fastest production", "Great value"],
-    seoTitle: "Custom Printed Patches — Full Color | Patch Gorilla",
+    seoTitle: "Custom Printed Patches — Full Color | Markhor Patches",
     seoDescription: "Full-color custom printed patches for photos and gradients. Free proof, transparent pricing and tracked U.S. shipping.",
   },
   {
@@ -250,7 +250,7 @@ export const PRODUCTS: {
     bestFor: ["Hats", "Streetwear", "Bold logos and lettering", "Merch drops"],
     canReproduce: ["Bold lettering", "Thick shapes", "Mixed flat + raised areas", "Metallic and neon threads"],
     highlights: ["Dramatic raised effect", "Hat favorite", "Mix flat and puff"],
-    seoTitle: "Custom 3D Puff Patches for Hats & Streetwear | Patch Gorilla",
+    seoTitle: "Custom 3D Puff Patches for Hats & Streetwear | Markhor Patches",
     seoDescription: "Custom 3D puff embroidered patches with raised foam lettering. Free digital proof, transparent pricing and tracked U.S. shipping.",
   },
 ];

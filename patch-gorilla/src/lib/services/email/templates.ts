@@ -36,12 +36,12 @@ export interface EmailData {
   summary?: string;
 }
 
-const C = { navy: "#031B3D", midnight: "#020B1D", blue: "#0755B9", electric: "#008DE5", turq: "#08D8D8", slate: "#536276", ice: "#EEF4F7", white: "#FFFFFF" };
+const C = { navy: "#081A36", midnight: "#050B18", blue: "#0A4AD6", electric: "#0A74F5", turq: "#0AD2F7", slate: "#536276", ice: "#EEF4F7", white: "#FFFFFF" };
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 function button(label: string, href: string) {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px"><tr><td style="border-radius:999px;background:${C.electric};background-image:linear-gradient(110deg,#06347E 0%,#087CCB 52%,#08D8D8 100%)">
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px"><tr><td style="border-radius:999px;background:${C.electric};background-image:linear-gradient(110deg,#0A2A6B 0%,#0A6CF2 52%,#0AD2F7 100%)">
 <a href="${esc(href)}" style="display:inline-block;padding:15px 30px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;letter-spacing:.06em;color:#fff;text-decoration:none;text-transform:uppercase">${esc(label)} &rarr;</a></td></tr></table>`;
 }
 
@@ -59,16 +59,16 @@ function layout(opts: { preheader: string; eyebrow: string; headline: string; bo
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.ice}"><tr><td align="center" style="padding:32px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
 <tr><td style="background:${C.midnight};border-radius:20px 20px 0 0;padding:28px 32px">
-<img src="${opts.siteUrl}/brand/logo-horizontal-reverse.png" width="168" alt="Patch Gorilla" style="display:block;border:0;height:auto">
+<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="vertical-align:middle"><img src="${opts.siteUrl}/brand/markhor-emblem-160.png" width="52" height="51" alt="" style="display:block;border:0"></td><td style="vertical-align:middle;padding-left:12px;font-family:'Arial Narrow',Arial,Helvetica,sans-serif;line-height:1"><div style="font-size:24px;font-weight:900;letter-spacing:.02em;color:#ffffff">MARKHOR</div><div style="font-size:11px;font-weight:800;letter-spacing:.42em;color:#0AD2F7;margin-top:3px">PATCHES</div></td></tr></table>
 </td></tr>
-<tr><td style="height:4px;background:#087CCB;background-image:linear-gradient(110deg,#06347E 0%,#087CCB 52%,#08D8D8 100%)"></td></tr>
+<tr><td style="height:4px;background:#0A6CF2;background-image:linear-gradient(110deg,#0A2A6B 0%,#0A6CF2 52%,#0AD2F7 100%)"></td></tr>
 <tr><td style="background:#fff;padding:36px 32px 32px;border-radius:0 0 20px 20px;font-family:Arial,Helvetica,sans-serif;color:${C.navy}">
 <div style="font-size:12px;font-weight:700;letter-spacing:.24em;color:${C.electric};text-transform:uppercase">${esc(opts.eyebrow)}</div>
 <h1 style="margin:10px 0 18px;font-family:'Arial Narrow',Arial,Helvetica,sans-serif;font-size:32px;line-height:1.05;font-weight:800;text-transform:uppercase;letter-spacing:-.01em;color:${C.navy}">${esc(opts.headline)}</h1>
 <div style="font-size:16px;line-height:1.6;color:#22324A">${opts.body}</div>
 </td></tr>
 <tr><td style="padding:24px 32px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:${C.slate};text-align:center">
-<strong style="letter-spacing:.18em;color:${C.navy}">CUSTOM PATCHES FOR BOLD BRANDS.</strong><br>
+<strong style="letter-spacing:.18em;color:${C.navy}">MARKHOR PATCHES · DON&rsquo;T FOLLOW THE HERD.</strong><br>
 Questions? Just reply to this email — a real human will answer.<br>
 <a href="${opts.siteUrl}" style="color:${C.blue}">${opts.siteUrl.replace(/^https?:\/\//, "")}</a>
 </td></tr></table></td></tr></table></body></html>`;
@@ -85,16 +85,16 @@ export function renderEmail(name: EmailTemplateName, d: EmailData, siteUrl: stri
   switch (name) {
     case "mockup_received":
       subject = "We've got your artwork 👀";
-      preheader = "Your free mockup request is officially in Gorilla hands.";
+      preheader = "Your free mockup request is in good hands.";
       eyebrow = `Request ${d.requestNumber ?? ""}`;
-      headline = "Your artwork is in Gorilla hands.";
+      headline = "Your artwork is in good hands.";
       body = hi(d.firstName) + p("Thanks for sending your design. Our team is reviewing it now and will prepare a free digital mockup.") +
         p(d.mockup24h ? "You'll get your digital mockup within 24 hours." : "We'll email you as soon as your mockup is ready.") +
         p("Nothing goes into production until you approve it.") + button("View your request", url);
       text = `Thanks for sending your design. ${d.mockup24h ? "You'll get your digital mockup within 24 hours." : "We'll email you when your mockup is ready."} View: ${url}`;
       break;
     case "proof_ready":
-      subject = "Your Gorilla Proof Is Ready";
+      subject = "Your Markhor Proof Is Ready";
       preheader = "See it before we make it.";
       eyebrow = `Order${order} · Proof V${d.proofVersion ?? 1}`;
       headline = "Your proof is ready.";
@@ -204,7 +204,7 @@ export function renderEmail(name: EmailTemplateName, d: EmailData, siteUrl: stri
       preheader = "A link to choose a new password.";
       eyebrow = "Your account";
       headline = "Reset your password.";
-      body = hi(d.firstName) + p("Someone (hopefully you) asked to reset your Patch Gorilla password.") + button("Choose a new password", url) +
+      body = hi(d.firstName) + p("Someone (hopefully you) asked to reset your Markhor Patches password.") + button("Choose a new password", url) +
         p(`<span style="font-size:12px;color:${C.slate}">This link expires in 1 hour and works once. If you didn't ask for this, you can ignore it.</span>`);
       text = `Reset your password: ${url}`;
       break;

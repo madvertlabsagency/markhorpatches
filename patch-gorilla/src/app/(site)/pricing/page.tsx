@@ -10,7 +10,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { FinalCTA } from "@/components/home/sections";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Custom Patch Pricing — Transparent Price List | Patch Gorilla",
+  title: "Custom Patch Pricing — Transparent Price List | Markhor Patches",
   description: "See real per-patch prices for embroidered, PVC, woven, chenille, leather, printed and 3D puff patches by size and quantity. No hidden fees.",
   path: "/pricing",
 });

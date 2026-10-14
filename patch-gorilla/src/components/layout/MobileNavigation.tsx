@@ -18,7 +18,7 @@ export function MobileNavigation({ open, onOpenChange, signedIn, isStaff, onSear
           <D.Description className="sr-only">Site navigation</D.Description>
           <div className="grid-texture-dark pointer-events-none absolute inset-0 opacity-50" aria-hidden />
           <div className="relative flex h-[var(--header-h)] items-center justify-between px-4 sm:px-6">
-            <Logo tone="light" className="w-[136px]" />
+            <Logo tone="light" />
             <D.Close className="grid h-11 w-11 place-items-center rounded-full bg-white/10" aria-label="Close menu">
               <X className="h-6 w-6" />
             </D.Close>

@@ -1,20 +1,23 @@
 @import "tailwindcss";
 
-/* ───────────────────────── PATCH GORILLA DESIGN TOKENS ───────────────────────── */
+/* ───────────────────────── MARKHOR PATCHES DESIGN TOKENS ───────────────────────── */
 @theme {
-  /* Core brand */
-  --color-navy: #031b3d;          /* Gorilla Navy */
-  --color-patch: #0755b9;         /* Patch Blue */
-  --color-electric: #008de5;      /* Electric Blue */
-  --color-turquoise: #08d8d8;     /* Gorilla Turquoise */
+  /* Core brand — sampled from the Markhor Patches emblem */
+  --color-navy: #081A36;          /* Markhor Navy — primary dark, text */
+  --color-patch: #0A4AD6;         /* Cobalt / Royal Blue — key UI, links */
+  --color-cobalt: #0A4AD6;
+  --color-electric: #0A74F5;      /* Electric Blue — accents, active states */
+  --color-turquoise: #0AD2F7;     /* Glacier Cyan — signature highlight */
+  --color-cyan: #0AD2F7;
+  --color-summit: #EAF6FF;        /* snow-cap white-blue for light accents */
   /* Neutrals */
-  --color-midnight: #020b1d;
-  --color-deep: #06152b;          /* Deep Navy */
+  --color-midnight: #050B18;     /* Midnight Navy — cinematic sections */
+  --color-deep: #0A1830;          /* Deep Navy — cards on dark */
   --color-slate: #536276;
   --color-ice: #eef4f7;
   --color-offwhite: #f8fafc;
   --color-line: #dce6ee;
-  /* Accent — use sparingly (≤5%) */
+  /* Accent — star ratings only */
   --color-gold: #e6a817;
   --color-gold-hi: #ffd45a;
   /* Feedback */
@@ -26,10 +29,10 @@
   --font-hand: var(--font-marker), "Permanent Marker", "Comic Sans MS", cursive;
 
   --radius-patch: 1.25rem;
-  --shadow-lift: 0 1px 2px rgb(3 27 61 / 0.06), 0 12px 32px -12px rgb(3 27 61 / 0.25);
-  --shadow-glow: 0 10px 40px -12px rgb(0 141 229 / 0.55);
+  --shadow-lift: 0 1px 2px rgb(8 26 54 / 0.06), 0 12px 32px -12px rgb(8 26 54 / 0.25);
+  --shadow-glow: 0 10px 40px -12px rgb(10 116 245 / 0.55);
 
-  --ease-gorilla: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
 
   --animate-marquee: marquee var(--marquee-duration, 38s) linear infinite;
   --animate-float: float 7s ease-in-out infinite;
@@ -47,7 +50,7 @@
 /* ───────────────────────── BASE ───────────────────────── */
 @layer base {
   :root {
-    --gradient-signature: linear-gradient(110deg, #06347e 0%, #087ccb 52%, #08d8d8 100%);
+    --gradient-signature: linear-gradient(110deg, #0A2A6B 0%, #0A6CF2 52%, #0AD2F7 100%);
     --header-h: 4.5rem;
     color-scheme: light;
   }
@@ -128,8 +131,8 @@
 /* Subtle technical grid texture */
 @utility grid-texture {
   background-image:
-    linear-gradient(to right, rgb(3 27 61 / 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(3 27 61 / 0.05) 1px, transparent 1px);
+    linear-gradient(to right, rgb(8 26 54 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(8 26 54 / 0.05) 1px, transparent 1px);
   background-size: 44px 44px;
 }
 @utility grid-texture-dark {
@@ -166,7 +169,7 @@
 /* On dark surfaces the signature gradient starts brighter, for contrast (WCAG large text). */
 .theme-dark .text-gradient,
 .theme-navy .text-gradient {
-  background-image: linear-gradient(110deg, #1f8bff 0%, #12b6f0 45%, #08d8d8 100%);
+  background-image: linear-gradient(110deg, #3a8dff 0%, #16b2f8 45%, #0AD2F7 100%);
 }
 
 /* Section theming — the header reads data-header-theme to swap its palette */

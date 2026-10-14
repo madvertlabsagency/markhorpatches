@@ -14,7 +14,7 @@ import { formatUSD } from "@/lib/money";
 
 export async function generateMetadata(): Promise<Metadata> {
   const p = await getProductBySlug("custom-patches");
-  return pageMetadata({ title: p?.seoTitle ?? "Custom Patches | Patch Gorilla", description: p?.seoDescription ?? undefined, path: "/custom-patches" });
+  return pageMetadata({ title: p?.seoTitle ?? "Custom Patches | Markhor Patches", description: p?.seoDescription ?? undefined, path: "/custom-patches" });
 }
 
 const COMPARE: { label: string; values: Record<string, string> }[] = [
@@ -28,7 +28,7 @@ export default async function CustomPatchesPage() {
   const [product, cards, { catalog, tables }, faqs, settings] = await Promise.all([getProductBySlug("custom-patches"), getPatchCards(), getCatalog(), getFaqs({ general: true }), getSettings()]);
   return (
     <>
-      <PageHero eyebrow={product?.tagline ?? "Any design. Any style."} title={product?.h1 ?? "Custom Patches for Bold Brands"} description={product?.description} crumbs={[{ name: "Custom Patches", path: "/custom-patches" }]}>
+      <PageHero eyebrow={product?.tagline ?? "Don’t follow the herd."} title={product?.h1 ?? "Custom Patches for Bold Brands"} description={product?.description} crumbs={[{ name: "Custom Patches", path: "/custom-patches" }]}>
         <div className="flex flex-col gap-3 sm:flex-row">
           <ButtonLink href="/build-your-patch" size="lg" arrow>Build your patch</ButtonLink>
           <ButtonLink href="/patch-finder" size="lg" variant="outline-light">Find my patch type</ButtonLink>

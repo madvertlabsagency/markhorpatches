@@ -1,5 +1,5 @@
 /**
- * PATCH GORILLA PRICING ENGINE — pure, deterministic, integer-cents only.
+ * MARKHOR PATCHES PRICING ENGINE — pure, deterministic, integer-cents only.
  *
  * Formula (in this exact order):
  *   1. baseUnitPrice      ← price matrix [patchType × sizeTier × quantityTier]

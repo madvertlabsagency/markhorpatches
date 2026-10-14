@@ -59,7 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   promises: {
     mockup24HourPromise: false,
-    guaranteeHeadline: "THE GORILLA QUALITY PROMISE.",
+    guaranteeHeadline: "THE MARKHOR QUALITY PROMISE.",
     guaranteeBody:
       "If we manufacture something differently from the production specification you approved, we'll make it right.",
     guaranteeTagline: "OUR MISTAKE. OUR COST.",
@@ -80,8 +80,8 @@ export const DEFAULT_SETTINGS: Settings = {
   tax: { mode: "none", ratesBps: {}, taxShipping: false },
   home: {
     videoUrl: "",
-    videoPosterUrl: "/placeholders/macro-embroidered-p.webp",
-    videoTitle: "Thread by thread.",
+    videoPosterUrl: "/placeholders/macro-patches.webp",
+    videoTitle: "From artwork to something you can wear.",
     videoDescription: "A closer look at how your artwork becomes a patch you can hold.",
   },
   payments: { displayedMethods: [] },

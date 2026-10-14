@@ -8,12 +8,12 @@ import { storage } from "@/lib/services/storage";
 import { ARTWORK_TYPES } from "@/lib/services/storage/validation";
 import { pageMetadata } from "@/lib/seo";
 import { Container } from "@/components/ui/Section";
-import { Crown } from "@/components/brand/marks";
+import { HornMark } from "@/components/brand/marks";
 import { PatchConfigurator, type ConfiguratorProps } from "@/components/configurator/PatchConfigurator";
 import type { Shape } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Build Your Custom Patch — Instant Pricing | Patch Gorilla",
+  title: "Build Your Custom Patch — Instant Pricing | Markhor Patches",
   description: "Design your custom patch in minutes: choose type, size, quantity, shape, backing and extras with live pricing. Free digital proof before production.",
   path: "/build-your-patch",
 });
@@ -67,7 +67,7 @@ export default async function BuildYourPatchPage({ searchParams }: { searchParam
       <Container size="2xl">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="mb-2 flex items-center gap-2"><Crown className="h-5 text-electric" /><span className="eyebrow text-slate">Patch builder</span></div>
+            <div className="mb-2 flex items-center gap-2"><HornMark className="h-5 text-electric" /><span className="eyebrow text-slate">Patch builder</span></div>
             <h1 className="display text-[clamp(2.6rem,6vw,4.5rem)]">{editItemId ? "Edit your patch." : <>Make it <span className="text-gradient">yours.</span></>}</h1>
           </div>
           <p className="max-w-sm text-sm text-slate">Live pricing from our real price list. Nothing goes into production until you approve a proof.</p>

@@ -5,7 +5,7 @@ import { Container, Section, SectionHeader } from "@/components/ui/Section";
 import { SizeCompare } from "@/components/forms/SizeCompare";
 import { FinalCTA } from "@/components/home/sections";
 
-export const metadata: Metadata = pageMetadata({ title: "Patch Size Guide & Visualizer | Patch Gorilla", description: "Compare 2\" to 5\" custom patch sizes side by side and learn how patch sizing is quoted.", path: "/size-guide" });
+export const metadata: Metadata = pageMetadata({ title: "Patch Size Guide & Visualizer | Markhor Patches", description: "Compare 2\" to 5\" custom patch sizes side by side and learn how patch sizing is quoted.", path: "/size-guide" });
 
 export default function SizeGuidePage() {
   return (

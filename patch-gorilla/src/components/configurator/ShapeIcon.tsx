@@ -35,13 +35,13 @@ export function SizeVisual({ widthIn, heightIn, shape = "RECTANGLE", className }
         <text x={10 + card.w / 2} y={vbH - 30 - card.h / 2 + 4} textAnchor="middle" fontSize="11" fill="#536276">Credit card</text>
         <g transform={`translate(${card.w + 40}, ${py})`}>
           {s === "CIRCLE" || s === "OVAL" ? (
-            <ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill="#031B3D" stroke="#08D8D8" strokeWidth="3" strokeDasharray="2 2" />
+            <ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill="#081A36" stroke="#0AD2F7" strokeWidth="3" strokeDasharray="2 2" />
           ) : s === "SHIELD" ? (
-            <path d={`M${w / 2} 0 L${w} ${h * 0.14} L${w * 0.95} ${h * 0.6} C${w * 0.9} ${h * 0.82} ${w * 0.7} ${h * 0.95} ${w / 2} ${h} C${w * 0.3} ${h * 0.95} ${w * 0.1} ${h * 0.82} ${w * 0.05} ${h * 0.6} L0 ${h * 0.14} Z`} fill="#031B3D" stroke="#08D8D8" strokeWidth="3" strokeDasharray="2 2" />
+            <path d={`M${w / 2} 0 L${w} ${h * 0.14} L${w * 0.95} ${h * 0.6} C${w * 0.9} ${h * 0.82} ${w * 0.7} ${h * 0.95} ${w / 2} ${h} C${w * 0.3} ${h * 0.95} ${w * 0.1} ${h * 0.82} ${w * 0.05} ${h * 0.6} L0 ${h * 0.14} Z`} fill="#081A36" stroke="#0AD2F7" strokeWidth="3" strokeDasharray="2 2" />
           ) : (
-            <rect width={w} height={h} rx={Math.min(w, h) * 0.12} fill="#031B3D" stroke="#08D8D8" strokeWidth="3" strokeDasharray="2 2" />
+            <rect width={w} height={h} rx={Math.min(w, h) * 0.12} fill="#081A36" stroke="#0AD2F7" strokeWidth="3" strokeDasharray="2 2" />
           )}
-          <text x={w / 2} y={h + 18} textAnchor="middle" fontSize="12" fontWeight="700" fill="#031B3D">{widthIn}&quot; × {heightIn}&quot;</text>
+          <text x={w / 2} y={h + 18} textAnchor="middle" fontSize="12" fontWeight="700" fill="#081A36">{widthIn}&quot; × {heightIn}&quot;</text>
         </g>
       </svg>
       <figcaption className="mt-2 text-xs text-slate">Shown to scale against a credit card. Screens vary, so on-screen sizes aren&apos;t physically exact — use a ruler for a precise check.</figcaption>

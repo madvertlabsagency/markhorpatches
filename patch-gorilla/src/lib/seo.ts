@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { siteUrl } from "@/lib/env";
 
-export const SITE_NAME = "Patch Gorilla";
+export const SITE_NAME = "Markhor Patches";
 export const DEFAULT_DESCRIPTION =
   "Custom patches for bold brands. Embroidered, PVC, woven, chenille, leather, printed and 3D puff patches with transparent pricing, free artwork support and a digital proof before production.";
 
@@ -33,8 +33,8 @@ export function organizationJsonLd(opts: { email?: string; sameAs?: string[] }) 
     "@type": "Organization",
     name: SITE_NAME,
     url: siteUrl("/"),
-    logo: siteUrl("/brand/logo-horizontal.png"),
-    slogan: "Custom patches for bold brands.",
+    logo: siteUrl("/brand/markhor-badge-800.png"),
+    slogan: "Custom patches for brands that don’t follow the herd.",
     ...(opts.email ? { email: opts.email } : {}),
     ...(opts.sameAs?.length ? { sameAs: opts.sameAs } : {}),
   };

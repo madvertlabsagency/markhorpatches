@@ -25,7 +25,7 @@ export function PatchCard({ p, index = 0 }: { p: PatchCardData; index?: number }
           {p.imageUrl ? (
             <Image src={p.imageUrl} alt={`${p.name} example`} fill sizes="(min-width:1024px) 25vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
           ) : (
-            <div className="relative w-[58%] transition-transform duration-700 ease-[var(--ease-gorilla)] group-hover:-rotate-6 group-hover:scale-110">
+            <div className="relative w-[58%] transition-transform duration-700 ease-[var(--ease-brand)] group-hover:-rotate-6 group-hover:scale-110">
               <PatchArt code={p.code} title={`${p.name} illustration`} />
             </div>
           )}

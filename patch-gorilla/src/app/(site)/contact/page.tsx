@@ -5,7 +5,7 @@ import { PageHero } from "@/components/ui/PageHero";
 import { Container, Section } from "@/components/ui/Section";
 import { SupportForm } from "@/components/forms/SupportForm";
 
-export const metadata: Metadata = pageMetadata({ title: "Contact Patch Gorilla", description: "Get in touch about custom patches, quotes and orders.", path: "/contact" });
+export const metadata: Metadata = pageMetadata({ title: "Contact Markhor Patches", description: "Get in touch about custom patches, quotes and orders.", path: "/contact" });
 
 export default async function ContactPage() {
   const { brand, promises } = await getSettings();

@@ -1,7 +1,7 @@
 import { AuthShell } from "@/components/forms/AuthShell";
 import { ResetForm } from "@/components/forms/AuthForms";
 
-export const metadata = { title: "Choose a new password | Patch Gorilla", robots: { index: false } };
+export const metadata = { title: "Choose a new password | Markhor Patches", robots: { index: false } };
 
 export default async function ResetPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token } = await searchParams;

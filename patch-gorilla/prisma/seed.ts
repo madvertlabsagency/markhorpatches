@@ -109,7 +109,7 @@ export async function seed(db: PrismaClient = prisma, opts: { sampleContent?: bo
       create: {
         slug: a.slug, title: a.title, excerpt: a.excerpt, body: a.body, readingMinutes: a.minutes,
         categoryId: catIds[a.category], published: true, publishedAt: new Date(Date.UTC(2026, 0, 5 + i * 3)),
-        seoTitle: `${a.title} | Patch Gorilla`, seoDescription: a.excerpt,
+        seoTitle: `${a.title} | Markhor Patches`, seoDescription: a.excerpt,
       },
       update: {},
     });
@@ -130,11 +130,9 @@ export async function seed(db: PrismaClient = prisma, opts: { sampleContent?: bo
     if ((await db.galleryItem.count()) === 0) {
       const g = [
         { title: "Sample — grizzly embroidered patch", img: "bear", type: "EMBROIDERED", industry: "streetwear", shape: "SHIELD", size: '3.5"', backing: "Iron-On", w: 203, h: 245 },
-        { title: "Sample — gorilla embroidered patch", img: "gorilla", type: "EMBROIDERED", industry: "apparel-brands", shape: "CUSTOM", size: '4"', backing: "Sew-On", w: 340, h: 340 },
-        { title: "Sample — mountain woven patch", img: "explore", type: "WOVEN", industry: "clubs", shape: "CIRCLE", size: '3"', backing: "Hook & Loop", w: 265, h: 275 },
+        { title: "Sample — mountain woven patch", img: "explore", type: "WOVEN", industry: "clubs", shape: "CIRCLE", size: '3"', backing: "Hook & Loop", w: 540, h: 540 },
         { title: "Sample — smiley chenille-style patch", img: "smiley", type: "CHENILLE", industry: "events", shape: "CIRCLE", size: '3"', backing: "Iron-On", w: 165, h: 175 },
         { title: "Sample — astronaut woven patch", img: "astronaut", type: "WOVEN", industry: "creators", shape: "CIRCLE", size: '3"', backing: "Sew-On", w: 194, h: 215 },
-        { title: "Sample — 'your design here' patch", img: "your-design", type: "EMBROIDERED", industry: "businesses", shape: "RECTANGLE", size: '3.5" × 2.5"', backing: "Velcro Hook", w: 375, h: 305 },
       ] as const;
       await db.galleryItem.createMany({
         data: g.map((x, i) => ({

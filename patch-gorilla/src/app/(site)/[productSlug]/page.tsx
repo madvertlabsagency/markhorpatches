@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { productSlug } = await params;
   const product = await getProductBySlug(productSlug);
   if (!product || !product.patchType) return {};
-  return pageMetadata({ title: product.seoTitle ?? `${product.h1} | Patch Gorilla`, description: product.seoDescription ?? product.shortDescription, path: `/${product.slug}`, image: product.heroImageUrl ?? undefined });
+  return pageMetadata({ title: product.seoTitle ?? `${product.h1} | Markhor Patches`, description: product.seoDescription ?? product.shortDescription, path: `/${product.slug}`, image: product.heroImageUrl ?? undefined });
 }
 
 const SIZE_PRESETS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 8, 10, 12];
@@ -65,7 +65,7 @@ export default async function ProductPage({ params }: Props) {
     "@type": "Product",
     name: product.h1,
     description: product.shortDescription,
-    brand: { "@type": "Brand", name: "Patch Gorilla" },
+    brand: { "@type": "Brand", name: "Markhor Patches" },
     category: "Custom patches",
     url: siteUrl(`/${product.slug}`),
     image: images.length ? images.map((m) => (m.url.startsWith("http") ? m.url : siteUrl(m.url))) : [siteUrl("/opengraph-image")],
@@ -197,7 +197,7 @@ export default async function ProductPage({ params }: Props) {
 
       {product.videoUrl && (
         <Section tone="dark" className="pb-20 sm:pb-28">
-          <Container><VideoSection videoUrl={product.videoUrl} posterUrl={product.videoPosterUrl ?? "/placeholders/macro-embroidered-p.webp"} title={`${product.name} close-up`} /></Container>
+          <Container><VideoSection videoUrl={product.videoUrl} posterUrl={product.videoPosterUrl ?? "/placeholders/macro-patches.webp"} title={`${product.name} close-up`} /></Container>
         </Section>
       )}
 

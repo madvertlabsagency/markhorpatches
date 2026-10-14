@@ -4,7 +4,7 @@ import { formatUSD } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
 import { PrintButton } from "./PrintButton";
 
-export const metadata = { title: "Invoice | Patch Gorilla", robots: { index: false } };
+export const metadata = { title: "Invoice | Markhor Patches", robots: { index: false } };
 
 type Addr = { firstName: string; lastName: string; company?: string; line1: string; line2?: string; city: string; state: string; postalCode: string };
 
@@ -18,7 +18,7 @@ export default async function InvoicePage({ params, searchParams }: { params: Pr
     <main className="mx-auto max-w-3xl bg-white p-10 text-navy print:p-0">
       <div className="flex items-start justify-between">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/logo-horizontal.png" alt="Patch Gorilla" className="w-48" />
+        <img src="/brand/markhor-badge-400.png" alt="Markhor Patches" className="h-auto w-28 object-contain" />
         <div className="text-right"><h1 className="display text-5xl">Invoice</h1><p className="text-sm text-slate">{o.orderNumber}</p><p className="text-sm text-slate">{formatDate(o.placedAt ?? o.createdAt)}</p></div>
       </div>
       {bill && (
@@ -42,7 +42,7 @@ export default async function InvoicePage({ params, searchParams }: { params: Pr
         <div className="flex justify-between"><dt>Tax</dt><dd>{formatUSD(o.taxCents)}</dd></div>
         <div className="flex justify-between border-t-2 border-navy pt-2 text-base font-bold"><dt>Paid</dt><dd>{formatUSD(o.totalCents)}</dd></div>
       </dl>
-      <p className="mt-16 text-center text-xs text-slate">Thank you for choosing Patch Gorilla — custom patches for bold brands.</p>
+      <p className="mt-16 text-center text-xs text-slate">Thank you for choosing Markhor Patches — custom patches for bold brands.</p>
       <div className="mt-8 text-center print:hidden"><PrintButton /></div>
     </main>
   );

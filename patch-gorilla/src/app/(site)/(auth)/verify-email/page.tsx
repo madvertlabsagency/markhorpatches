@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AuthShell } from "@/components/forms/AuthShell";
 import { verifyEmailToken } from "@/app/actions/auth";
 
-export const metadata = { title: "Confirm email | Patch Gorilla", robots: { index: false } };
+export const metadata = { title: "Confirm email | Markhor Patches", robots: { index: false } };
 
 export default async function VerifyPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token } = await searchParams;

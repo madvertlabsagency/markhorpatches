@@ -13,7 +13,7 @@ export interface EmailProvider {
   send(msg: EmailMessage): Promise<{ id: string | null }>;
 }
 
-const from = () => process.env.EMAIL_FROM ?? "Patch Gorilla <hello@example.com>";
+const from = () => process.env.EMAIL_FROM ?? "Markhor Patches <hello@example.com>";
 
 const consoleProvider: EmailProvider = {
   name: "console",

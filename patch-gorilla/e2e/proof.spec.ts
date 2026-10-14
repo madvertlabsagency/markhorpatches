@@ -46,7 +46,7 @@ test("customer can request a revision on the free-mockup path", async ({ page, b
   await page.getByLabel("Name").fill("Riley Revision");
   await page.getByLabel("Email").fill(`rev-${Date.now()}@example.com`);
   await page.getByRole("button", { name: /Create my free mockup/ }).click();
-  await expect(page.getByRole("heading", { name: /officially in/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /in good hands/ })).toBeVisible();
   await page.getByRole("link", { name: /Track your request/ }).click();
   await page.waitForURL("**/order/**");
   const orderUrl = page.url();

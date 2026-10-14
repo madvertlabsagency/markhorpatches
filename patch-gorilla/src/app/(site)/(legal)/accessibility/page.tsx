@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import { LegalPage } from "@/components/LegalPage";
 
-export const metadata: Metadata = pageMetadata({ title: "Accessibility Statement | Patch Gorilla", path: "/accessibility" });
+export const metadata: Metadata = pageMetadata({ title: "Accessibility Statement | Markhor Patches", path: "/accessibility" });
 
 const BODY = `## Our commitment
 We want everyone to be able to design and order custom patches. We aim to meet WCAG 2.2 AA guidelines.

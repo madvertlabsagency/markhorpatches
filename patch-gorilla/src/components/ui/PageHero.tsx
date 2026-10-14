@@ -1,4 +1,4 @@
-import { Crown, BrushUnderline } from "@/components/brand/marks";
+import { HornMark, BrushUnderline, MountainContours } from "@/components/brand/marks";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { Container } from "./Section";
 import { cn } from "@/lib/utils";
@@ -10,13 +10,14 @@ export function PageHero({ eyebrow, title, accent, description, crumbs, tone = "
     <section data-header-theme={dark ? "dark" : "light"} className={cn("relative isolate overflow-hidden pb-16 pt-[calc(var(--header-h)+2.5rem)] sm:pb-20", dark ? "theme-dark" : "bg-ice text-navy")}>
       <div className={cn("pointer-events-none absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_at_70%_30%,black,transparent_75%)]", dark ? "grid-texture-dark" : "grid-texture")} aria-hidden />
       {dark && <div className="pointer-events-none absolute -right-32 -top-20 h-[460px] w-[460px] rounded-full bg-electric/20 blur-[120px]" aria-hidden />}
+      <MountainContours className={cn("absolute inset-x-0 bottom-0 h-3/4 w-full", dark ? "text-turquoise/20" : "text-electric/15")} lines={7} />
       <Container size="2xl" className="relative">
         {crumbs && <Breadcrumbs items={crumbs} dark={dark} className="mb-8" />}
         <div className={cn("grid grid-cols-1 items-center gap-10 [&>*]:min-w-0", aside && "lg:grid-cols-[1.2fr_1fr]")}>
           <div>
             {eyebrow && (
               <div className="mb-4 flex items-center gap-3">
-                <Crown className={cn("h-5", dark ? "text-turquoise" : "text-electric")} />
+                <HornMark className={cn("h-5", dark ? "text-turquoise" : "text-electric")} />
                 <span className={cn("eyebrow", dark ? "text-white/70" : "text-slate")}>{eyebrow}</span>
               </div>
             )}

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Logo } from "@/components/brand/Logo";
-import { Crown } from "@/components/brand/marks";
+import { LogoBadge } from "@/components/brand/Logo";
+import { HornMark } from "@/components/brand/marks";
 import { FOOTER_NAV, LEGAL_NAV } from "@/content/navigation";
 import type { Settings } from "@/lib/settings-schema";
 
@@ -16,10 +16,10 @@ export function Footer({ settings }: { settings: Settings }) {
       <div className="relative mx-auto max-w-[88rem] px-4 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
           <div>
-            <Logo tone="light" className="w-[190px]" />
+            <LogoBadge className="w-36 sm:w-44" />
             <p className="display mt-8 text-4xl leading-[0.9] sm:text-5xl">
-              Custom patches <br />
-              for <span className="text-gradient">bold brands.</span>
+              Don&apos;t follow <br />
+              the <span className="text-gradient">herd.</span>
             </p>
             <p className="mt-5 max-w-sm text-sm text-white/60">{promises.manufacturingStatement}</p>
             <div className="mt-6 space-y-1 text-sm text-white/80">
@@ -70,8 +70,8 @@ export function Footer({ settings }: { settings: Settings }) {
 
         <div className="mt-16 flex flex-col gap-6 border-t border-white/10 pt-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3 text-xs text-white/50">
-            <Crown className="h-4 text-turquoise" />
-            <span>© {new Date().getFullYear()} Patch Gorilla. All rights reserved.</span>
+            <HornMark className="h-4 text-turquoise" />
+            <span>© {new Date().getFullYear()} Markhor Patches. All rights reserved.</span>
           </div>
           <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-white/60">
             {LEGAL_NAV.map((l) => (

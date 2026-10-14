@@ -7,7 +7,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { ToastProvider } from "@/components/ui/Toast";
 import { titleCase } from "@/lib/utils";
 
-export const metadata = { title: "Admin | Patch Gorilla", robots: { index: false, follow: false } };
+export const metadata = { title: "Admin | Markhor Patches", robots: { index: false, follow: false } };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaff();
@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="min-h-screen bg-ice lg:grid lg:grid-cols-[250px_1fr]">
         <aside className="bg-midnight text-white lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
           <div className="flex items-center justify-between p-5 lg:block">
-            <Logo tone="light" href="/admin" className="w-[150px]" />
+            <Logo tone="light" href="/admin" />
             <p className="hidden text-xs text-white/40 lg:mt-2 lg:block">Admin console</p>
           </div>
           <details className="px-3 pb-4 lg:hidden"><summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-white/80">Menu</summary><AdminNav allowed={ROLE_PERMISSIONS[user.role]} /></details>

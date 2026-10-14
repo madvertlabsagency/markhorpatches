@@ -5,8 +5,8 @@ import { motion, useReducedMotion, useScroll, useTransform } from "motion/react"
 import { BadgeCheck, FileCheck2, Palette, Truck } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { Magnetic } from "@/components/motion/Magnetic";
-import { BrushUnderline, Crown, HandArrow } from "@/components/brand/marks";
-import { PatchArt } from "@/components/brand/PatchArt";
+import { BrushUnderline, HornMark, HandArrow, MountainContours } from "@/components/brand/marks";
+import { LogoEmblem } from "@/components/brand/Logo";
 import { StickerBadge } from "@/components/brand/StickerBadge";
 import { Counter } from "@/components/motion/Counter";
 
@@ -23,9 +23,10 @@ export function Hero({ metrics }: { metrics: { value: string; label: string }[] 
   const ref = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const yImage = useTransform(scrollYProgress, [0, 1], ["0%", "14%"]);
-  const yFloatA = useTransform(scrollYProgress, [0, 1], ["0%", "-60%"]);
-  const yFloatB = useTransform(scrollYProgress, [0, 1], ["0%", "-30%"]);
+  const yMain = useTransform(scrollYProgress, [0, 1], ["0%", "10%"]);
+  const yFloatA = useTransform(scrollYProgress, [0, 1], ["0%", "-45%"]);
+  const yFloatB = useTransform(scrollYProgress, [0, 1], ["0%", "-25%"]);
+  const yFloatC = useTransform(scrollYProgress, [0, 1], ["0%", "-60%"]);
   const fadeOut = useTransform(scrollYProgress, [0, 0.8], [1, 0.2]);
 
   return (
@@ -40,26 +41,36 @@ export function Hero({ metrics }: { metrics: { value: string; label: string }[] 
         <motion.div style={reduce ? undefined : { opacity: fadeOut }} className="relative z-10">
           <h1>
             <motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }} className="mb-5 flex items-center gap-3">
-              <Crown className="h-7 text-turquoise" />
-              <span className="eyebrow text-white/75">Custom patches for bold brands</span>
+              <HornMark className="h-7 text-turquoise" />
+              <span className="eyebrow text-white/80">Markhor Patches</span>
             </motion.span>
-            <span className="display block text-[clamp(3.6rem,11vw,8.6rem)]">
-              <span className="block overflow-hidden pb-[0.04em]">
-                <motion.span className="block" initial={reduce ? false : { y: "100%" }} animate={{ y: 0 }} transition={{ duration: 0.9, delay: 0.1, ease }}>
-                  Any design.
+            <span className="display block text-[clamp(2.6rem,5.8vw,5.1rem)]">
+              {["Custom patches", "for brands that", "don’t follow the"].map((line, i) => (
+                <span key={line} className="block overflow-hidden pb-[0.04em]">
+                  <motion.span className="block" initial={reduce ? false : { y: "100%" }} animate={{ y: 0 }} transition={{ duration: 0.9, delay: 0.08 + i * 0.1, ease }}>
+                    {line}
+                  </motion.span>
+                </span>
+              ))}
+              <span className="relative inline-block pb-3">
+                <motion.span
+                  className="hand text-gradient inline-block -rotate-3 pr-2 text-[1.08em] normal-case leading-[1.05]"
+                  initial={reduce ? false : { opacity: 0, scale: 0.85, rotate: -8 }}
+                  animate={{ opacity: 1, scale: 1, rotate: -3 }}
+                  transition={{ duration: 0.8, delay: 0.5, ease }}
+                >
+                  herd.
                 </motion.span>
-              </span>
-              <span className="relative block overflow-hidden pb-[0.08em]">
-                <motion.span className="text-gradient block" initial={reduce ? false : { y: "100%" }} animate={{ y: 0 }} transition={{ duration: 0.9, delay: 0.22, ease }}>
-                  Any style.
-                </motion.span>
+                <BrushUnderline className="absolute -bottom-1 left-0 h-4 w-full" delay={0.95} />
               </span>
             </span>
           </h1>
-          <BrushUnderline className="-mt-1 h-5 w-[min(560px,88%)]" delay={0.8} />
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }} className="hand mt-4 -rotate-1 text-2xl text-turquoise">
+            Made to stand out.
+          </motion.p>
 
-          <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.45, ease }} className="mt-7 max-w-xl text-lg leading-relaxed text-white/75 sm:text-xl">
-            From embroidered and woven to PVC, leather and chenille — turn your artwork into premium custom patches built around your design.
+          <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.45, ease }} className="mt-6 max-w-xl text-lg leading-relaxed text-white/75 sm:text-xl">
+            Turn your artwork into premium custom patches with free design support, digital proofing, flexible quantities and a production process built around your approval.
           </motion.p>
 
           <motion.ul initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-8 grid max-w-xl grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4" aria-label="What's included">
@@ -97,38 +108,46 @@ export function Hero({ metrics }: { metrics: { value: string; label: string }[] 
           )}
         </motion.div>
 
-        {/* Layered patch composition */}
-        <div className="relative mx-auto w-full max-w-[680px] lg:max-w-none">
+        {/* Layered product composition — real patch photography leads, brand supports */}
+        <div className="relative mx-auto aspect-[1/0.92] w-full max-w-[640px] lg:max-w-none">
+          <MountainContours className="absolute inset-[-8%] h-[116%] w-[116%] text-turquoise/60" lines={10} />
+          <div className="absolute left-1/2 top-1/2 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-electric/20 blur-[90px]" aria-hidden />
+
           <motion.div
-            initial={reduce ? false : { opacity: 0, scale: 0.94, rotate: 2 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            style={reduce ? undefined : { y: yMain }}
+            initial={reduce ? false : { opacity: 0, scale: 0.9, rotate: 6 }}
+            animate={{ opacity: 1, scale: 1, rotate: -4 }}
             transition={{ duration: 1.2, delay: 0.15, ease }}
-            style={reduce ? undefined : { y: yImage }}
-            className="relative aspect-[780/600] w-full [mask-image:radial-gradient(ellipse_62%_62%_at_55%_50%,black_42%,transparent_100%)]"
+            className="absolute left-[24%] top-[6%] w-[58%] drop-shadow-[0_40px_50px_rgb(0_0_0/.6)]"
           >
-            <Image
-              src="/placeholders/hero-composition.webp"
-              alt="An assortment of custom embroidered and woven patches — bear, mountain, smiley, astronaut and a 'your design here' patch on dark denim"
-              fill
-              priority
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              className="object-cover"
-            />
+            <Image src="/placeholders/cut-explore.webp" alt="Embroidered mountain patch with a merrowed border" width={726} height={726} priority sizes="(min-width:1024px) 30vw, 60vw" className="h-auto w-full" />
           </motion.div>
 
-          <motion.div style={reduce ? undefined : { y: yFloatA }} className="absolute -left-2 bottom-4 w-20 sm:-left-6 sm:w-28 lg:-left-10" aria-hidden>
-            <div className="animate-float [--r:-10deg]">
-              <PatchArt code="PVC" title="" />
+          <motion.div style={reduce ? undefined : { y: yFloatA }} initial={reduce ? false : { opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1, delay: 0.35, ease }} className="absolute left-[2%] top-[22%] w-[30%] drop-shadow-[0_30px_40px_rgb(0_0_0/.55)]">
+            <div className="animate-float [--r:-8deg]">
+              <Image src="/placeholders/cut-bear.webp" alt="Embroidered bear patch with heat-cut custom shape" width={540} height={762} sizes="20vw" className="h-auto w-full" />
             </div>
           </motion.div>
-          <motion.div style={reduce ? undefined : { y: yFloatB }} className="absolute -top-2 right-0 w-16 sm:w-24" aria-hidden>
-            <div className="animate-float [--r:8deg] [animation-delay:-3s]">
-              <PatchArt code="PUFF_3D" title="" />
+
+          <motion.div style={reduce ? undefined : { y: yFloatB }} initial={reduce ? false : { opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.5, ease }} className="absolute bottom-[2%] left-[10%] w-[34%] drop-shadow-[0_30px_40px_rgb(0_0_0/.55)]">
+            <div className="animate-float [--r:6deg] [animation-delay:-2s]">
+              <Image src="/placeholders/cut-astronaut.webp" alt="Woven astronaut patch reading Good Things Take Time" width={540} height={540} sizes="22vw" className="h-auto w-full" />
             </div>
           </motion.div>
-          <div className="absolute bottom-[8%] right-[2%] hidden flex-col items-end gap-1 sm:flex">
+
+          <motion.div style={reduce ? undefined : { y: yFloatC }} initial={reduce ? false : { opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1, delay: 0.65, ease }} className="absolute bottom-[10%] right-[6%] w-[26%] drop-shadow-[0_30px_40px_rgb(0_0_0/.55)]">
+            <div className="animate-float [--r:-5deg] [animation-delay:-4s]">
+              <Image src="/placeholders/cut-smiley.webp" alt="Chenille-style smiley patch" width={432} height={432} sizes="18vw" className="h-auto w-full" />
+            </div>
+          </motion.div>
+
+          <motion.div initial={reduce ? false : { opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: 0.9, ease }} className="absolute right-[2%] top-[2%] w-[16%] opacity-90">
+            <LogoEmblem className="w-full drop-shadow-[0_10px_30px_rgb(10_116_245/.45)]" sizes="120px" />
+          </motion.div>
+
+          <div className="absolute bottom-[0%] right-[0%] hidden flex-col items-end gap-1 sm:flex">
             <HandArrow direction="down-left" className="h-10 w-10 -rotate-12 text-turquoise" delay={1.2} />
-            <StickerBadge variant="blue" rotate={-7} className="text-base">Proof before production</StickerBadge>
+            <StickerBadge variant="blue" rotate={-6} className="text-base">Proof before production</StickerBadge>
           </div>
         </div>
       </div>

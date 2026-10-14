@@ -7,7 +7,7 @@ import { Accordion } from "@/components/ui/Accordion";
 import { JsonLd } from "@/components/JsonLd";
 import { FinalCTA } from "@/components/home/sections";
 
-export const metadata: Metadata = pageMetadata({ title: "Custom Patch FAQ | Patch Gorilla", description: "Answers about mockups, proofs, artwork, sizing, pricing, minimums, production times, backings and shipping.", path: "/faq" });
+export const metadata: Metadata = pageMetadata({ title: "Custom Patch FAQ | Markhor Patches", description: "Answers about mockups, proofs, artwork, sizing, pricing, minimums, production times, backings and shipping.", path: "/faq" });
 
 export default async function FAQPage() {
   const faqs = await getFaqs({ general: true });

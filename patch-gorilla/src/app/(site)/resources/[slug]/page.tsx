@@ -11,7 +11,7 @@ import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { Container, Section } from "@/components/ui/Section";
 import { ButtonLink } from "@/components/ui/Button";
 import { JsonLd } from "@/components/JsonLd";
-import { Crown, BrushUnderline } from "@/components/brand/marks";
+import { HornMark, BrushUnderline } from "@/components/brand/marks";
 import { FinalCTA } from "@/components/home/sections";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -22,7 +22,7 @@ async function load(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const a = await load((await params).slug);
-  return a ? pageMetadata({ title: a.seoTitle ?? `${a.title} | Patch Gorilla`, description: a.seoDescription ?? a.excerpt, path: `/resources/${a.slug}`, type: "article", image: a.coverImageUrl ?? undefined }) : {};
+  return a ? pageMetadata({ title: a.seoTitle ?? `${a.title} | Markhor Patches`, description: a.seoDescription ?? a.excerpt, path: `/resources/${a.slug}`, type: "article", image: a.coverImageUrl ?? undefined }) : {};
 }
 
 export default async function ArticlePage({ params }: Props) {
@@ -36,7 +36,7 @@ export default async function ArticlePage({ params }: Props) {
         <div className="grid-texture-dark pointer-events-none absolute inset-0 opacity-50" aria-hidden />
         <Container size="lg" className="relative">
           <Breadcrumbs dark items={[{ name: "Resources", path: "/resources" }, { name: a.title, path: `/resources/${a.slug}` }]} className="mb-8" />
-          <div className="mb-4 flex items-center gap-3"><Crown className="h-5 text-turquoise" /><span className="eyebrow text-white/70">{a.category?.name ?? "Guide"} · {a.readingMinutes} min read</span></div>
+          <div className="mb-4 flex items-center gap-3"><HornMark className="h-5 text-turquoise" /><span className="eyebrow text-white/70">{a.category?.name ?? "Guide"} · {a.readingMinutes} min read</span></div>
           <h1 className="display text-[clamp(2.6rem,7vw,5rem)]">{a.title}</h1>
           <BrushUnderline className="mt-2 h-4 w-60" />
           <p className="mt-6 max-w-2xl text-xl text-white/75">{a.excerpt}</p>
@@ -61,7 +61,7 @@ export default async function ArticlePage({ params }: Props) {
         </Section>
       )}
       <FinalCTA />
-      <JsonLd data={{ "@context": "https://schema.org", "@type": "Article", headline: a.title, description: a.excerpt, author: { "@type": "Organization", name: a.authorName }, publisher: { "@type": "Organization", name: "Patch Gorilla", logo: { "@type": "ImageObject", url: siteUrl("/brand/logo-horizontal.png") } }, datePublished: a.publishedAt?.toISOString(), dateModified: a.updatedAt.toISOString(), mainEntityOfPage: siteUrl(`/resources/${a.slug}`) }} />
+      <JsonLd data={{ "@context": "https://schema.org", "@type": "Article", headline: a.title, description: a.excerpt, author: { "@type": "Organization", name: a.authorName }, publisher: { "@type": "Organization", name: "Markhor Patches", logo: { "@type": "ImageObject", url: siteUrl("/brand/logo-horizontal.png") } }, datePublished: a.publishedAt?.toISOString(), dateModified: a.updatedAt.toISOString(), mainEntityOfPage: siteUrl(`/resources/${a.slug}`) }} />
     </>
   );
 }

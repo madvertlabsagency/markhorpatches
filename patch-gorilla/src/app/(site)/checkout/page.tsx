@@ -10,10 +10,10 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { verifyOrderAccessToken } from "@/lib/crypto";
 import { pageMetadata } from "@/lib/seo";
 import { Container } from "@/components/ui/Section";
-import { Crown } from "@/components/brand/marks";
+import { HornMark } from "@/components/brand/marks";
 import { CheckoutForm } from "@/components/cart/CheckoutForm";
 
-export const metadata: Metadata = pageMetadata({ title: "Checkout | Patch Gorilla", path: "/checkout", noindex: true });
+export const metadata: Metadata = pageMetadata({ title: "Checkout | Markhor Patches", path: "/checkout", noindex: true });
 
 type SP = Promise<Record<string, string | undefined>>;
 
@@ -57,7 +57,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: SP 
   return (
     <section data-header-theme="light" className="min-h-screen bg-offwhite pb-24 pt-[calc(var(--header-h)+2rem)]">
       <Container size="2xl">
-        <div className="mb-3 flex items-center gap-2"><Crown className="h-5 text-electric" /><span className="eyebrow text-slate">Secure checkout</span></div>
+        <div className="mb-3 flex items-center gap-2"><HornMark className="h-5 text-electric" /><span className="eyebrow text-slate">Secure checkout</span></div>
         <h1 className="display mb-8 text-[clamp(2.6rem,6vw,4.5rem)]">{orderId ? "Pay for your order." : "Almost there."}</h1>
         <CheckoutForm
           lines={lines}

@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/States";
 import { Stagger, StaggerItem } from "@/components/motion/Reveal";
 import { FinalCTA } from "@/components/home/sections";
 
-export const metadata: Metadata = pageMetadata({ title: "Custom Patch Guides & Resources | Patch Gorilla", description: "Guides on patch types, sizing, backings, artwork preparation and pricing.", path: "/resources" });
+export const metadata: Metadata = pageMetadata({ title: "Custom Patch Guides & Resources | Markhor Patches", description: "Guides on patch types, sizing, backings, artwork preparation and pricing.", path: "/resources" });
 
 export default async function ResourcesPage() {
   const articles = await getArticles();

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import { LegalPage } from "@/components/LegalPage";
 
-export const metadata: Metadata = pageMetadata({ title: "Refund & Remake Policy | Patch Gorilla", path: "/refund-policy" });
+export const metadata: Metadata = pageMetadata({ title: "Refund & Remake Policy | Markhor Patches", path: "/refund-policy" });
 
 const BODY = `## Our promise
 If we manufacture something differently from the production specification you approved, we'll make it right — our mistake, our cost.

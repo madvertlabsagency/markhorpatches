@@ -4,7 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const buttonStyles = cva(
-  "group/btn relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-display font-extrabold uppercase tracking-[0.06em] transition-[transform,box-shadow,background-color,color,border-color] duration-300 ease-[var(--ease-gorilla)] disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+  "group/btn relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-display font-extrabold uppercase tracking-[0.06em] transition-[transform,box-shadow,background-color,color,border-color] duration-300 ease-[var(--ease-brand)] disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
   {
     variants: {
       variant: {

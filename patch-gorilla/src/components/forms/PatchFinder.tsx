@@ -42,7 +42,7 @@ export function PatchFinder({ types }: { types: Record<string, { name: string; s
           </motion.fieldset>
         ) : (
           <motion.div key="result" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} role="status" aria-live="polite">
-            <p className="hand -rotate-2 text-2xl text-electric">Gorilla recommends…</p>
+            <p className="hand -rotate-2 text-2xl text-electric">Our pick for you…</p>
             {top && (
               <div className="mt-4 grid items-center gap-6 sm:grid-cols-[160px_1fr]">
                 <motion.div initial={{ rotate: -20, scale: 0.6 }} animate={{ rotate: -6, scale: 1 }} transition={{ type: "spring" }}><PatchArt code={top.code} title="" /></motion.div>

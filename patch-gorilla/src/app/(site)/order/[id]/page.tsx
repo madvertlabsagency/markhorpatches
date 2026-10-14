@@ -12,13 +12,13 @@ import { formatDate } from "@/lib/utils";
 import { Container } from "@/components/ui/Section";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
-import { Crown } from "@/components/brand/marks";
+import { HornMark } from "@/components/brand/marks";
 import { PatchArt } from "@/components/brand/PatchArt";
 import { TrackingTimeline } from "@/components/proof/TrackingTimeline";
 import { ProofPanel } from "@/components/proof/ProofPanel";
 import { PurchaseTracker } from "@/components/cart/PurchaseTracker";
 
-export const metadata: Metadata = { title: "Your Order | Patch Gorilla", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Your Order | Markhor Patches", robots: { index: false, follow: false } };
 
 export default async function OrderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ t?: string; paid?: string }> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
@@ -35,7 +35,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
     <section data-header-theme="light" className="min-h-screen bg-offwhite pb-24 pt-[calc(var(--header-h)+2rem)]">
       {justPaid && order.paymentStatus === "PAID" && <PurchaseTracker orderNumber={order.orderNumber} valueCents={order.totalCents} />}
       <Container size="2xl">
-        <div className="mb-3 flex items-center gap-2"><Crown className="h-5 text-electric" /><span className="eyebrow text-slate">Order {order.orderNumber}</span></div>
+        <div className="mb-3 flex items-center gap-2"><HornMark className="h-5 text-electric" /><span className="eyebrow text-slate">Order {order.orderNumber}</span></div>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h1 className="display text-[clamp(2.6rem,6vw,4.5rem)]">{justPaid && order.paymentStatus === "PAID" ? "Thank you. We're on it." : order.status === "PROOF_READY" ? "Your proof is ready." : "Your order."}</h1>
           <div className="flex items-center gap-2">

@@ -3,7 +3,7 @@ import { search } from "@/lib/search";
 import { PageHero } from "@/components/ui/PageHero";
 import { Container, Section } from "@/components/ui/Section";
 
-export const metadata = { title: "Search | Patch Gorilla", robots: { index: false, follow: true } };
+export const metadata = { title: "Search | Markhor Patches", robots: { index: false, follow: true } };
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = "" } = await searchParams;

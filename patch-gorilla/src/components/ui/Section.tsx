@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Crown } from "@/components/brand/marks";
+import { HornMark } from "@/components/brand/marks";
 
 type Tone = "light" | "white" | "ice" | "dark" | "navy";
 
@@ -49,7 +49,7 @@ export function SectionHeader({
     <div className={cn("max-w-3xl", align === "center" && "mx-auto text-center", className)}>
       {eyebrow && (
         <div className={cn("mb-4 flex items-center gap-3", align === "center" && "justify-center")}>
-          <Crown className={cn("h-5", dark ? "text-turquoise" : "text-electric")} />
+          <HornMark className={cn("h-5", dark ? "text-turquoise" : "text-electric")} />
           <span className={cn("eyebrow", dark ? "text-white/70" : "text-slate")}>{eyebrow}</span>
         </div>
       )}

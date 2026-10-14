@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import { LegalPage } from "@/components/LegalPage";
 
-export const metadata: Metadata = pageMetadata({ title: "Terms of Service | Patch Gorilla", path: "/terms" });
+export const metadata: Metadata = pageMetadata({ title: "Terms of Service | Markhor Patches", path: "/terms" });
 
 const BODY = `## Orders and proofs
 Every order includes a digital proof. Production begins only after you approve the proof. Please check artwork, dimensions, colors, spelling and specifications carefully.

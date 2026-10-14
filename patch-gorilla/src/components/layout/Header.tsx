@@ -90,7 +90,7 @@ export function Header({ cartCount, signedIn, isStaff, startingPrices }: HeaderP
         onMouseLeave={scheduleClose}
       >
         <div className="mx-auto flex h-[var(--header-h)] max-w-[88rem] items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
-          <Logo tone={dark ? "light" : "dark"} priority className="w-[112px] min-[380px]:w-[136px] sm:w-[160px] xl:w-[172px]" />
+          <Logo tone={dark ? "light" : "dark"} priority />
 
           <nav aria-label="Main" className="ml-2 hidden flex-1 items-center gap-0 xl:flex 2xl:ml-4">
             {MAIN_NAV.filter((i) => i.href !== "/support").map((item) => {

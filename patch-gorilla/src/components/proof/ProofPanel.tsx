@@ -29,7 +29,7 @@ export interface ProofVersion {
 const APPROVAL = "I confirm the artwork, dimensions, colors, spelling and production specifications shown above.";
 
 function Confetti() {
-  const colors = ["#08D8D8", "#008DE5", "#0755B9", "#FFD45A", "#ffffff"];
+  const colors = ["#0AD2F7", "#0A74F5", "#0A4AD6", "#FFD45A", "#ffffff"];
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
       {Array.from({ length: 36 }).map((_, i) => (

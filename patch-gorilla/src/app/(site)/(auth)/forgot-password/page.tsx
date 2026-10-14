@@ -1,7 +1,7 @@
 import { AuthShell } from "@/components/forms/AuthShell";
 import { ForgotForm } from "@/components/forms/AuthForms";
 
-export const metadata = { title: "Reset password | Patch Gorilla", robots: { index: false } };
+export const metadata = { title: "Reset password | Markhor Patches", robots: { index: false } };
 
 export default function ForgotPage() {
   return (

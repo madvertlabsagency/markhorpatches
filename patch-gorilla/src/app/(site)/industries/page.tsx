@@ -8,7 +8,7 @@ import { PatchArt } from "@/components/brand/PatchArt";
 import { Stagger, StaggerItem } from "@/components/motion/Reveal";
 import { FinalCTA } from "@/components/home/sections";
 
-export const metadata: Metadata = pageMetadata({ title: "Custom Patches by Industry | Patch Gorilla", description: "Custom patches for streetwear, apparel brands, businesses, sports teams, clubs, schools, events and creators.", path: "/industries" });
+export const metadata: Metadata = pageMetadata({ title: "Custom Patches by Industry | Markhor Patches", description: "Custom patches for streetwear, apparel brands, businesses, sports teams, clubs, schools, events and creators.", path: "/industries" });
 
 export default function IndustriesPage() {
   return (

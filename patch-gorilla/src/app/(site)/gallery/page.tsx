@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/States";
 import { ButtonLink } from "@/components/ui/Button";
 import { FinalCTA } from "@/components/home/sections";
 
-export const metadata: Metadata = pageMetadata({ title: "Custom Patch Gallery | Patch Gorilla", description: "Browse custom embroidered, PVC, woven, chenille and leather patches. Filter by patch type, industry and shape.", path: "/gallery" });
+export const metadata: Metadata = pageMetadata({ title: "Custom Patch Gallery | Markhor Patches", description: "Browse custom embroidered, PVC, woven, chenille and leather patches. Filter by patch type, industry and shape.", path: "/gallery" });
 
 export default async function GalleryPage() {
   const items = await getGalleryItems({ take: 200 });

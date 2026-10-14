@@ -10,11 +10,11 @@ import { Container } from "@/components/ui/Section";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/States";
 import { PatchArt } from "@/components/brand/PatchArt";
-import { Crown } from "@/components/brand/marks";
+import { HornMark } from "@/components/brand/marks";
 import { CartLineActions } from "@/components/cart/CartLineActions";
 import { CartEmailCapture } from "@/components/cart/CartEmailCapture";
 
-export const metadata: Metadata = pageMetadata({ title: "Your Cart | Patch Gorilla", path: "/cart", noindex: true });
+export const metadata: Metadata = pageMetadata({ title: "Your Cart | Markhor Patches", path: "/cart", noindex: true });
 
 function Line({ l }: { l: CartLine }) {
   const d = l.description;
@@ -49,7 +49,7 @@ export default async function CartPage() {
   return (
     <section data-header-theme="light" className="min-h-screen bg-offwhite pb-24 pt-[calc(var(--header-h)+2rem)]">
       <Container>
-        <div className="mb-8 flex items-center gap-2"><Crown className="h-5 text-electric" /><span className="eyebrow text-slate">Cart</span></div>
+        <div className="mb-8 flex items-center gap-2"><HornMark className="h-5 text-electric" /><span className="eyebrow text-slate">Cart</span></div>
         <h1 className="display text-[clamp(2.8rem,7vw,5rem)]">Your patches.</h1>
         {!loaded || loaded.lines.length === 0 ? (
           <EmptyState className="mt-10" title="Your cart is empty." description="Every great patch starts with an idea. Let's build yours." action={<ButtonLink href="/build-your-patch" arrow>Build your patch</ButtonLink>} />

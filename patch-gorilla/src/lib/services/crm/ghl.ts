@@ -64,8 +64,8 @@ export const ghlAdapter: CrmAdapter = {
         lastName: event.contact.lastName ?? undefined,
         phone: event.contact.phone ?? undefined,
         companyName: event.contact.company ?? undefined,
-        source: "patchgorilla.com",
-        tags: ["patch-gorilla", event.type.replace(/_/g, "-")],
+        source: "markhorpatches.com",
+        tags: ["markhor-patches", event.type.replace(/_/g, "-")],
         customFields,
       },
     });

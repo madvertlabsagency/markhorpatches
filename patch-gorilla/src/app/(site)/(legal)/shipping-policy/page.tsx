@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import { LegalPage } from "@/components/LegalPage";
 
-export const metadata: Metadata = pageMetadata({ title: "Shipping Policy | Patch Gorilla", path: "/shipping-policy" });
+export const metadata: Metadata = pageMetadata({ title: "Shipping Policy | Markhor Patches", path: "/shipping-policy" });
 
 const BODY = `## Where we ship
 We ship across the United States. Contact us about international orders.

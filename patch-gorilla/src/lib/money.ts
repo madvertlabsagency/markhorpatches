@@ -1,4 +1,4 @@
-/** All money in Patch Gorilla is integer cents. These helpers are the only place we format it. */
+/** All money in Markhor Patches is integer cents. These helpers are the only place we format it. */
 
 export function formatUSD(cents: number, opts: { compact?: boolean } = {}): string {
   const dollars = cents / 100;

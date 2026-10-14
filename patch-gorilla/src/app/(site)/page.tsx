@@ -6,7 +6,7 @@ import { BuilderTeaser } from "@/components/home/BuilderTeaser";
 import { ProcessSteps } from "@/components/home/ProcessSteps";
 import { VideoSection } from "@/components/home/VideoSection";
 import { ArtworkToPatch } from "@/components/home/ArtworkToPatch";
-import { AudienceSection, FAQSection, FinalCTA, GuaranteeSection, WhySection } from "@/components/home/sections";
+import { AudienceSection, BrandStorySection, FAQSection, FinalCTA, GuaranteeSection, WhySection } from "@/components/home/sections";
 import { PatchCard } from "@/components/product/PatchCard";
 import { GalleryGrid } from "@/components/gallery/GalleryGrid";
 import { ReviewCarousel } from "@/components/reviews/ReviewCarousel";
@@ -21,8 +21,8 @@ import { getFaqs, getGalleryItems, getPatchCards, getPublishedReviews } from "@/
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Custom Patches for Bold Brands | Patch Gorilla",
-  description: "Design custom embroidered, PVC, woven, chenille, leather, printed and 3D puff patches. Transparent pricing, free artwork support and a digital proof before production.",
+  title: "Custom Patches for Brands That Don’t Follow the Herd | Markhor Patches",
+  description: "Markhor Patches makes custom embroidered, PVC, woven, chenille, leather, printed and 3D puff patches and custom logo patches. Transparent pricing, free artwork support and a digital proof before production.",
   path: "/",
 });
 
@@ -70,8 +70,8 @@ export default async function HomePage() {
         <div className="grid-texture pointer-events-none absolute inset-0 opacity-60" aria-hidden />
         <Container className="relative">
           <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <SectionHeader eyebrow="Instant pricing" title={<>Build your <span className="text-gradient">patch.</span></>} accent="Your idea. Your rules." />
-            <p className="max-w-xs text-slate">25 or 2,500 — Gorilla doesn&apos;t judge. Prices update as you go.</p>
+            <SectionHeader eyebrow="Instant pricing" title={<>Build your <span className="text-gradient">patch.</span></>} accent="Your artwork. Our craft." />
+            <p className="max-w-xs text-slate">25 or 2,500 — same craft, live prices. Updates as you go.</p>
           </div>
           <BuilderTeaser catalog={catalog} tables={tables} />
         </Container>
@@ -83,14 +83,14 @@ export default async function HomePage() {
         <Container className="relative">
           <div className="grid items-center gap-14 lg:grid-cols-2">
             <div>
-              <SectionHeader dark eyebrow="Artwork to patch" title={<>From pixels <br />to <span className="text-gradient">patches.</span></>} description="Send a PNG, a PDF, a vector file — or a photo of a napkin sketch. Our designers translate it into thread, rubber, leather or print, then show you exactly how it will look." />
+              <SectionHeader dark eyebrow="Your artwork. Our craft." title={<>From sketch <br />to <span className="text-gradient">stitch.</span></>} description="Send a PNG, a PDF, a vector file — or a photo of a napkin sketch. Our designers translate it into thread, rubber, leather or print, then show you exactly how it will look." />
               <ul className="mt-8 space-y-3 text-white/80">
                 {["Vector clean-up and digitizing included", "Thread colors matched to your brand", "You approve every detail before production"].map((t) => (
                   <li key={t} className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-turquoise" />{t}</li>
                 ))}
               </ul>
               <div className="mt-10 flex flex-wrap items-center gap-4">
-                <ButtonLink href="/free-mockup" arrow>Drop your art</ButtonLink>
+                <ButtonLink href="/free-mockup" arrow>Upload your artwork</ButtonLink>
                 <span className="hand -rotate-2 text-xl text-turquoise">Napkin sketch? We&apos;ve seen worse.</span>
               </div>
             </div>
@@ -116,7 +116,7 @@ export default async function HomePage() {
       <Section tone="dark" className="py-24 sm:py-32">
         <Container>
           <div className="mb-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-            <SectionHeader dark eyebrow="Up close" title={settings.home.videoTitle} description={settings.home.videoDescription} />
+            <SectionHeader dark eyebrow="Up close" title={<>From artwork to something <span className="text-gradient">you can wear.</span></>} description={settings.home.videoDescription} />
           </div>
           <Reveal>
             <VideoSection videoUrl={settings.home.videoUrl} posterUrl={settings.home.videoPosterUrl} title={settings.home.videoTitle} />
@@ -124,10 +124,13 @@ export default async function HomePage() {
         </Container>
       </Section>
 
-      {/* 8 — Why */}
+      {/* 8 — Why choose us */}
       <WhySection />
 
-      {/* 9 — Who we make for */}
+      {/* 9 — Brand story */}
+      <BrandStorySection />
+
+      {/* 10 — Who we make for */}
       <AudienceSection />
 
       {/* 10 — Gallery */}
@@ -135,7 +138,7 @@ export default async function HomePage() {
         <Section tone="dark" className="py-24 sm:py-32">
           <Container size="2xl">
             <div className="mb-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-              <SectionHeader dark eyebrow="Gallery" title={<>Built for <span className="text-gradient">bold brands.</span></>} />
+              <SectionHeader dark eyebrow="Gallery" title={<>Made to <span className="text-gradient">stand out.</span></>} />
               <ButtonLink href="/gallery" variant="outline-light" arrow>Full gallery</ButtonLink>
             </div>
             <GalleryGrid items={gallery} dark />

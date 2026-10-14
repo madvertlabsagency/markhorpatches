@@ -67,7 +67,7 @@ describe("email templates", () => {
   });
   it("uses the specified subjects", () => {
     expect(renderEmail("mockup_received", {}, "https://x.co").subject).toBe("We've got your artwork 👀");
-    expect(renderEmail("proof_ready", {}, "https://x.co").subject).toBe("Your Gorilla Proof Is Ready");
+    expect(renderEmail("proof_ready", {}, "https://x.co").subject).toBe("Your Markhor Proof Is Ready");
     expect(renderEmail("shipped", {}, "https://x.co").subject).toBe("Your patches are on the move.");
   });
 });

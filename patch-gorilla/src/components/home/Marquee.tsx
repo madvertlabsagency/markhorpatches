@@ -1,7 +1,7 @@
 import { Sparkle } from "@/components/brand/marks";
 import { cn } from "@/lib/utils";
 
-const DEFAULT = ["Embroidered", "PVC", "Woven", "Chenille", "Leather", "Printed", "3D Puff", "Custom shapes"];
+const DEFAULT = ["Free artwork support", "Digital proof", "Custom shapes", "Quality checked", "Tracked shipping", "Real human support"];
 
 /** Infinite ticker. Pure CSS animation (paused for reduced motion via global rule). */
 export function Marquee({ items = DEFAULT, className, tone = "gradient" }: { items?: string[]; className?: string; tone?: "gradient" | "navy" | "light" }) {

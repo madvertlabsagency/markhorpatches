@@ -6,7 +6,7 @@ import { AuthShell } from "@/components/forms/AuthShell";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea, Select } from "@/components/ui/fields";
 
-export const metadata = { title: "Leave a review | Patch Gorilla", robots: { index: false } };
+export const metadata = { title: "Leave a review | Markhor Patches", robots: { index: false } };
 
 async function submitReview(fd: FormData) {
   "use server";

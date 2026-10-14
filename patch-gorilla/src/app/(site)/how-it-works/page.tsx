@@ -5,19 +5,20 @@ import { Container, Section, SectionHeader } from "@/components/ui/Section";
 import { ButtonLink } from "@/components/ui/Button";
 import { PROCESS } from "@/components/home/ProcessSteps";
 import { Reveal } from "@/components/motion/Reveal";
-import { ThreadLine } from "@/components/brand/marks";
+import { SummitTrail } from "@/components/brand/marks";
 import { FAQSection, FinalCTA, GuaranteeSection } from "@/components/home/sections";
 import { getFaqs } from "@/lib/data/public";
 import { getSettings } from "@/lib/settings";
 
-export const metadata: Metadata = pageMetadata({ title: "How Custom Patch Ordering Works | Patch Gorilla", description: "Upload, customize, approve your digital proof, and we produce, quality-check and ship. Nothing goes into production until you approve it.", path: "/how-it-works" });
+export const metadata: Metadata = pageMetadata({ title: "How Custom Patch Ordering Works | Markhor Patches", description: "Upload, customize, approve your digital proof, and we produce, quality-check and ship. Nothing goes into production until you approve it.", path: "/how-it-works" });
 
 const DETAIL = [
   "Upload a logo, sketch or photo — PNG, JPG, PDF, SVG, AI or EPS. Not production-ready? That's our problem.",
   "Choose patch type, size, quantity, shape, backing, border and extras in the builder. Prices update live from our real price list.",
   "A designer prepares a production-ready digital proof showing artwork, exact dimensions, thread colors and every specification.",
   "Approve it — or request changes as many times as you need. Every version is saved. Approved proofs are locked.",
-  "We produce your patches with our specialist production partners and check every batch against the approved specification.",
+  "We produce your patches with our specialist production partners, exactly to the specification you approved.",
+  "Every batch is checked against your approved proof before it ships. Our mistake, our cost.",
   "Your patches ship with tracking. You get the tracking link by email and on your order page.",
 ];
 
@@ -25,12 +26,12 @@ export default async function HowItWorks() {
   const [faqs, settings] = await Promise.all([getFaqs({ general: true }), getSettings()]);
   return (
     <>
-      <PageHero eyebrow="How it works" title={<>Custom patches <span className="text-gradient">without the guesswork.</span></>} description="Upload → Customize → Preview → Approve → We make it." crumbs={[{ name: "How it works", path: "/how-it-works" }]}>
+      <PageHero eyebrow="How it works" title={<>Custom patches <span className="text-gradient">without the guesswork.</span></>} accent="From sketch to stitch." description="Upload → Customize → Preview → Approve → Produce → Quality check → Ship." crumbs={[{ name: "How it works", path: "/how-it-works" }]}>
         <ButtonLink href="/free-mockup" size="lg" arrow>Get a free mockup</ButtonLink>
       </PageHero>
       <Section tone="light" className="py-20 sm:py-28">
         <Container size="lg" className="relative">
-          <ThreadLine vertical className="absolute bottom-0 left-[38px] top-0 hidden h-full sm:block" />
+          <SummitTrail className="pointer-events-none absolute inset-x-0 top-0 hidden h-16 sm:block" />
           <ol className="space-y-10">
             {PROCESS.map((s, i) => (
               <Reveal as="li" key={s.title} className="relative grid gap-4 sm:grid-cols-[80px_1fr]">

@@ -30,9 +30,9 @@ export function useWhatsAppContext() {
 }
 
 export function whatsappMessage(ctx: WhatsAppContextData | null) {
-  if (!ctx?.type) return "Hi Patch Gorilla! I have a question about custom patches.";
+  if (!ctx?.type) return "Hi Markhor Patches! I have a question about custom patches.";
   return [
-    "Hi Patch Gorilla! I'm interested in:",
+    "Hi Markhor Patches! I'm interested in:",
     `Patch Type: ${ctx.type}`,
     `Size: ${ctx.size ?? "—"}`,
     `Quantity: ${ctx.quantity ?? "—"}`,

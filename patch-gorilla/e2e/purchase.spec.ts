@@ -16,7 +16,7 @@ test("customer builds a patch, uploads artwork, adds to cart and checks out", as
 
 test("homepage renders key sections @mobile", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Any design.");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Custom patches");
   await expect(page.getByRole("link", { name: /Get a free mockup/i }).first()).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);

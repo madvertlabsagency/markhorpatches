@@ -16,7 +16,7 @@ Adapter: `src/lib/services/crm/ghl.ts` (LeadConnector API v2, `Version: 2021-07-
 | Proof approved | `proof_approved` | `GHL_STAGE_APPROVED` |
 | Support message | `support_request` | — |
 
-Each delivery upserts the contact (first/last name, email, phone, company, tags `patch-gorilla` + event) with custom fields `patch_type, patch_size, quantity, backing, border, estimated_order_value, artwork_url, lead_source, utm_source, utm_medium, utm_campaign, utm_content, current_order_status`. One opportunity per order is created and then moved through stages (its id is stored on `Order.crmOpportunityId`).
+Each delivery upserts the contact (first/last name, email, phone, company, tags `markhor-patches` + event) with custom fields `patch_type, patch_size, quantity, backing, border, estimated_order_value, artwork_url, lead_source, utm_source, utm_medium, utm_campaign, utm_content, current_order_status`. One opportunity per order is created and then moved through stages (its id is stored on `Order.crmOpportunityId`).
 
 Reliability: events are written to the `CRMEvent` outbox with a unique idempotency key (e.g. `proof_ready:<proofId>`), processed by `/api/cron/crm` (or `npm run jobs:crm-retry`), retried with exponential backoff (2m → 6h) and marked `DEAD` after 6 attempts. Every API call is logged to `IntegrationLog` (no secrets). Retry from Admin → Integrations.
 
@@ -24,7 +24,7 @@ Reliability: events are written to the `CRMEvent` outbox with a unique idempoten
 | Trigger (domain event) | Template | Subject |
 |---|---|---|
 | `mockup.submitted` | `mockup_received` | We've got your artwork 👀 |
-| `proof.sent` | `proof_ready` | Your Gorilla Proof Is Ready |
+| `proof.sent` | `proof_ready` | Your Markhor Proof Is Ready |
 | `proof.revision_requested` | `revision_received` | We're making the changes. |
 | `proof.approved` | `proof_approved` | Approved. Let's make it real. |
 | `order.paid` | `payment_confirmation` | Payment received (PG-…) |

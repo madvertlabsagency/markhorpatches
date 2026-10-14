@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import { LegalPage } from "@/components/LegalPage";
 
-export const metadata: Metadata = pageMetadata({ title: "Privacy Policy | Patch Gorilla", path: "/privacy" });
+export const metadata: Metadata = pageMetadata({ title: "Privacy Policy | Markhor Patches", path: "/privacy" });
 
 const BODY = `## What we collect
 Contact details you give us (name, email, phone, company, addresses), artwork you upload, order details, and basic analytics about how the site is used.

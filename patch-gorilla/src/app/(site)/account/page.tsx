@@ -9,7 +9,7 @@ export default async function AccountHome({ searchParams }: { searchParams: Prom
   const { welcome } = await searchParams;
   const { customer } = await requireCustomer();
   if (!customer) {
-    return <EmptyState title={welcome ? "Welcome to the troop." : "Almost there."} description="Confirm your email (check your inbox) and your orders, proofs and saved designs will appear here." action={<ButtonLink href="/build-your-patch" arrow>Build a patch</ButtonLink>} />;
+    return <EmptyState title={welcome ? "Welcome to Markhor Patches." : "Almost there."} description="Confirm your email (check your inbox) and your orders, proofs and saved designs will appear here." action={<ButtonLink href="/build-your-patch" arrow>Build a patch</ButtonLink>} />;
   }
   const [orders, pendingProofs, designs] = await Promise.all([
     prisma.order.findMany({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" }, take: 5, include: { items: true } }),

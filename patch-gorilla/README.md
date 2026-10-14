@@ -1,6 +1,6 @@
-# Patch Gorilla
+# Markhor Patches
 
-**Custom patches for bold brands.** A production-grade custom-patch e-commerce platform: marketing site, interactive patch configurator with a server-authoritative pricing engine, artwork uploads, free-mockup flow, cart & Stripe checkout, versioned proof approval, customer accounts, order tracking, a full admin console, GoHighLevel CRM sync and an event-driven email lifecycle.
+**Custom patches for brands that don’t follow the herd.** A production-grade custom-patch e-commerce platform: marketing site, interactive patch configurator with a server-authoritative pricing engine, artwork uploads, free-mockup flow, cart & Stripe checkout, versioned proof approval, customer accounts, order tracking, a full admin console, GoHighLevel CRM sync and an event-driven email lifecycle.
 
 | | |
 |---|---|
@@ -105,8 +105,13 @@ The configurator reads all of this from the database through the rule engine (`s
 - Section copy/layout lives in `src/app/(site)/page.tsx` and `src/components/home/*`.
 
 ### Replace images and videos
-- **Logos:** `public/brand/` holds the supplied logos (white background removed; reverse versions recolor only the wordmark to white). Replace with official transparent/reverse exports using the same filenames.
-- **Placeholders:** `public/placeholders/*` were cropped from the supplied mockups and are labeled *“Sample — replace”*. Swap them for real photography (keep filenames, or update URLs in Admin → Gallery).
+- **Logos:** `public/brand/` holds the official Markhor Patches assets, processed only for format (never redrawn or stretched):
+  - `markhor-emblem*.png` — circular emblem with horns (supplied transparent PNG, trimmed) → nav lockup, hero, brand story, CTA, OG image, emails.
+  - `markhor-badge*.png` — full badge with wordmark + tagline (white background removed by edge flood-fill, so the white letters stay intact) → footer, 404, invoice, schema logo.
+  - `markhor-icon-*.png`, `/favicon.ico`, `markhor-icon-maskable-512.png` — from the supplied app icon (corners masked) → favicon, apple-touch, PWA.
+  - The navigation lockup is the official emblem + a typeset "MARKHOR / PATCHES" wordmark (`src/components/brand/Logo.tsx`). If you produce an official horizontal lockup file, swap it in there.
+  - Every placement keeps the asset's intrinsic aspect ratio (`h-auto` + `object-contain`), so the circle can never distort or be cropped.
+- **Placeholders:** `public/placeholders/*` were cropped from the original supplied mockups (hero patch cutouts `cut-*.webp`, gallery `sample-*.webp`, video poster `macro-patches.webp`) and are labeled *“Sample — replace”*. Swap them for real photography (keep filenames, or update URLs in Admin → Gallery).
 - **Patch type card images:** Admin → Patch types → *Card image URL*. Until set, a designed SVG illustration (`PatchArt`) is used.
 - **Product page hero/gallery/video:** Admin → Patch types → product page section.
 - Remote image hosts must be allowed in `next.config.ts → images.remotePatterns`.
@@ -141,7 +146,7 @@ Admin → Site settings → `brand.whatsappNumber` — digits only in internatio
 ### Manage proofs
 1. Orders needing a proof appear in **Admin → Proofs** (oldest first) and on the dashboard.
 2. Open the order. For free-mockup orders, a designer can **edit the production spec** first (re-priced by the same engine; incompatible options are rejected).
-3. Upload a PNG/JPG/PDF under *New proof version*, add designer notes, and send. The customer gets “Your Gorilla Proof Is Ready”.
+3. Upload a PNG/JPG/PDF under *New proof version*, add designer notes, and send. The customer gets “Your Markhor Proof Is Ready”.
 4. The customer approves (with the required confirmation statement) or requests a revision (with optional new artwork). Every version is kept (V1, V2…); older un-approved versions become *superseded*.
 5. Approval records customer, version, timestamp, IP/user agent and a SHA-256 hash of the file key + spec. **Approved proofs are locked** and can't be overwritten.
 6. Production is blocked by the order state machine until every item has an approved proof **and** the order is paid. Unpaid mockup orders move to *Awaiting payment* after approval; the customer pays from their order page.
@@ -150,6 +155,14 @@ Admin → Site settings → `brand.whatsappNumber` — digits only in internatio
 See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) (Vercel or any Node host + managed Postgres, migrations, cron, checklist).
 
 ---
+
+## Rebrand notes (Patch Gorilla → Markhor Patches)
+- Customer-facing brand, logos, icons, OG image, emails, structured data and copy are Markhor Patches. Routes, database schema, pricing, configurator, checkout, proofs, auth, uploads and the GHL integration are unchanged.
+- **Existing databases:** run `npm run db:rebrand` once after deploying. It updates stored copy (settings, product pages, FAQs, articles) and removes old placeholder gallery rows. It's idempotent and never touches orders, customers, payments or proofs. Then `npx prisma migrate deploy` applies the small `authorName` default change.
+- **GHL:** contacts are now tagged `markhor-patches` (was `patch-gorilla`) with source `markhorpatches.com`. Update any GHL automations keyed on the old tag.
+- The project folder (`patch-gorilla/`), local database names and CI workflow file keep their original names on purpose. They're internal only, and renaming them would break existing paths, deploy settings and connection strings.
+- Brand tokens (`src/app/globals.css`) were sampled from the emblem: Markhor Navy `#081A36`, Cobalt `#0A4AD6`, Electric `#0A74F5`, Glacier Cyan `#0AD2F7`, Midnight `#050B18`. Signature gradient: `#0A2A6B → #0A6CF2 → #0AD2F7`.
+- Brand devices (`src/components/brand/marks.tsx`): `HornMark` (paired horn strokes), `MountainContours` (topographic line art), `HornDivider`, `SummitTrail` (ascending process path), plus brush underline, arrows and sticker labels. Use them sparingly.
 
 ## Honesty rules baked in
 - No fabricated reviews, customer counts, ratings, certifications or “Made in USA” claims. Seeded sample reviews and gallery images are visibly labeled and flagged in the admin dashboard until removed.

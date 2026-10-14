@@ -49,7 +49,7 @@ export function ProofUploader({ itemId }: { itemId: string }) {
       </label>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <div><Label htmlFor={`dn-${itemId}`}>Designer notes (shown to customer)</Label><textarea id={`dn-${itemId}`} name="designerNotes" className={`${inputCls} h-20 py-2`} /></div>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="send" defaultChecked className="h-4 w-4 accent-electric" /> Send to customer now (emails &ldquo;Your Gorilla Proof Is Ready&rdquo;)</label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="send" defaultChecked className="h-4 w-4 accent-electric" /> Send to customer now (emails &ldquo;Your Markhor Proof Is Ready&rdquo;)</label>
       <button className={btnCls} disabled={!token}>Create proof version</button>
     </form>
   );

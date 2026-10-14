@@ -122,8 +122,8 @@ export function ArtworkUploader({ value, onChange, maxMb, compact, dark }: { val
               <span className="bg-signature grid h-16 w-16 place-items-center rounded-2xl text-white shadow-glow transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-110">
                 <UploadCloud className="h-8 w-8" aria-hidden />
               </span>
-              <p className={cn("display mt-5 text-4xl", dark ? "text-white" : "text-navy")}>Drop your art.</p>
-              <p className="hand mt-1 -rotate-1 text-lg text-electric">Napkin sketch? We&apos;ve seen worse.</p>
+              <p className={cn("display mt-5 text-4xl", dark ? "text-white" : "text-navy")}>Drop your artwork.</p>
+              <p className="hand mt-1 -rotate-1 text-lg text-electric">We&apos;ll take it from here.</p>
               <p className="mt-3 text-sm text-slate">Drag & drop or <span className="font-semibold text-patch underline">browse</span> · PNG, JPG, PDF, SVG, AI, EPS · up to {maxMb} MB</p>
             </motion.div>
           )}
@@ -131,7 +131,7 @@ export function ArtworkUploader({ value, onChange, maxMb, compact, dark }: { val
       </label>
       {status.kind === "error" && (
         <div role="alert" className="mt-3 rounded-2xl border border-danger/20 bg-danger/5 p-4">
-          <p className="font-semibold text-navy">That file gave Gorilla a headache.</p>
+          <p className="font-semibold text-navy">That file didn&apos;t make the climb.</p>
           <p className="mt-1 text-sm text-slate">{status.reason}</p>
           <button type="button" onClick={() => inputRef.current?.click()} className="mt-2 text-sm font-semibold text-patch underline">Try another file</button>
         </div>

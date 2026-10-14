@@ -9,10 +9,10 @@ import { ARTWORK_TYPES } from "@/lib/services/storage/validation";
 import { pageMetadata } from "@/lib/seo";
 import { Container } from "@/components/ui/Section";
 import { MockupForm } from "@/components/forms/MockupForm";
-import { Crown, BrushUnderline } from "@/components/brand/marks";
+import { HornMark, BrushUnderline } from "@/components/brand/marks";
 import { StickerBadge } from "@/components/brand/StickerBadge";
 
-export const metadata: Metadata = pageMetadata({ title: "Get a Free Custom Patch Mockup | Patch Gorilla", description: "Upload your artwork and get a free digital patch mockup. No payment, no obligation — nothing goes into production until you approve it.", path: "/free-mockup" });
+export const metadata: Metadata = pageMetadata({ title: "Get a Free Custom Patch Mockup | Markhor Patches", description: "Upload your artwork and get a free digital patch mockup. No payment, no obligation — nothing goes into production until you approve it.", path: "/free-mockup" });
 
 export default async function FreeMockupPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
@@ -33,7 +33,7 @@ export default async function FreeMockupPage({ searchParams }: { searchParams: P
       <Container size="2xl" className="relative">
         <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="lg:sticky lg:top-28 lg:self-start">
-            <div className="mb-4 flex items-center gap-3"><Crown className="h-6 text-turquoise" /><span className="eyebrow text-white/70">Free mockup</span></div>
+            <div className="mb-4 flex items-center gap-3"><HornMark className="h-6 text-turquoise" /><span className="eyebrow text-white/70">Free mockup</span></div>
             <h1 className="display text-[clamp(3rem,8vw,6rem)]">See it <span className="text-gradient">before</span> you buy it.</h1>
             <BrushUnderline className="mt-1 h-4 w-64" />
             <p className="mt-6 max-w-lg text-lg text-white/75">Send your artwork. Our designers create a digital mockup of your patch — free, with no obligation.</p>

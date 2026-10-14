@@ -18,7 +18,7 @@ const schema = z.object({
   S3_ENDPOINT: z.string().optional(),
   S3_FORCE_PATH_STYLE: z.string().optional(),
   EMAIL_PROVIDER: z.enum(["console", "resend", "postmark"]).default("console"),
-  EMAIL_FROM: z.string().default("Patch Gorilla <hello@example.com>"),
+  EMAIL_FROM: z.string().default("Markhor Patches <hello@example.com>"),
   EMAIL_REPLY_TO: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   POSTMARK_SERVER_TOKEN: z.string().optional(),

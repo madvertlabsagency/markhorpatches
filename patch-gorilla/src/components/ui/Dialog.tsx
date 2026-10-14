@@ -10,12 +10,12 @@ export const DialogClose = D.Close;
 export function DialogContent({ title, description, children, className, side }: { title: string; description?: string; children: React.ReactNode; className?: string; side?: "right" | "bottom" | "full" }) {
   const pos =
     side === "right"
-      ? "inset-y-0 right-0 h-full w-full max-w-md rounded-l-3xl data-[state=open]:animate-[drawer-in_.4s_var(--ease-gorilla)]"
+      ? "inset-y-0 right-0 h-full w-full max-w-md rounded-l-3xl data-[state=open]:animate-[drawer-in_.4s_var(--ease-brand)]"
       : side === "full"
         ? "inset-0 h-full w-full data-[state=open]:animate-[fade-in_.25s_ease]"
         : side === "bottom"
-          ? "inset-x-0 bottom-0 max-h-[90vh] rounded-t-3xl data-[state=open]:animate-[sheet-in_.4s_var(--ease-gorilla)]"
-          : "left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl data-[state=open]:animate-[pop-in_.3s_var(--ease-gorilla)]";
+          ? "inset-x-0 bottom-0 max-h-[90vh] rounded-t-3xl data-[state=open]:animate-[sheet-in_.4s_var(--ease-brand)]"
+          : "left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl data-[state=open]:animate-[pop-in_.3s_var(--ease-brand)]";
   return (
     <D.Portal>
       <D.Overlay className="fixed inset-0 z-50 bg-midnight/60 backdrop-blur-sm data-[state=open]:animate-[fade-in_.2s_ease]" />

@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/States";
 import { ButtonLink } from "@/components/ui/Button";
 import { FinalCTA } from "@/components/home/sections";
 
-export const metadata: Metadata = pageMetadata({ title: "Customer Reviews | Patch Gorilla", description: "Reviews from real Patch Gorilla customers, collected after delivery.", path: "/reviews" });
+export const metadata: Metadata = pageMetadata({ title: "Customer Reviews | Markhor Patches", description: "Reviews from real Markhor Patches customers, collected after delivery.", path: "/reviews" });
 
 export default async function ReviewsPage() {
   const [reviews, rating] = await Promise.all([getPublishedReviews({ take: 100 }), getAggregateRating()]);

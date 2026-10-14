@@ -19,6 +19,7 @@ import { track } from "@/lib/analytics";
 import { setWhatsAppContext, whatsappMessage } from "@/lib/client/whatsapp-store";
 import { addToCartAction, saveDesignAction, updateCartItemAction } from "@/app/actions/cart";
 import { PatchArt } from "@/components/brand/PatchArt";
+import { HornMark } from "@/components/brand/marks";
 import { AnimatedPrice } from "@/components/motion/AnimatedPrice";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/fields";
@@ -256,7 +257,7 @@ export function PatchConfigurator({ catalog, tables, maxUploadMb, transit, whats
       </StepShell>
     ),
     quantity: (
-      <StepShell title="How many?" sub="25 or 2,500 — Gorilla doesn't judge. Bigger runs, better per-patch price.">
+      <StepShell title="How many?" sub="25 or 2,500 — every run gets the same craft. Bigger runs, better per-patch price.">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5" role="radiogroup" aria-label="Quantity">
           {QTY_PRESETS.map((q) => {
             const price = qtyPrice(q);
@@ -494,16 +495,22 @@ function ConfiguratorProgress({ steps, current, complete, onJump }: { steps: Ste
         <p className="eyebrow text-slate">Step {current + 1} / {steps.length}</p>
         <p className="font-display text-lg font-extrabold uppercase">{STEP_LABEL[steps[current]]}</p>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-navy/10 lg:hidden">
-        <motion.div className="bg-signature h-full" animate={{ width: `${((current + 1) / steps.length) * 100}%` }} />
+      <div className="relative mt-2 h-1.5 rounded-full bg-navy/10 lg:hidden">
+        <motion.div className="bg-signature h-full rounded-full" animate={{ width: `${((current + 1) / steps.length) * 100}%` }} />
+        <HornMark className="absolute -top-4 right-0 h-4 text-navy/25" />
       </div>
-      <ol className="hidden gap-1 lg:flex">
+      {/* Desktop: an ascending trail — each step sits a little higher, ending at the summit (Review). */}
+      <ol className="hidden items-end gap-1 lg:flex">
         {steps.map((s, i) => {
           const done = i < current && complete(s);
           return (
-            <li key={s} className="flex-1">
+            <li key={s} className="flex-1" style={{ paddingBottom: `${i * 3}px` }}>
               <button type="button" onClick={() => onJump(s)} aria-current={i === current ? "step" : undefined} className="group w-full text-left">
-                <span className={cn("block h-1.5 rounded-full transition-colors duration-500", i <= current ? "bg-signature" : "bg-navy/10")} />
+                <span className="relative block">
+                  <span className={cn("block h-1.5 rounded-full transition-colors duration-500", i <= current ? "bg-signature" : "bg-navy/10")} />
+                  {i === current && <motion.span layoutId="cfg-summit" className="absolute -top-[5px] right-0 h-4 w-4 rounded-full border-[3px] border-white bg-electric shadow-[0_0_0_3px_rgb(10_116_245/.25)]" />}
+                  {i === steps.length - 1 && <HornMark className="absolute -top-6 right-0 h-5 text-navy/30" />}
+                </span>
                 <span className={cn("mt-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider", i === current ? "text-navy" : "text-slate group-hover:text-navy")}>
                   {done ? <Check className="h-3.5 w-3.5 text-success" aria-hidden /> : <span className="tabular-nums">{String(i + 1).padStart(2, "0")}</span>}
                   {STEP_LABEL[s]}

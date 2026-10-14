@@ -16,7 +16,7 @@ export function Accordion({ items, className, dark }: { items: { id: string; q: 
               </span>
             </A.Trigger>
           </A.Header>
-          <A.Content className="overflow-hidden data-[state=closed]:animate-[acc-up_.3s_ease] data-[state=open]:animate-[acc-down_.35s_var(--ease-gorilla)]">
+          <A.Content className="overflow-hidden data-[state=closed]:animate-[acc-up_.3s_ease] data-[state=open]:animate-[acc-down_.35s_var(--ease-brand)]">
             <p className={cn("max-w-3xl pb-6 text-lg leading-relaxed", dark ? "text-white/70" : "text-slate")}>{it.a}</p>
           </A.Content>
         </A.Item>

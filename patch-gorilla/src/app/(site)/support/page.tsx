@@ -9,7 +9,7 @@ import { Container, Section } from "@/components/ui/Section";
 import { SupportForm } from "@/components/forms/SupportForm";
 import { FAQSection } from "@/components/home/sections";
 
-export const metadata: Metadata = pageMetadata({ title: "Support — Talk to a Patch Expert | Patch Gorilla", description: "Questions about custom patches, artwork, proofs or an existing order? Real humans, fast answers.", path: "/support" });
+export const metadata: Metadata = pageMetadata({ title: "Support — Talk to a Patch Expert | Markhor Patches", description: "Questions about custom patches, artwork, proofs or an existing order? Real humans, fast answers.", path: "/support" });
 
 export default async function SupportPage({ searchParams }: { searchParams: Promise<{ topic?: string }> }) {
   const [{ topic }, settings, faqs] = await Promise.all([searchParams, getSettings(), getFaqs({ general: true })]);

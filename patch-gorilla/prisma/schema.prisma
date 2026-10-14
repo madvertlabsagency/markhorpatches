@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// PATCH GORILLA — database schema
+// MARKHOR PATCHES — database schema
 // Conventions:
 //   • Money is ALWAYS integer cents (…Cents). Never floats.
 //   • Percentages are integer basis points (2500 = 25%).
@@ -957,7 +957,7 @@ model Article {
   /// Markdown-lite (## headings, paragraphs, - lists, **bold**).
   body           String
   coverImageUrl  String?
-  authorName     String    @default("Patch Gorilla Team")
+  authorName     String    @default("Markhor Patches Team")
   categoryId     String?
   readingMinutes Int       @default(5)
   seoTitle       String?
