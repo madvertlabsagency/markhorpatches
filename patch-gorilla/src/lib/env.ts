@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { databaseUrl } from "@/lib/database-url";
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -41,7 +42,7 @@ let cached: Env | null = null;
 /** Validated server environment. Throws with a readable message on misconfiguration. */
 export function env(): Env {
   if (cached) return cached;
-  const parsed = schema.safeParse(process.env);
+  const parsed = schema.safeParse({ ...process.env, DATABASE_URL: databaseUrl() });
   if (!parsed.success) {
     throw new Error("Invalid environment configuration:\n" + parsed.error.issues.map((i) => `  • ${i.path.join(".")}: ${i.message}`).join("\n"));
   }

@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
+import { databaseUrl } from "./src/lib/database-url";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -9,6 +10,6 @@ export default defineConfig({
   },
   datasource: {
     // `prisma generate` needs no live database, so builds succeed before DATABASE_URL is set.
-    url: process.env.DATABASE_URL ?? "postgresql://placeholder:placeholder@localhost:5432/placeholder",
+    url: databaseUrl() ?? "postgresql://placeholder:placeholder@localhost:5432/placeholder",
   },
 });

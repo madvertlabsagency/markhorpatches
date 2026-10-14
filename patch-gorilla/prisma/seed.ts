@@ -8,11 +8,12 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { databaseUrl } from "../src/lib/database-url";
 import { DEFAULT_SETTINGS } from "../src/lib/settings-schema";
 import { BACKINGS, BORDERS, EXTRAS, PATCH_TYPES, PRODUCTS, QUANTITY_TIERS, SIZE_TIERS, seedPriceCents } from "./seed-catalog";
 import { ARTICLES, ARTICLE_CATEGORIES, GENERAL_FAQS, PRODUCT_FAQS } from "./seed-content";
 
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl() }) });
 
 export async function seed(db: PrismaClient = prisma, opts: { sampleContent?: boolean; log?: boolean } = {}) {
   const log = opts.log === false ? () => {} : console.log;
