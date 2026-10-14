@@ -1,0 +1,1090 @@
+// ─────────────────────────────────────────────────────────────
+// MARKHOR PATCHES — database schema
+// Conventions:
+//   • Money is ALWAYS integer cents (…Cents). Never floats.
+//   • Percentages are integer basis points (2500 = 25%).
+//   • Patch dimensions are inches (Float — not currency).
+//   • Every table has createdAt / updatedAt.
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  // Extensionless imports so Turbopack/webpack and tsx all resolve the generated files.
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── Enums ─────────────────────────
+
+enum Role {
+  CUSTOMER
+  SUPER_ADMIN
+  ADMIN
+  DESIGNER
+  SUPPORT
+  FULFILLMENT
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum Shape {
+  CIRCLE
+  SQUARE
+  RECTANGLE
+  SHIELD
+  OVAL
+  CUSTOM
+}
+
+enum ModifierType {
+  FIXED // one-off charge per line, cents
+  PER_UNIT // added to every patch, cents
+  PERCENT // basis points of the base unit price
+}
+
+enum ArtworkStatus {
+  UPLOADED
+  NEEDS_DESIGN_HELP
+  SEND_LATER
+}
+
+enum FileStatus {
+  PENDING_UPLOAD
+  UPLOADED
+  REJECTED
+}
+
+enum CartStatus {
+  ACTIVE
+  CONVERTED
+  ABANDONED
+}
+
+enum QuoteStatus {
+  OPEN
+  SENT
+  ACCEPTED
+  EXPIRED
+  CONVERTED
+}
+
+enum MockupStatus {
+  NEW
+  IN_DESIGN
+  PROOF_SENT
+  CONVERTED
+  CLOSED
+}
+
+enum OrderStatus {
+  DRAFT
+  QUOTE_REQUESTED
+  MOCKUP_PENDING
+  PROOF_READY
+  REVISION_REQUESTED
+  PROOF_APPROVED
+  PAYMENT_PENDING
+  PAID
+  IN_PRODUCTION
+  QUALITY_CHECK
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+  FAILED
+}
+
+enum OrderSource {
+  CHECKOUT
+  FREE_MOCKUP
+  QUOTE
+  ADMIN
+}
+
+enum PaymentProvider {
+  STRIPE
+  MOCK
+}
+
+enum ProofStatus {
+  DRAFT
+  SENT
+  REVISION_REQUESTED
+  APPROVED
+  SUPERSEDED
+}
+
+enum ShipmentStatus {
+  LABEL_CREATED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  EXCEPTION
+}
+
+enum CouponType {
+  PERCENT
+  FIXED
+}
+
+enum LeadSource {
+  FREE_MOCKUP
+  QUOTE
+  CONFIGURATOR
+  CHECKOUT
+  SUPPORT
+  NEWSLETTER
+}
+
+enum QueueStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  DEAD
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+// ───────────────────────── Identity ─────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  name          String?
+  role          Role      @default(CUSTOMER)
+  disabled      Boolean   @default(false)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  customer  Customer?
+  accounts  Account[]
+  sessions  Session[]
+  auditLogs AuditLog[]
+  proofs    Proof[]   @relation("ProofUploadedBy")
+
+  @@index([role])
+}
+
+/// External identity providers (Google, etc). Unused until an OAuth provider is enabled.
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+/// Opaque session. Only the SHA-256 hash of the cookie token is stored.
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  expiresAt  DateTime
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Customer {
+  id               String   @id @default(cuid())
+  userId           String?  @unique
+  email            String   @unique
+  firstName        String?
+  lastName         String?
+  phone            String?
+  company          String?
+  marketingConsent Boolean  @default(false)
+  crmContactId     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user           User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  addresses      Address[]
+  orders         Order[]
+  artworkFiles   ArtworkFile[]
+  quotes         Quote[]
+  mockupRequests MockupRequest[]
+  carts          Cart[]
+  savedDesigns   PatchConfiguration[]
+  reviews        Review[]
+  proofApprovals ProofApproval[]
+  proofRevisions ProofRevision[]
+
+  @@index([createdAt])
+}
+
+model Address {
+  id         String      @id @default(cuid())
+  customerId String
+  type       AddressType @default(SHIPPING)
+  firstName  String
+  lastName   String
+  company    String?
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  postalCode String
+  country    String      @default("US")
+  phone      String?
+  isDefault  Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+}
+
+// ───────────────────────── Catalog ─────────────────────────
+
+/// Marketing/SEO page for a patch type (or the /custom-patches hub when patchTypeId is null).
+model Product {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  name             String
+  h1               String
+  tagline          String?
+  shortDescription String
+  description      String
+  bestFor          String[]
+  canReproduce     String[]
+  highlights       String[]
+  heroImageUrl     String?
+  heroImageAlt     String?
+  videoUrl         String?
+  videoPosterUrl   String?
+  seoTitle         String?
+  seoDescription   String?
+  active           Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  patchTypeId      String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  patchType PatchType?     @relation(fields: [patchTypeId], references: [id], onDelete: SetNull)
+  media     ProductMedia[]
+  faqs      FAQ[]
+
+  @@index([active, sortOrder])
+}
+
+model ProductMedia {
+  id        String    @id @default(cuid())
+  productId String
+  type      MediaType @default(IMAGE)
+  url       String
+  posterUrl String?
+  alt       String
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+}
+
+/// Configurator rule source. Everything the configurator allows comes from here.
+model PatchType {
+  id                 String   @id @default(cuid())
+  code               String   @unique // EMBROIDERED, PVC, …
+  slug               String   @unique // embroidered-patches
+  name               String
+  shortName          String
+  shortDescription   String
+  bestUse            String
+  imageUrl           String?
+  minSizeIn          Float    @default(1)
+  maxSizeIn          Float    @default(12)
+  minQuantity        Int      @default(10)
+  productionDays     Int      @default(10)
+  rushProductionDays Int      @default(6)
+  allowedShapes      Shape[]
+  active             Boolean  @default(true)
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  product        Product?
+  backings       PatchTypeBacking[]
+  borders        PatchTypeBorder[]
+  extras         PatchTypeExtra[]
+  prices         PriceMatrix[]
+  configurations PatchConfiguration[]
+  mockupRequests MockupRequest[]
+  reviews        Review[]
+  galleryItems   GalleryItem[]
+
+  @@index([active, sortOrder])
+}
+
+/// Size bands. A patch's quoted size ((w+h)/2) falls into the smallest tier whose maxSizeIn ≥ size.
+model SizeTier {
+  id        String   @id @default(cuid())
+  label     String
+  maxSizeIn Float    @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  prices PriceMatrix[]
+}
+
+/// Quantity bands. Quantity falls into the largest tier whose minQuantity ≤ qty.
+model QuantityTier {
+  id          String   @id @default(cuid())
+  minQuantity Int      @unique
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  prices PriceMatrix[]
+}
+
+model PriceMatrix {
+  id             String   @id @default(cuid())
+  patchTypeId    String
+  sizeTierId     String
+  quantityTierId String
+  unitPriceCents Int
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  patchType    PatchType    @relation(fields: [patchTypeId], references: [id], onDelete: Cascade)
+  sizeTier     SizeTier     @relation(fields: [sizeTierId], references: [id], onDelete: Cascade)
+  quantityTier QuantityTier @relation(fields: [quantityTierId], references: [id], onDelete: Cascade)
+
+  @@unique([patchTypeId, sizeTierId, quantityTierId])
+  @@index([patchTypeId])
+}
+
+model BackingOption {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  name          String
+  description   String
+  imageUrl      String?
+  modifierType  ModifierType @default(PER_UNIT)
+  modifierValue Int          @default(0)
+  active        Boolean      @default(true)
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  patchTypes     PatchTypeBacking[]
+  configurations PatchConfiguration[]
+}
+
+model BorderOption {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  name          String
+  description   String
+  imageUrl      String?
+  modifierType  ModifierType @default(PER_UNIT)
+  modifierValue Int          @default(0)
+  /// Empty = compatible with every shape.
+  allowedShapes Shape[]
+  active        Boolean      @default(true)
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  patchTypes     PatchTypeBorder[]
+  configurations PatchConfiguration[]
+}
+
+model ExtraOption {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  name          String
+  description   String
+  imageUrl      String?
+  modifierType  ModifierType @default(PER_UNIT)
+  modifierValue Int          @default(0)
+  isRush        Boolean      @default(false)
+  active        Boolean      @default(true)
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  patchTypes     PatchTypeExtra[]
+  configurations ConfigurationExtra[]
+}
+
+model PatchTypeBacking {
+  patchTypeId     String
+  backingOptionId String
+  createdAt       DateTime @default(now())
+
+  patchType     PatchType     @relation(fields: [patchTypeId], references: [id], onDelete: Cascade)
+  backingOption BackingOption @relation(fields: [backingOptionId], references: [id], onDelete: Cascade)
+
+  @@id([patchTypeId, backingOptionId])
+}
+
+model PatchTypeBorder {
+  patchTypeId    String
+  borderOptionId String
+  createdAt      DateTime @default(now())
+
+  patchType    PatchType    @relation(fields: [patchTypeId], references: [id], onDelete: Cascade)
+  borderOption BorderOption @relation(fields: [borderOptionId], references: [id], onDelete: Cascade)
+
+  @@id([patchTypeId, borderOptionId])
+}
+
+model PatchTypeExtra {
+  patchTypeId   String
+  extraOptionId String
+  createdAt     DateTime @default(now())
+
+  patchType   PatchType   @relation(fields: [patchTypeId], references: [id], onDelete: Cascade)
+  extraOption ExtraOption @relation(fields: [extraOptionId], references: [id], onDelete: Cascade)
+
+  @@id([patchTypeId, extraOptionId])
+}
+
+// ───────────────────────── Configurations & artwork ─────────────────────────
+
+/// A fully specified patch. Cart items, quote items and order items all point at one.
+/// Once referenced by an OrderItem it is treated as immutable (edits clone it).
+model PatchConfiguration {
+  id                    String        @id @default(cuid())
+  patchTypeId           String
+  widthIn               Float
+  heightIn              Float
+  quotedSizeIn          Float
+  quantity              Int
+  shape                 Shape
+  backingOptionId       String?
+  borderOptionId        String?
+  artworkStatus         ArtworkStatus @default(SEND_LATER)
+  artworkFileId         String?
+  notes                 String?
+  name                  String?
+  customerId            String?
+  isSaved               Boolean       @default(false)
+  unitPriceCents        Int?
+  subtotalCents         Int?
+  estimatedDeliveryDays Int?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  patchType     PatchType            @relation(fields: [patchTypeId], references: [id])
+  backingOption BackingOption?       @relation(fields: [backingOptionId], references: [id])
+  borderOption  BorderOption?        @relation(fields: [borderOptionId], references: [id])
+  artworkFile   ArtworkFile?         @relation(fields: [artworkFileId], references: [id], onDelete: SetNull)
+  customer      Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  extras        ConfigurationExtra[]
+  cartItem      CartItem?
+  quoteItems    QuoteItem[]
+  orderItems    OrderItem[]
+
+  @@index([customerId, isSaved])
+}
+
+model ConfigurationExtra {
+  configurationId String
+  extraOptionId   String
+
+  configuration PatchConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  extraOption   ExtraOption        @relation(fields: [extraOptionId], references: [id])
+
+  @@id([configurationId, extraOptionId])
+}
+
+/// Binary lives in object storage — only metadata here.
+model ArtworkFile {
+  id                String     @id @default(cuid())
+  customerId        String?
+  /// Anonymous owner (cart cookie id) until the visitor identifies themselves.
+  anonOwnerId       String?
+  storageKey        String     @unique
+  previewKey        String?
+  originalFilename  String
+  sanitizedFilename String
+  mimeType          String
+  extension         String
+  sizeBytes         Int
+  status            FileStatus @default(PENDING_UPLOAD)
+  rejectionReason   String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  customer       Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  configurations PatchConfiguration[]
+  mockupRequests MockupRequest[]
+  revisions      ProofRevision[]
+
+  @@index([customerId])
+  @@index([anonOwnerId])
+}
+
+// ───────────────────────── Cart & quotes ─────────────────────────
+
+model Cart {
+  id                 String     @id @default(cuid())
+  /// SHA-256 of the cart cookie token.
+  tokenHash          String     @unique
+  customerId         String?
+  email              String?
+  marketingConsent   Boolean    @default(false)
+  couponCode         String?
+  status             CartStatus @default(ACTIVE)
+  abandonedEmailSent Boolean    @default(false)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  customer Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    CartItem[]
+
+  @@index([status, updatedAt])
+  @@index([email])
+}
+
+model CartItem {
+  id                     String   @id @default(cuid())
+  cartId                 String
+  configurationId        String   @unique
+  savedForLater          Boolean  @default(false)
+  unitPriceSnapshotCents Int
+  totalSnapshotCents     Int
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  cart          Cart               @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  configuration PatchConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+}
+
+model Quote {
+  id           String      @id @default(cuid())
+  quoteNumber  String      @unique
+  customerId   String?
+  email        String
+  firstName    String?
+  lastName     String?
+  company      String?
+  phone        String?
+  status       QuoteStatus @default(OPEN)
+  notes        String?
+  totalCents   Int         @default(0)
+  expiresAt    DateTime?
+  orderId      String?     @unique
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  customer Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    QuoteItem[]
+  order    Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model QuoteItem {
+  id              String   @id @default(cuid())
+  quoteId         String
+  configurationId String
+  unitPriceCents  Int
+  totalCents      Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  quote         Quote              @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  configuration PatchConfiguration @relation(fields: [configurationId], references: [id])
+
+  @@index([quoteId])
+}
+
+model MockupRequest {
+  id            String       @id @default(cuid())
+  requestNumber String       @unique
+  customerId    String?
+  name          String
+  email         String
+  phone         String?
+  company       String?
+  artworkFileId String?
+  patchTypeId   String?
+  approxSize    String?
+  quantity      Int?
+  deadline      DateTime?
+  notes         String?
+  status        MockupStatus @default(NEW)
+  orderId       String?      @unique
+  utm           Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  artworkFile ArtworkFile? @relation(fields: [artworkFileId], references: [id], onDelete: SetNull)
+  patchType   PatchType?   @relation(fields: [patchTypeId], references: [id], onDelete: SetNull)
+  order       Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ───────────────────────── Orders ─────────────────────────
+
+model Order {
+  id                String        @id @default(cuid())
+  orderNumber       String        @unique
+  customerId        String?
+  email             String
+  firstName         String?
+  lastName          String?
+  phone             String?
+  company           String?
+  status            OrderStatus   @default(DRAFT)
+  paymentStatus     PaymentStatus @default(UNPAID)
+  source            OrderSource   @default(CHECKOUT)
+  /// Immutable snapshots of the addresses used for this order.
+  shippingAddress   Json?
+  billingAddress    Json?
+  shippingMethod    String?
+  subtotalCents     Int           @default(0)
+  discountCents     Int           @default(0)
+  shippingCents     Int           @default(0)
+  taxCents          Int           @default(0)
+  totalCents        Int           @default(0)
+  currency          String        @default("usd")
+  couponCode        String?
+  estimatedShipDate DateTime?
+  customerNotes     String?
+  internalNotes     String?
+  utm               Json?
+  crmOpportunityId  String?
+  placedAt          DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  customer      Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items         OrderItem[]
+  payments      Payment[]
+  shipments     Shipment[]
+  statusEvents  OrderStatusEvent[]
+  mockupRequest MockupRequest?
+  quote         Quote?
+  reviews       Review[]
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@index([customerId])
+}
+
+model OrderItem {
+  id              String   @id @default(cuid())
+  orderId         String
+  configurationId String
+  productName     String
+  quantity        Int
+  unitPriceCents  Int
+  totalCents      Int
+  /// Human-readable spec at time of order (type, size, backing, …).
+  specSnapshot    Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  order         Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  configuration PatchConfiguration @relation(fields: [configurationId], references: [id])
+  proofs        Proof[]
+
+  @@index([orderId])
+}
+
+model OrderStatusEvent {
+  id        String      @id @default(cuid())
+  orderId   String
+  status    OrderStatus
+  note      String?
+  /// Shown to the customer on the tracking timeline.
+  isPublic  Boolean     @default(true)
+  actorId   String?
+  createdAt DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+}
+
+model Payment {
+  id             String          @id @default(cuid())
+  orderId        String
+  provider       PaymentProvider
+  providerRef    String          @unique
+  status         PaymentStatus   @default(PENDING)
+  amountCents    Int
+  currency       String          @default("usd")
+  idempotencyKey String          @unique
+  failureReason  String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+/// Webhook idempotency (Stripe et al.)
+model ProcessedWebhook {
+  id        String   @id @default(cuid())
+  provider  String
+  eventId   String
+  type      String
+  createdAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+}
+
+// ───────────────────────── Proofs ─────────────────────────
+
+model Proof {
+  id            String      @id @default(cuid())
+  orderItemId   String
+  version       Int
+  fileKey       String
+  fileMimeType  String
+  previewKey    String?
+  /// Production spec the customer is approving. Frozen with the proof.
+  specSnapshot  Json
+  designerNotes String?
+  status        ProofStatus @default(DRAFT)
+  locked        Boolean     @default(false)
+  uploadedById  String?
+  sentAt        DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  orderItem  OrderItem       @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  uploadedBy User?           @relation("ProofUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  revisions  ProofRevision[]
+  approval   ProofApproval?
+
+  @@unique([orderItemId, version])
+  @@index([status])
+}
+
+model ProofRevision {
+  id            String   @id @default(cuid())
+  proofId       String
+  comment       String
+  artworkFileId String?
+  customerId    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  proof       Proof        @relation(fields: [proofId], references: [id], onDelete: Cascade)
+  artworkFile ArtworkFile? @relation(fields: [artworkFileId], references: [id], onDelete: SetNull)
+  customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([proofId])
+}
+
+model ProofApproval {
+  id               String   @id @default(cuid())
+  proofId          String   @unique
+  customerId       String?
+  approvedByEmail  String
+  confirmationText String
+  /// SHA-256 over file key + spec snapshot — proves what exactly was approved.
+  contentHash      String
+  ipAddress        String?
+  userAgent        String?
+  approvedAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  proof    Proof     @relation(fields: [proofId], references: [id], onDelete: Restrict)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+}
+
+// ───────────────────────── Fulfilment ─────────────────────────
+
+model Shipment {
+  id             String         @id @default(cuid())
+  orderId        String
+  carrier        String
+  service        String?
+  trackingNumber String?
+  trackingUrl    String?
+  status         ShipmentStatus @default(LABEL_CREATED)
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([trackingNumber])
+}
+
+// ───────────────────────── Content ─────────────────────────
+
+/// Only `published` reviews are public. `isSample` marks dev placeholders that must be replaced before launch.
+model Review {
+  id           String     @id @default(cuid())
+  customerName String
+  company      String?
+  rating       Int
+  title        String?
+  body         String
+  photoUrl     String?
+  videoUrl     String?
+  patchTypeId  String?
+  orderId      String?
+  customerId   String?
+  verified     Boolean    @default(false)
+  published    Boolean    @default(false)
+  isSample     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  patchType PatchType? @relation(fields: [patchTypeId], references: [id], onDelete: SetNull)
+  order     Order?     @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  customer  Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([published, createdAt])
+}
+
+model GalleryItem {
+  id            String     @id @default(cuid())
+  title         String
+  imageUrl      String
+  alt           String
+  width         Int        @default(800)
+  height        Int        @default(800)
+  patchTypeId   String?
+  industry      String?
+  shape         Shape?
+  sizeLabel     String?
+  backingLabel  String?
+  isPlaceholder Boolean    @default(false)
+  published     Boolean    @default(true)
+  featured      Boolean    @default(false)
+  sortOrder     Int        @default(0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  patchType PatchType? @relation(fields: [patchTypeId], references: [id], onDelete: SetNull)
+
+  @@index([published, sortOrder])
+  @@index([industry])
+}
+
+model FAQ {
+  id         String   @id @default(cuid())
+  question   String
+  answer     String
+  category   String   @default("General")
+  productId  String?
+  showOnHome Boolean  @default(false)
+  published  Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([published, sortOrder])
+  @@index([productId])
+}
+
+model ArticleCategory {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  articles  Article[]
+}
+
+model Article {
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  title          String
+  excerpt        String
+  /// Markdown-lite (## headings, paragraphs, - lists, **bold**).
+  body           String
+  coverImageUrl  String?
+  authorName     String    @default("Markhor Patches Team")
+  categoryId     String?
+  readingMinutes Int       @default(5)
+  seoTitle       String?
+  seoDescription String?
+  published      Boolean   @default(false)
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  category ArticleCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([published, publishedAt])
+}
+
+model Coupon {
+  id               String     @id @default(cuid())
+  code             String     @unique
+  type             CouponType
+  /// Basis points for PERCENT, cents for FIXED.
+  value            Int
+  minSubtotalCents Int        @default(0)
+  maxRedemptions   Int?
+  redemptions      Int        @default(0)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  active           Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+// ───────────────────────── Integrations ─────────────────────────
+
+model Lead {
+  id               String     @id @default(cuid())
+  email            String
+  firstName        String?
+  lastName         String?
+  phone            String?
+  company          String?
+  source           LeadSource
+  marketingConsent Boolean    @default(false)
+  utm              Json?
+  payload          Json?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  crmEvents CRMEvent[]
+
+  @@index([email])
+  @@index([source, createdAt])
+}
+
+/// Outbox / retry queue for CRM delivery. idempotencyKey prevents duplicate sends.
+model CRMEvent {
+  id             String      @id @default(cuid())
+  type           String
+  idempotencyKey String      @unique
+  email          String
+  leadId         String?
+  orderId        String?
+  payload        Json
+  status         QueueStatus @default(PENDING)
+  attempts       Int         @default(0)
+  nextAttemptAt  DateTime    @default(now())
+  lastError      String?
+  processedAt    DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextAttemptAt])
+  @@index([email])
+}
+
+model IntegrationLog {
+  id         String   @id @default(cuid())
+  provider   String
+  operation  String
+  success    Boolean
+  statusCode Int?
+  durationMs Int?
+  request    Json?
+  response   Json?
+  error      String?
+  createdAt  DateTime @default(now())
+
+  @@index([provider, createdAt])
+}
+
+model EmailEvent {
+  id                String      @id @default(cuid())
+  template          String
+  to                String
+  subject           String
+  status            EmailStatus @default(QUEUED)
+  provider          String
+  providerMessageId String?
+  idempotencyKey    String      @unique
+  orderId           String?
+  error             String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([to])
+  @@index([orderId])
+}
+
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  diff       Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
