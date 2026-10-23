@@ -1435,6 +1435,7 @@ model AdSpendEntry {
   amountMinor Int
   currency    String   @default("USD")
   leads       Int?
+  isDemo      Boolean  @default(false)
   createdById String?  @db.Uuid
   createdAt   DateTime @default(now())
 

@@ -14,7 +14,7 @@ export default async function MarketingPage() {
   const since = daysAgo(30);
   const [attr, spend, sold] = await Promise.all([
     prisma.marketingAttribution.groupBy({ by: ["utmSource", "utmCampaign"], where: { createdAt: { gte: since }, rfqId: { not: null }, rfq: { isDemo: false } }, _count: true, orderBy: { _count: { utmSource: "desc" } } }),
-    prisma.adSpendEntry.findMany({ where: { date: { gte: since } }, orderBy: { date: "desc" } }),
+    prisma.adSpendEntry.findMany({ where: { date: { gte: since }, isDemo: false }, orderBy: { date: "desc" } }),
     prisma.marketingAttribution.findMany({ where: { createdAt: { gte: since }, rfq: { isDemo: false, unlocks: { some: { status: "ACTIVE" } } } }, select: { utmSource: true } }),
   ]);
   const totalSpend = spend.reduce((a, s) => a + s.amountMinor, 0);

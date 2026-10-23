@@ -17,7 +17,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed:demo": "tsx prisma/seed-demo.ts",
+    "db:seed:demo": "tsx --conditions=react-server prisma/seed-demo.ts",
     "jobs:run": "tsx scripts/run-jobs.ts"
   },
   "engines": {

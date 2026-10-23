@@ -47,7 +47,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
         ].map((x) => <StatCard key={x.label} label={x.label} value={x.v} icon={x.icon} href={x.href} tone={x.v > 0 ? "attention" : "default"} />)}
       </div>
       <h2 className="mb-3 text-sm font-semibold tracking-wide text-muted uppercase">Funnel · last {days} days</h2>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Raw leads" value={m.rawLeads} />
         <StatCard label="Verified" value={m.verified} />
         <StatCard label="Qualified RFQs" value={m.qualified} hint={`${pct(m.qualificationRate)} of verified`} />
@@ -58,7 +58,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
         <StatCard label="Avg. time to quote" value={m.avgResponseHours == null ? "—" : `${m.avgResponseHours.toFixed(1)}h`} />
       </div>
       <h2 className="mt-6 mb-3 text-sm font-semibold tracking-wide text-muted uppercase">Economics</h2>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Gross revenue" value={money(m.grossRevenueMinor)} />
         <StatCard label="Refunds / credits" value={money(m.refundsMinor)} hint={`Refund rate ${pct(m.refundRate)}`} />
         <StatCard label="Net revenue" value={money(m.netRevenueMinor)} />

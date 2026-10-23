@@ -25,7 +25,7 @@ export default async function BuyerDashboard() {
   return (
     <>
       <PageHeader title={`Welcome${user.name ? `, ${user.name.split(" ")[0]}` : ""}`} description="Track your requests, compare quotes and talk to manufacturers." actions={<ButtonLink href="/get-quotes"><FilePlus2 className="h-4 w-4" /> New request</ButtonLink>} />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Active RFQs" value={active.length} icon={FileText} href="/buyer/rfqs" />
         <StatCard label="Awaiting verification" value={count("VERIFICATION_PENDING")} icon={MailWarning} tone={count("VERIFICATION_PENDING") ? "attention" : "default"} />
         <StatCard label="In review / matching" value={count("UNDER_REVIEW", "QUALIFIED", "MATCHING", "MANUAL_SOURCING", "CLARIFICATION_REQUIRED")} icon={Radar} />

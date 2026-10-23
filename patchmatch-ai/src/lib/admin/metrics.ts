@@ -27,7 +27,7 @@ export async function executiveMetrics(range: Range, includeDemo = false) {
     prisma.rfq.count({ where: { ...demo, createdAt: created, unlocks: { some: { status: { in: ["ACTIVE", "CREDITED", "REFUNDED"] } } } } }),
     prisma.rfqUnlock.findMany({ where: { ...demo, createdAt: created, status: { not: "REVOKED" }, method: { not: "COMPLIMENTARY" } }, select: { priceMinor: true, createdAt: true, rfqId: true, sellerId: true } }),
     prisma.refund.findMany({ where: { status: "PROCESSED", processedAt: created, unlock: includeDemo ? {} : { isDemo: false, status: { not: "REVOKED" } } }, select: { amountMinor: true } }),
-    prisma.adSpendEntry.aggregate({ where: { date: created }, _sum: { amountMinor: true, leads: true } }),
+    prisma.adSpendEntry.aggregate({ where: { date: created, ...demo }, _sum: { amountMinor: true, leads: true } }),
     prisma.sellerProfile.count({ where: demo }),
     prisma.sellerProfile.count({ where: { ...demo, verificationStatus: "VERIFIED" } }),
     prisma.sellerProfile.count({ where: { ...demo, unlocks: { some: { createdAt: { gte: new Date(Date.now() - 30 * 86_400_000) } } } } }),

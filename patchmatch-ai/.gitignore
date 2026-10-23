@@ -12,3 +12,4 @@ coverage
 *.tsbuildinfo
 next-env.d.ts
 test-results/
+e2e/.fixture.json

@@ -52,7 +52,7 @@ export default async function SellerDashboard() {
   return (
     <>
       <PageHeader title="Dashboard" description="Matching opportunities and your performance on the platform." actions={<ButtonLink href="/seller/opportunities"><Inbox className="h-4 w-4" /> View opportunities</ButtonLink>} />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-8">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Available now" value={opps.length} icon={Inbox} href="/seller/opportunities" />
         <StatCard label="RFQs purchased" value={unlocks.length} icon={Unlock} href="/seller/unlocked-rfqs" hint={`${recent.length} in 30 days`} />
         <StatCard label="Spend (30d)" value={formatMoney(spend)} icon={Coins} href="/seller/transactions" />

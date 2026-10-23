@@ -92,7 +92,7 @@ export function StatCard({ label, value, hint, icon: Icon, href, tone = "default
           </span>
         )}
       </div>
-      <p className="tabular mt-2 font-display text-2xl font-semibold tracking-tight">{value}</p>
+      <p className="tabular mt-2 font-display text-xl font-semibold tracking-tight break-words sm:text-2xl">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </>
   );
