@@ -20,27 +20,10 @@
 
 Duplicate uploads (byte-identical, ignored): 3 × blueprint background, 2 × blueprint-panels, 2 × dashboard, 2 × dashboard-c, 2 × line-transition, and `5.webp` = `3.webp`.
 
-## Shared in chat but NOT on disk (could not be used)
+## Client artwork (recovered from the chat session, v2)
 
-These were pasted as inline chat images. Inline images are visible to the assistant but are not saved as files, so the renderer cannot read them. Save each with the exact name below in `assets/images/` (png/jpg/webp) and re-run `./scripts/render_all.sh && ./scripts/mux.sh`. Slots marked **auto** swap in automatically. The others need a small layout change (≈ 1 line each) because they are 16:9 or banner artwork.
-
-| Expected file name | Artwork | Slot |
-|---|---|---|
-| `badge_load_analysis` | Load Analysis badge | auto (EPC 02) |
-| `badge_3d_solar_design` | 3D Solar Design badge | auto (EPC 04) |
-| `badge_structural_engineering` | Structural Engineering badge | auto (EPC 05) |
-| `badge_procurement` | Procurement badge | auto (EPC 07) |
-| `badge_installation` | Installation badge | auto (EPC 08; currently real footage) |
-| `badge_final_commissioning` | Final Commissioning badge | auto (EPC 09; currently real footage) |
-| `badge_autocad` | AutoCAD Drawings badge | not in VO; optional |
-| `project_hamza`, `project_rana`, `project_yousuf` | Project showcase cards (16:9) | layout change |
-| `title_epc_solutions` | Complete End-to-End EPC Solutions (16:9) | layout change |
-| `epc_process_strip` | 9-step EPC process strip (3:1) | layout change |
-| `badge_inverters`, `badge_warranty_10yr`, `title_custom_engineering` | Quality / warranty artwork | layout change |
-| `title_system_monitoring`, `title_after_sales` | Support artwork | layout change |
-| `cta_free_site_assessment`, `cta_within_24h`, `cta_3d_design`, `cta_quotation`, `cta_solar_sizing` | CTA artwork | layout change |
-| `bg_vertical_rooftop` | 9:16 rooftop background | layout change |
-| (inline photo) | Brick mill with elevated canopy, appears to be the same site as `035.mp4` | — |
+All cards that were shared as chat images were recovered at full resolution and saved in `assets/images/`:
+badges (`badge_*`: site assessment, load analysis, feasibility, 3D solar design, AutoCAD, structural engineering, procurement, installation, final commissioning, inverters, 10-year warranty), project cards (`project_hamza/rana/yousuf`), `title_epc_solutions`, `epc_process_strip`, `title_custom_engineering`, `title_system_monitoring`, `title_after_sales`, CTA cards (`cta_*`), backgrounds (`bg_*`), the real site photo `photo_site_canopy.jpg`, partner logos (`logo_jinko/luminey/pytes/topak`) and MOU photos (`mou_luminey/pytes/topak`). The Pytes MOU photo is an Instagram screenshot, so its UI strip and icons are cropped out.
 
 ## Missing per the brief (never supplied)
 

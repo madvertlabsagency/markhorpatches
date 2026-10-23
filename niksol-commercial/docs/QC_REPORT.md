@@ -30,7 +30,9 @@
 
 ## Known limitations of v1
 
-* The badge and title artwork shared as chat images is not in the film because it never reached the render machine as files (see `ASSET_MANIFEST.md`). Typographic stand-ins carry those moments.
+* v2 uses all client cards. The Yousuf card shows only its photo side, with the correct spelling set as live text.
+* Partner logos (Jinko, Luminey, Pytes, Topak) appear under "Official manufacturer partnerships". Confirm that Jinko is a direct partner, because only Luminey, Pytes and Topak have MOU or partnership photos.
+* The duff bed (Version A) is a continuous, gentle synthesised frame-drum pattern about 12 LU under the voice and ducked under speech. Version B has none.
 * Subtitles are proportionally timed within each VO phrase (phrase boundaries are measured; word boundaries are estimated). The speech-recognition model download was blocked in this environment.
 * The duff layer is synthesised, not recorded. If the client prefers, use the **Natural Audio Only** version or replace `stem_duff.wav` with an approved recording.
 * 16:9 4K master and 4:5 feed versions are not rendered in v1, because the client asked for 9:16 as the priority. The renderer is resolution-parameterised, but those formats need their own layouts.

@@ -15,7 +15,7 @@ import subprocess
 import sys
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from timeline import A, DURATION, FPS, H, SCENES, W  # noqa: E402
@@ -461,29 +461,524 @@ def edge_glow(canvas, edge, angle=0.35, k=1.0):
     d.line([p0, p1], fill=(230, 250, 255, int(230 * k)), width=3)
 
 
-# ----------------------------------------------------------------- scenes
-def sc_hook(t):
-    """0-6.09: real mill footage (canopy reveal) + C&I headline."""
-    # 035: tilt-down from sky to mill & elevated solar canopy. Source 1.4s onward
-    # (first ~1 s of the file is black).
-    ts = 1.4 + t * 1.0
-    zoom = 1.0 + 0.04 * t / 6
-    cx = 0.36 + 0.10 * (t / 6)  # drift from tower toward canopy
-    im = plate("real_035", ts, zoom=zoom, cx=cx, cy=0.5)
-    im = darken(im, 0.18)
-    draw_band(im, 330, 1010, k=clamp(t / 0.4), strength=190)
-    ex = 5.55
-    wipe_text(im, text_img("NIKSOL ENERGY", SEMI, 30, CYAN, track=12, shadow=False), 540, 440, t, 0.10,
-              exit_t=ex)
-    wipe_text(im, text_img("COMMERCIAL", HEAD, 128, "metal", glow=0), 540, 575, t, A["commercial"],
-              exit_t=ex)
-    wipe_text(im, text_img("& INDUSTRIAL", HEAD, 128, "blue", glow=10), 540, 715, t, A["industrial"],
-              exit_t=ex)
-    hline(im, 250, 830, 808, t, A["solutions"] - 0.1, color=GOLD, width=3,
-          alpha=1 - ease_in_out(prog(t, ex, 0.3)), center=True)
-    rise_text(im, text_img("SOLAR SOLUTIONS", BOLD, 58, "gold", track=10), 540, 868, t, A["solutions"],
-              exit_t=ex)
+# ----------------------------------------------------------------- client artwork helpers
+@functools.lru_cache(maxsize=None)
+def card_img(stem, width=1032, crop=None, radius=22):
+    """16:9 / banner card fitted to width with rounded corners and a thin cyan rim."""
+    im = load_rgba(stem)
+    if crop:
+        im = im.crop(crop)
+    s = width / im.width
+    im = im.resize((width, round(im.height * s)), Image.LANCZOS)
+    w, h = im.size
+    mask = Image.new("L", im.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, w - 1, h - 1], radius, fill=255)
+    im.putalpha(ImageChops.multiply(im.getchannel("A"), mask))
+    rim = Image.new("RGBA", im.size, (0, 0, 0, 0))
+    ImageDraw.Draw(rim).rounded_rectangle([0, 0, w - 1, h - 1], radius, outline=CYAN + (170,), width=3)
+    return Image.alpha_composite(im, rim)
+
+
+@functools.lru_cache(maxsize=None)
+def card_shadow(w, h):
+    pad = 60
+    sh = Image.new("RGBA", (w + pad * 2, h + pad * 2), (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle([pad, pad + 18, pad + w, pad + h + 18], 26, fill=(0, 4, 12, 210))
+    return sh.filter(ImageFilter.GaussianBlur(26))
+
+
+@functools.lru_cache(maxsize=None)
+def blurred_bg(stem, crop=None, dark=0.5):
+    """Full-frame blurred cover of an artwork (classic vertical re-frame backdrop)."""
+    im = load_rgba(stem).convert("RGB")
+    if crop:
+        im = im.crop(crop)
+    s = max(W / im.width, H / im.height) * 1.1
+    im = im.resize((int(im.width * s), int(im.height * s)), Image.BILINEAR)
+    x0, y0 = (im.width - W) // 2, (im.height - H) // 2
+    im = im.crop((x0, y0, x0 + W, y0 + H))
+    small = im.resize((W // 6, H // 6), Image.BILINEAR).filter(ImageFilter.GaussianBlur(5))
+    return darken(small.resize((W, H), Image.BILINEAR), dark)
+
+
+def still_plate(stem, lt, dur, z0=1.12, z1=1.0, cx0=0.5, cx1=0.5, cy=0.5):
+    """Ken Burns move on a still image, cover-fitted to 9:16."""
+    im = load_rgba(stem).convert("RGB")
+    p = clamp(lt / max(dur, 0.01))
+    z = z0 + (z1 - z0) * ease_out(p)
+    sw, sh = im.size
+    ch = sh / z
+    cw = ch * W / H
+    if cw > sw:
+        cw = sw / z
+        ch = cw * H / W
+    cx = cx0 + (cx1 - cx0) * p
+    x0 = clamp(cx * sw - cw / 2, 0, sw - cw)
+    y0 = clamp(cy * sh - ch / 2, 0, sh - ch)
+    return im.resize((W, H), Image.BICUBIC, box=(x0, y0, x0 + cw, y0 + ch))
+
+
+def show_card(im, card, t, t0, y=740, push=0.012, enter=0.38, from_x=140, exit_t=None):
+    """Animated card: slide-in from the right with fade, shadow, rim flash, slow push."""
+    if t < t0:
+        return
+    p = ease_out(prog(t, t0, enter))
+    k = p
+    s = 0.95 + 0.05 * p + push * max(0, t - t0)
+    dx = (1 - p) * from_x
+    if exit_t is not None and t > exit_t:
+        e = ease_in_out(prog(t, exit_t, 0.25))
+        k *= 1 - e
+        dx -= 120 * e
+    w, h = card.size
+    sw, shh = max(1, int(w * s)), max(1, int(h * s))
+    cr = card.resize((sw, shh), Image.BICUBIC)
+    paste(im, card_shadow(sw, shh), 540 + dx, y + 18, alpha=k * 0.9)
+    paste(im, cr, 540 + dx, y, alpha=k)
+    # rim flash on entry
+    fl = 1 - prog(t, t0 + enter * 0.6, 0.35)
+    if 0 < fl < 1 and p > 0.5:
+        d = ImageDraw.Draw(im, "RGBA")
+        x0, y0 = 540 + dx - sw / 2, y - shh / 2
+        a = int(220 * fl)
+        d.rounded_rectangle([x0 - 3, y0 - 3, x0 + sw + 3, y0 + shh + 3], 24, outline=(200, 245, 255, a), width=4)
+
+
+@functools.lru_cache(maxsize=None)
+def badge_img(stem, maxw=840, maxh=720):
+    im = load_rgba(stem)
+    a = im.getchannel("A").point(lambda v: v if v > 40 else 0)  # drop speckled near-transparent pixels
+    im.putalpha(a)
+    im = im.crop(a.point(lambda v: 255 if v > 40 else 0).getbbox())
+    s = min(maxw / im.width, maxh / im.height)
+    return im.resize((int(im.width * s), int(im.height * s)), Image.LANCZOS)
+
+
+@functools.lru_cache(maxsize=None)
+def logo_tile(stem, w=420, h=170):
+    """Partner logo on a clean white rounded tile."""
+    tile = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(tile).rounded_rectangle([0, 0, w - 1, h - 1], 22, fill=(255, 255, 255, 255),
+                                           outline=GOLD + (255,), width=3)
+    lg = load_rgba(stem)
+    arr = np.asarray(lg).copy()
+    # trim white margins of the supplied square logos
+    rgb = arr[..., :3].astype(int)
+    ink = (rgb.min(axis=2) < 235) & (arr[..., 3] > 20)
+    ys, xs = np.where(ink)
+    lg = lg.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
+    s = min((w - 60) / lg.width, (h - 40) / lg.height)
+    lg = lg.resize((int(lg.width * s), int(lg.height * s)), Image.LANCZOS)
+    tile.paste(lg, ((w - lg.width) // 2, (h - lg.height) // 2), lg)
+    return tile
+
+
+@functools.lru_cache(maxsize=None)
+def photo_frame(stem, width, angle, crop=None):
+    """Photo with a white print border, rotated, for the MOU 'dashboard' drop-ins."""
+    im = load_rgba(stem).convert("RGB")
+    if crop:
+        im = im.crop(crop)
+    s = width / im.width
+    im = im.resize((width, int(im.height * s)), Image.LANCZOS)
+    b = 12
+    fr = Image.new("RGBA", (im.width + b * 2, im.height + b * 2), (245, 248, 252, 255))
+    fr.paste(im, (b, b))
+    ImageDraw.Draw(fr).rectangle([0, 0, fr.width - 1, fr.height - 1], outline=GOLD + (255,), width=3)
+    pad = 50
+    out = Image.new("RGBA", (fr.width + pad * 2, fr.height + pad * 2), (0, 0, 0, 0))
+    sh = Image.new("RGBA", out.size, (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rectangle([pad + 10, pad + 22, pad + fr.width + 10, pad + fr.height + 22], fill=(0, 0, 0, 200))
+    out = Image.alpha_composite(out, sh.filter(ImageFilter.GaussianBlur(18)))
+    out.paste(fr, (pad, pad), fr)
+    return out.rotate(angle, resample=Image.BICUBIC, expand=True)
+
+
+def slam_text(im, txt_im, x, y, t, t0, exit_t=None, s0=1.35):
+    """Kinetic 'slam': fast scale-down with a brief overshoot, used in the hook."""
+    if t < t0:
+        return
+    p = prog(t, t0, 0.22)
+    s = s0 + (1 - s0) * ease_out(p)
+    if p >= 1:
+        s = 1 + 0.02 * math.exp(-(t - t0 - 0.22) * 9) * math.sin((t - t0 - 0.22) * 40)
+    k = clamp(p * 2.5)
+    if exit_t is not None and t > exit_t:
+        e = ease_in_out(prog(t, exit_t, 0.2))
+        k *= 1 - e
+        s *= 1 + 0.15 * e
+    w, h = txt_im.size
+    paste(im, txt_im.resize((max(1, int(w * s)), max(1, int(h * s))), Image.BICUBIC), x, y, alpha=k)
+
+
+def flash(im, t, t0, dur=0.12, k=0.35, color=(220, 240, 255)):
+    f = 1 - prog(t, t0, dur)
+    if 0 < f < 1 or (t >= t0 and f == 1):
+        return Image.blend(im, Image.new("RGB", im.size, color), k * f)
     return im
+
+
+# ----------------------------------------------------------------- scenes
+HOOK_CUTS = [
+    # (start, source) - rapid real-footage montage, cut on the VO rhythm
+    (0.00, ("yusuf", 0.2, 1.18, 1.04, 0.55, 0.5)),
+    (0.62, ("still", "photo_site_canopy", 1.18, 1.05, 0.55)),
+    (1.30, ("035", 5.2, 1.12, 1.02, 0.66)),
+    (2.10, ("yusuf", 2.4, 1.15, 1.05, 0.5, 0.5)),
+    (2.85, ("yusuf", 16.05, 1.2, 1.1, 0.4, 0.5)),
+    (3.55, ("yusuf", 17.05, 1.32, 1.26, 0.27, 0.38)),
+    (4.30, ("still", "bg_vertical_rooftop", 1.15, 1.02, 0.6)),
+    (5.15, ("yusuf", 5.0, 1.12, 1.02, 0.45, 0.5)),
+]
+
+
+def sc_hook(t):
+    """0-6.09: fast real-footage montage with slamming kinetic type."""
+    idx = 0
+    for j, (st, _) in enumerate(HOOK_CUTS):
+        if t >= st:
+            idx = j
+    st, src = HOOK_CUTS[idx]
+    nxt = HOOK_CUTS[idx + 1][0] if idx + 1 < len(HOOK_CUTS) else 6.09
+    lt, dur = t - st, nxt - st
+    p = clamp(lt / dur)
+    if src[0] == "yusuf":
+        _, ts, z0, z1, cx, cy = src
+        im = plate("real_yusuf", ts + lt, zoom=z0 + (z1 - z0) * ease_out(p), cx=cx, cy=cy)
+    elif src[0] == "035":
+        _, ts, z0, z1, cx = src
+        im = plate("real_035", ts + lt, zoom=z0 + (z1 - z0) * ease_out(p), cx=cx)
+    else:
+        _, stem, z0, z1, cx = src
+        im = still_plate(stem, lt, dur, z0, z1, cx, cx)
+    im = darken(im, 0.15)
+    im = flash(im, t, st, 0.1, 0.4 if idx else 0)
+    draw_band(im, 430, 960, strength=170)
+    ex1 = 2.80
+    slam_text(im, text_img("COMMERCIAL", HEAD, 132, "metal"), 540, 600, t, A["commercial"], exit_t=ex1)
+    slam_text(im, text_img("& INDUSTRIAL", HEAD, 132, "blue", glow=10), 540, 740, t, A["industrial"], exit_t=ex1)
+    rise_text(im, text_img("BUSINESS OWNERS", BOLD, 50, "gold", track=12), 540, 860, t, 1.95, exit_t=ex1, dist=20)
+    ex2 = 5.75
+    slam_text(im, text_img("ELECTRICITY BILLS", HEAD, 112, "metal"), 540, 600, t, 3.10, exit_t=ex2)
+    slam_text(im, text_img("IN LAKHS?", HEAD, 150, "gold", glow=8), 540, 745, t, 3.95, exit_t=ex2)
+    rise_text(im, text_img("NOTHING NEW.", BOLD, 54, SILVER, track=14), 540, 870, t, 4.80, exit_t=ex2, dist=20)
+    return im
+
+
+PROJECT_CARDS = [
+    # (anchor, end, card stem, crop, footage(seg, cx))
+    ("mills", 15.10, "project_hamza", None, ("wide", 0.62)),
+    ("factories", 16.85, "project_rana", None, ("ground", 0.55)),
+    ("setups", 19.49, "project_yousuf", None, ("flyover", 0.5)),
+]
+
+
+def sc_project(i):
+    anchor, t_end, stem, crop, (seg, cx) = PROJECT_CARDS[i]
+
+    def fn(t):
+        t0 = A[anchor]
+        lt = t - t0
+        im = yusuf_plate(seg, lt, t_end - t0, speed=1.0, zoom0=1.0, zoom1=1.06, cx0=cx, cx1=cx + 0.06)
+        im = darken(im, 0.45)
+        rise_text(im, text_img(f"COMPLETED PROJECT  0{i + 1}", BOLD, 38, CYAN, track=12), 540, 345, t, t0 + 0.05,
+                  dist=20)
+        hline(im, 380, 700, 380, t, t0 + 0.1, color=GOLD, width=3, center=True)
+        if i < 2:
+            show_card(im, card_img(stem), t, t0 + 0.02, y=730)
+        else:
+            # Supplied Yousuf card reads "FLOOR MILLS / MEGAWAT+": show its photo side only and
+            # set the approved spelling as live type.
+            wipe_text(im, text_img("YOUSUF FLOUR MILLS", HEAD, 84, "metal"), 540, 455, t, t0 + 0.05)
+            slam_text(im, text_img("1 MEGAWATT+", HEAD, 104, "gold", glow=6), 540, 565, t, t0 + 0.3, s0=1.2)
+            show_card(im, card_img(stem, width=760, crop=(800, 30, 1672, 700)), t, t0 + 0.15, y=905)
+        return im
+    return fn
+
+
+def sc_epc_title(t):
+    """19.49-23.36: 9-step EPC strip pan, then the approved EPC title card."""
+    lt = t - 19.49
+    sw = A["epc_complete"] - 0.05
+    if t < sw:
+        im = plate("flow_line_transition", 0.4 + lt * 0.85)
+        im = darken(im, 0.45)
+        paste(im, grid_overlay(), 0, 0, anchor="tl", alpha=0.4)
+        rise_text(im, text_img("FROM SITE TO SWITCH-ON", BOLD, 44, CYAN, track=10), 540, 380, t, 19.6, dist=15)
+        strip = card_img("epc_process_strip", width=2300, radius=26)
+        p = ease_in_out(clamp(lt / (sw - 19.49)))
+        x = 540 + (strip.width - W) / 2 + 40 - p * (strip.width - W + 80)
+        k = ease_out(prog(t, 19.49, 0.3))
+        paste(im, strip, x, 760, alpha=k)
+        return im
+    im = blurred_bg("title_epc_solutions")
+    paste(im, grid_overlay(), 0, 0, anchor="tl", alpha=0.3)
+    rise_text(im, text_img("NIKSOL ENERGY PROVIDES", BOLD, 40, CYAN, track=10), 540, 400, t, sw, dist=15)
+    show_card(im, card_img("title_epc_solutions"), t, sw, y=740)
+    im = flash(im, t, sw, 0.12, 0.3)
+    return im
+
+
+EPC_STEPS = [
+    # (anchor, badge stem, stage)
+    ("site", "badge_site_assessment", 0),
+    ("load", "badge_load_analysis", 0),
+    ("feas", "badge_feasibility", 0),
+    ("d3", "badge_3d_solar_design", 0),
+    ("autocad", "badge_autocad", 0),
+    ("struct", "badge_structural_engineering", 0),
+    ("direct", None, 1),
+    ("procure", "badge_procurement", 1),
+    ("install", "badge_installation", 2),
+    ("commission", "badge_final_commissioning", 2),
+]
+STAGES = ("ENGINEERING", "PROCUREMENT", "CONSTRUCTION")
+PARTNERS = ["logo_jinko", "logo_luminey", "logo_pytes", "logo_topak"]
+MOU = [
+    # (stem, crop, width, final x, final y, angle, drop time)
+    ("mou_luminey", None, 420, 300, 860, 5, 31.05),
+    ("mou_pytes", (0, 45, 1079, 1005), 420, 780, 850, -4, 31.55),
+    ("mou_topak", None, 580, 540, 920, 1.5, 32.05),
+]
+
+
+def epc_anchor(name):
+    return 27.30 if name == "autocad" else A[name]
+
+
+def partnerships(im, t):
+    """Direct manufacturer partnerships: partner logos pop in, then the MOU photos drop onto the board."""
+    t0 = A["direct"]
+    tb = 31.0  # logos -> strip, photos start
+    mv = ease_in_out(prog(t, tb, 0.35))
+    # headline: big first, then a compact kicker
+    k1 = 1 - mv
+    if k1 > 0:
+        wipe_text(im, text_img("DIRECT MANUFACTURER", HEAD, 78, "metal"), 540, 500, t, t0, alpha=k1)
+        wipe_text(im, text_img("PARTNERSHIPS", HEAD, 104, "gold", glow=6), 540, 605, t, t0 + 0.15, alpha=k1)
+    if mv > 0:
+        paste(im, text_img("OFFICIAL MANUFACTURER PARTNERSHIPS", BOLD, 38, "gold", track=6), 540, 445, alpha=mv)
+    # logos: 2x2 grid -> bottom strip
+    for j, stem in enumerate(PARTNERS):
+        ta = t0 + 0.2 + j * 0.22
+        if t < ta:
+            continue
+        pop = ease_out_back(prog(t, ta, 0.3))
+        gx, gy = (300 if j % 2 == 0 else 780), (790 if j < 2 else 990)
+        sx, sy = 160 + j * 253, 530
+        x = gx + (sx - gx) * mv
+        y = gy + (sy - gy) * mv
+        tile = logo_tile(stem)
+        sc = max(0.01, pop) * (1 - 0.45 * mv)
+        paste(im, tile.resize((max(1, int(tile.width * sc)), max(1, int(tile.height * sc))), Image.BICUBIC), x, y,
+              alpha=clamp(pop))
+    # MOU photos drop onto the board one by one
+    for stem, crop, wdt, fx, fy, ang, td in MOU:
+        if t < td:
+            continue
+        p = prog(t, td, 0.3)
+        s = 1.35 - 0.35 * ease_out(p)
+        ph = photo_frame(stem, wdt, ang, crop)
+        y = fy - (1 - ease_out(p)) * 80
+        paste(im, ph.resize((max(1, int(ph.width * s)), max(1, int(ph.height * s))), Image.BICUBIC), fx, y,
+              alpha=clamp(p * 3))
+
+
+def sc_epc_flow(t):
+    """23.36-35.35: Engineering -> Procurement -> Construction with the client's badges."""
+    idx = 0
+    for j, s in enumerate(EPC_STEPS):
+        if t >= epc_anchor(s[0]):
+            idx = j
+    anchor, stem, stage = EPC_STEPS[idx]
+    t0 = epc_anchor(anchor)
+    t1 = epc_anchor(EPC_STEPS[idx + 1][0]) if idx + 1 < len(EPC_STEPS) else 35.35
+    lt = t - t0
+    if stage == 0:
+        if t < A["d3"]:
+            im = plate("flow_blueprint_bg", 0.5 + (t - A["site"]) * 0.75)
+        else:
+            im = plate("flow_blueprint_panels", 3.2 + (t - A["d3"]) * 0.8)
+        im = darken(im, 0.4)
+    elif stage == 1:
+        im = plate("flow_dashboard", 2.0 + (t - A["direct"]) * 0.6)
+        im = darken(im, 0.62)
+        paste(im, grid_overlay(), 0, 0, anchor="tl", alpha=0.5)
+    else:
+        seg = "rows" if anchor == "install" else "breakers"
+        im = yusuf_plate(seg, lt, t1 - t0, speed=1.0, zoom0=1.0, zoom1=1.05, cx0=0.45, cx1=0.5)
+        im = darken(im, 0.45)
+    stage_t = {0: A["site"], 1: A["direct"], 2: A["install"]}[stage]
+    draw_band(im, 270, 420, strength=170)
+    epc_tracker(im, t, stage, stage_t)
+    if anchor == "direct":
+        partnerships(im, t)
+    else:
+        b = badge_img(stem, 820, 620)
+        scale_in(im, b, 540, 800, t, t0, dur=0.3, s0=0.86, s1=1.0, hold_zoom=0.02)
+        rise_text(im, text_img(f"STEP {idx + 1 if idx < 6 else idx:02d} / 09", BOLD, 30, CYAN, track=8), 540,
+                  450, t, t0, dist=10)
+    if idx > 0:
+        im = flash(im, t, t0, 0.14, 0.22)
+    return im
+
+
+def sc_accountable(t):
+    """35.35-39.30: Every stage. Every detail. One accountable EPC partner."""
+    lt = t - A["stage"]
+    im = still_plate("bg_vertical_rooftop", lt, 3.95, 1.0, 1.08, 0.5, 0.5)
+    im = darken(im, 0.2)
+    draw_band(im, 380, 960, strength=170)
+    ex = A["zimmedari"] - 0.15
+    slam_text(im, text_img("EVERY STAGE.", HEAD, 112, "metal"), 540, 560, t, A["stage"], exit_t=ex, s0=1.2)
+    slam_text(im, text_img("EVERY DETAIL.", HEAD, 112, "blue", glow=8), 540, 700, t, A["detail"], exit_t=ex,
+              s0=1.2)
+    z0 = A["zimmedari"]
+    rise_text(im, text_img("NIKSOL ENERGY", BOLD, 46, "gold", track=12), 540, 500, t, z0 + 0.05, dist=20)
+    scale_in(im, text_img("ONE ACCOUNTABLE", HEAD, 96, "metal"), 540, 640, t, z0 + 0.1, dur=0.35, s0=1.12)
+    scale_in(im, text_img("EPC PARTNER", HEAD, 124, "blue", glow=10), 540, 775, t, z0 + 0.3, dur=0.35, s0=1.12)
+    hline(im, 260, 820, 870, t, z0 + 0.55, color=CYAN, width=5, center=True)
+    return im
+
+
+def quality_pips(im, idx):
+    d = ImageDraw.Draw(im)
+    for j in range(4):
+        x = 540 + (j - 1.5) * 44
+        d.rounded_rectangle([x - 14, 330, x + 14, 336], 3,
+                            fill=GOLD if j == idx else (CYAN if j < idx else (60, 80, 110)))
+
+
+def sc_quality(t):
+    """39.30-47.17: Tier-1 panels, inverters, custom engineering, 10-yr structural warranty."""
+    if t < A["inverters"]:
+        t0 = 39.30
+        lt = t - t0
+        im = plate("real_yusuf", 8.6 + lt * 0.55, zoom=1.0 + 0.05 * lt / 3.15, cx=0.6)
+        im = darken(im, 0.25)
+        draw_band(im, 420, 900, strength=190)
+        quality_pips(im, 0)
+        rise_text(im, text_img("ONLY", BOLD, 48, CYAN, track=14), 540, 500, t, 39.6, dist=15)
+        slam_text(im, text_img("TIER-1", HEAD, 190, "metal"), 540, 640, t, A["tier1"], s0=1.25)
+        wipe_text(im, text_img("SOLAR PANELS", HEAD, 88, "blue", glow=6), 540, 790, t, A["tier1"] + 0.25)
+        return im
+    if t < A["custom"]:
+        t0 = A["inverters"]
+        im = yusuf_plate("inverters", t - t0, 1.22, speed=0.8, zoom0=1.26, zoom1=1.3, cx0=0.25, cx1=0.3, cy=0.38)
+        im = darken(im, 0.55)
+        quality_pips(im, 1)
+        scale_in(im, badge_img("badge_inverters", 900, 660), 540, 740, t, t0, dur=0.3, s0=0.85, hold_zoom=0.02)
+        return flash(im, t, t0, 0.12, 0.25)
+    if t < A["warranty"]:
+        t0 = A["custom"]
+        im = blurred_bg("title_custom_engineering")
+        quality_pips(im, 2)
+        show_card(im, card_img("title_custom_engineering"), t, t0, y=740)
+        return flash(im, t, t0, 0.12, 0.25)
+    t0 = A["warranty"]
+    lt = t - t0
+    im = plate("real_035", 6.6 + lt * 0.35, zoom=1.08 - 0.04 * clamp(lt / 2.15), cx=0.78, cy=0.45)
+    im = darken(im, 0.45)
+    quality_pips(im, 3)
+    p = ease_out(prog(t, t0, 0.6))
+    fr = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    fd = ImageDraw.Draw(fr)
+    a = int(110 * p)
+    for k in range(5):
+        x = 140 + k * 200
+        fd.line([(x, 420), (x, 420 + 680 * p)], fill=CYAN + (a,), width=2)
+    for yy in (420, 1100):
+        fd.line([(140, yy), (140 + 800 * p, yy)], fill=CYAN + (a,), width=2)
+    for k in range(4):
+        x = 140 + k * 200
+        fd.line([(x, 420), (x + 200 * p, 1100)], fill=CYAN + (a // 2,), width=2)
+    paste(im, fr, 0, 0, anchor="tl", alpha=0.85)
+    scale_in(im, badge_img("badge_warranty_10yr", 860, 700), 540, 760, t, t0 + 0.05, dur=0.35, s0=1.2,
+             hold_zoom=0.015)
+    return flash(im, t, t0, 0.14, 0.3)
+
+
+def sc_support(t):
+    """47.17-51.67: system monitoring card, technical support, after-sales card."""
+    if t < A["support"]:
+        t0 = 47.17
+        im = plate("flow_dashboard_c", 1.0 + (t - t0) * 0.8)
+        im = darken(im, 0.5)
+        show_card(im, card_img("title_system_monitoring"), t, t0 + 0.05, y=740)
+        paste(im, text_img("Illustrative visualisation", MED, 22, (150, 170, 200), shadow=False), 1000, 1050,
+              anchor="r", alpha=0.8)
+        return im
+    if t < A["aftersales"]:
+        t0 = A["support"]
+        im = plate("flow_dashboard_b", 3.0 + (t - t0) * 0.8)
+        im = darken(im, 0.45)
+        draw_band(im, 480, 960, strength=170)
+        scale_in(im, icon("headset", 150, CYAN), 540, 560, t, t0, dur=0.3, s0=0.7)
+        slam_text(im, text_img("TECHNICAL", HEAD, 120, "metal"), 540, 720, t, t0 + 0.05, s0=1.2)
+        slam_text(im, text_img("SUPPORT", HEAD, 120, "blue", glow=8), 540, 850, t, t0 + 0.2, s0=1.2)
+        return flash(im, t, t0, 0.12, 0.25)
+    t0 = A["aftersales"]
+    im = blurred_bg("title_after_sales")
+    show_card(im, card_img("title_after_sales"), t, t0, y=740)
+    return flash(im, t, t0, 0.12, 0.25)
+
+
+def sc_cta_contact(t):
+    """51.67-56.26: Contact Niksol for your factory / commercial building."""
+    lt = t - A["cta"]
+    c0 = A["contact"]
+    if t < c0:
+        im = still_plate("photo_site_canopy", lt, c0 - A["cta"], 1.0, 1.1, 0.5, 0.5)
+    else:
+        im = plate("real_035", 4.2 + (t - c0) * 0.75, zoom=1.0 + 0.05 * (t - c0) / 2.4, cx=0.62, cy=0.5)
+        im = flash(im, t, c0, 0.1, 0.3)
+    im = darken(im, 0.22)
+    draw_band(im, 380, 1100, strength=200)
+    ex = c0 - 0.2
+    rise_text(im, text_img("FOR YOUR", BOLD, 50, CYAN, track=14), 540, 500, t, A["cta"] + 0.1, exit_t=ex)
+    slam_text(im, text_img("FACTORY", HEAD, 140, "metal"), 540, 630, t, A["cta"] + 0.35, exit_t=ex, s0=1.25)
+    wipe_text(im, text_img("& COMMERCIAL", HEAD, 104, "blue", glow=8), 540, 765, t, A["cta"] + 1.4, exit_t=ex)
+    wipe_text(im, text_img("BUILDING", HEAD, 104, "metal"), 540, 875, t, A["cta"] + 1.6, exit_t=ex)
+    slam_text(im, text_img("CONTACT", HEAD, 116, "metal"), 540, 560, t, c0, s0=1.25)
+    wipe_text(im, text_img("NIKSOL ENERGY", HEAD, 110, "gold", glow=6), 540, 690, t, c0 + 0.2)
+    rise_text(im, text_img("TODAY", BOLD, 56, SILVER, track=18), 540, 800, t, c0 + 0.45, dist=20)
+    if t >= c0 + 0.7:
+        p = ease_out(prog(t, c0 + 0.7, 0.4))
+        glass_panel(im, (170, 880, 910, 990), alpha=p, border=GOLD, fill_a=200, radius=55)
+        paste(im, icon("phone", 54, GOLD), 245, 935, alpha=p)
+        paste(im, text_img("+92 333 0755575", HEAD, 58, WHITE), 580, 935, alpha=p)
+    return im
+
+
+CTA_CARDS = [
+    ("h24", "cta_within_24h", 1000),
+    ("free", "cta_free_site_assessment_b", 1032),
+    ("design3d", "cta_3d_design", 1032),
+    ("quote", "cta_quotation", 1032),
+]
+
+
+def sc_cta_offer(t):
+    """56.26-62.04: Within 24 hours -> FREE site assessment -> 3D design -> quotation cards."""
+    idx = 0
+    for j, (a, _, _) in enumerate(CTA_CARDS):
+        if t >= A[a]:
+            idx = j
+    anchor, stem, wdt = CTA_CARDS[idx]
+    t0 = A[anchor]
+    im = blurred_bg(stem, dark=0.55)
+    paste(im, grid_overlay(), 0, 0, anchor="tl", alpha=0.25)
+    if t >= A["free"] - 0.25:
+        rise_text(im, text_img("BOOK YOUR FREE SITE ASSESSMENT", HEAD, 44, "gold", glow=4), 540, 380, t,
+                  A["free"] - 0.25, dist=15)
+    else:
+        rise_text(im, text_img("NIKSOL ENERGY", BOLD, 40, CYAN, track=12), 540, 380, t, A["h24"], dist=15)
+    show_card(im, card_img(stem, width=wdt), t, t0, y=760)
+    if anchor == "free":
+        c = card_img(stem, width=wdt)
+        light_sweep(im, (540 - c.width // 2, 760 - c.height // 2, 540 + c.width // 2, 760 + c.height // 2), t,
+                    t0 + 0.4, 0.8)
+    return flash(im, t, t0, 0.12, 0.25)
 
 
 def sc_beyond(t):
@@ -545,6 +1040,8 @@ def sc_projects_title(t):
 
 # Yusuf Flour Mill drone/ground clip (1816x836). Segments chosen to avoid the
 # burned-in captions (11.0-12.4 s and 17.5-18.9 s) and the logo tail (19.5 s+).
+
+
 YUSUF = dict(
     wide=(0.0, 1.85),      # aerial: mill buildings + full array
     flyover=(2.0, 4.6),    # rooftop flyover
@@ -563,80 +1060,6 @@ def yusuf_plate(seg, lt, dur, speed=None, zoom0=1.0, zoom1=1.08, cx0=0.5, cx1=0.
     ts = a + lt * speed
     p = clamp(lt / max(dur, 0.01))
     return plate("real_yusuf", min(ts, b), zoom=zoom0 + (zoom1 - zoom0) * p, cx=cx0 + (cx1 - cx0) * p, cy=cy)
-
-
-PROJECTS = [
-    # (anchor, scene end, name lines, capacity, unit, sub, yusuf segment, pan)
-    ("mills", 15.10, ("HAMZA", "FLOUR MILL"), "320", "KW", "SOLAR SYSTEM", "wide", (0.62, 0.7)),
-    ("factories", 16.85, ("RANA", "FLOUR MILL"), "820", "KW", "SOLAR SYSTEM", "ground", (0.6, 0.4)),
-    ("setups", 19.49, ("YOUSUF", "FLOUR MILLS"), "1", "MEGAWATT+", "SOLAR SYSTEM", "flyover", (0.45, 0.55)),
-]
-
-
-def sc_project(i):
-    anchor, t_end, name, cap, unit, sub, seg, pan = PROJECTS[i]
-
-    def fn(t):
-        t0 = A[anchor]
-        lt = t - t0
-        dur = t_end - t0
-        if i == 2:  # Yousuf: flyover, then panel rows
-            if lt < 1.3:
-                im = yusuf_plate("flyover", lt, 1.3, speed=1.0, zoom0=1.0, zoom1=1.04, cx0=0.45, cx1=0.5)
-            else:
-                im = yusuf_plate("rows", lt - 1.3, dur - 1.3, speed=1.0, zoom0=1.02, zoom1=1.08)
-        else:
-            im = yusuf_plate(seg, lt, dur, speed=1.0, zoom0=1.0, zoom1=1.07, cx0=pan[0], cx1=pan[1])
-        im = darken(im, 0.12)
-        # lower-third style portfolio card, kept inside the safe zone
-        card_in = ease_out(prog(t, t0 + 0.05, 0.35))
-        draw_band(im, 330, 1100, k=card_in, strength=185)
-        y = 420
-        rise_text(im, text_img(f"COMPLETED PROJECT  0{i + 1}", SEMI, 30, CYAN, track=10, shadow=False), 120,
-                  y, t, t0 + 0.05, anchor="l", dist=20)
-        hline(im, 120, 420, y + 34, t, t0 + 0.1, color=CYAN, width=3)
-        wipe_text(im, text_img(name[0], HEAD, 104, "metal"), 116, y + 120, t, t0 + 0.1, anchor="l")
-        wipe_text(im, text_img(name[1], HEAD, 104, "metal"), 116, y + 235, t, t0 + 0.22, anchor="l")
-        capi = text_img(cap, HEAD, 210, "gold", glow=8)
-        uniti = text_img(unit, HEAD, 92 if len(unit) < 4 else 70, "gold")
-        scale_in(im, capi, 116 + capi.width // 2, y + 420, t, t0 + 0.35, dur=0.4, s0=0.85, hold_zoom=0.01)
-        rise_text(im, uniti, 116 + capi.width + 18, y + 455 - (0 if len(unit) < 4 else 10), t, t0 + 0.5,
-                  anchor="l", dist=20)
-        rise_text(im, text_img(sub, BOLD, 44, SILVER, track=12), 120, y + 590, t, t0 + 0.6, anchor="l", dist=20)
-        # Niksol watermark from the source footage sits top-left; keep ours right
-        return im
-    return fn
-
-
-def sc_epc_title(t):
-    """19.49-23.36: Complete end-to-end EPC solutions."""
-    lt = t - 19.49
-    im = plate("flow_line_transition", 0.4 + lt * 0.85)
-    im = darken(im, 0.3)
-    paste(im, grid_overlay(), 0, 0, anchor="tl", alpha=0.5)
-    rise_text(im, text_img("NIKSOL ENERGY PROVIDES", SEMI, 32, CYAN, track=10, shadow=False), 540, 430, t, 19.65)
-    wipe_text(im, text_img("COMPLETE", HEAD, 126, "metal"), 540, 560, t, A["epc_complete"])
-    wipe_text(im, text_img("END-TO-END", HEAD, 126, "blue", glow=10), 540, 695, t, A["epc_e2e"])
-    wipe_text(im, text_img("EPC SOLUTIONS", HEAD, 112, "metal"), 540, 825, t, A["epc_sol"])
-    hline(im, 150, 930, 905, t, A["epc_sol"] + 0.3, color=CYAN, width=2, center=True)
-    for j, (w, x) in enumerate((("ENGINEERING", 230), ("PROCUREMENT", 540), ("CONSTRUCTION", 850))):
-        rise_text(im, text_img(w, SEMI, 30, SILVER, track=5), x, 955, t, A["epc_sol"] + 0.45 + j * 0.15, dist=15)
-    return im
-
-
-EPC_STEPS = [
-    # (anchor, label lines, image slot, stage index, real-footage fallback)
-    ("site", ("SITE", "ASSESSMENT"), "badge_site_assessment", 0, None),
-    ("load", ("LOAD", "ANALYSIS"), "badge_load_analysis", 0, None),
-    ("feas", ("FEASIBILITY",), "badge_feasibility", 0, None),
-    ("d3", ("PROFESSIONAL", "3D DESIGN"), "badge_3d_solar_design", 0, None),
-    ("struct", ("STRUCTURAL", "ENGINEERING"), "badge_structural_engineering", 0, None),
-    ("direct", ("DIRECT", "MANUFACTURER", "PARTNERSHIPS"), None, 1, None),
-    ("procure", ("PROCUREMENT",), "badge_procurement", 1, None),
-    ("install", ("INSTALLATION",), "badge_installation", 2, "close"),
-    ("commission", ("FINAL", "COMMISSIONING"), "badge_final_commissioning", 2, "breakers"),
-]
-STAGES = ("ENGINEERING", "PROCUREMENT", "CONSTRUCTION")
 
 
 def epc_tracker(im, t, stage, t_stage):
@@ -660,269 +1083,6 @@ def epc_tracker(im, t, stage, t_stage):
         lab = text_img(STAGES[j], BOLD if active else SEMI, 30 if active else 26,
                        WHITE if active else (SILVER if done else (120, 140, 170)), track=4)
         paste(im, lab, x, y + 44)
-
-
-def step_card(lines, num):
-    """Typographic fallback for an EPC step without supplied badge art."""
-    widths = [text_img(l, HEAD, 92, "metal").width for l in lines]
-    wmax = max(widths + [400])
-    h = 120 + 110 * len(lines)
-    card = Image.new("RGBA", (wmax + 140, h), (0, 0, 0, 0))
-    d = ImageDraw.Draw(card)
-    d.rounded_rectangle([0, 0, card.width - 1, h - 1], 28, fill=(5, 22, 52, 205), outline=CYAN + (210,), width=3)
-    d.rectangle([0, 40, 8, h - 40], fill=GOLD)
-    numi = text_img(f"{num:02d}", HEAD, 54, CYAN, shadow=False)
-    card.paste(numi, (70, 34), numi)
-    for k, l in enumerate(lines):
-        li = text_img(l, HEAD, 92, "metal" if k < len(lines) - 1 or len(lines) == 1 else "blue")
-        card.paste(li, (66, 110 + k * 110), li)
-    return card
-
-
-@functools.lru_cache(maxsize=None)
-def step_visual(idx):
-    anchor, lines, slot, stage, real = EPC_STEPS[idx]
-    img = load_rgba(slot) if slot else None
-    if img is not None:
-        img = img.crop(img.getchannel("A").point(lambda v: 255 if v > 20 else 0).getbbox())
-        s = min(860 / img.width, 700 / img.height)
-        return img.resize((int(img.width * s), int(img.height * s)), Image.LANCZOS), True
-    return step_card(lines, idx + 1), False
-
-
-def sc_epc_flow(t):
-    """23.36-35.35: Engineering -> Procurement -> Construction montage."""
-    # active step
-    idx = 0
-    for j, s in enumerate(EPC_STEPS):
-        if t >= A[s[0]]:
-            idx = j
-    anchor, lines, slot, stage, real = EPC_STEPS[idx]
-    t0 = A[anchor]
-    t1 = A[EPC_STEPS[idx + 1][0]] if idx + 1 < len(EPC_STEPS) else 35.35
-    lt = t - t0
-    # background by stage
-    if real:
-        im = yusuf_plate(real, lt, t1 - t0, speed=1.0, zoom0=1.0, zoom1=1.06,
-                         cx0=0.45 if real == "close" else 0.3, cx1=0.55 if real == "close" else 0.4)
-        im = darken(im, 0.2)
-    elif stage == 0:
-        bt = t - A["site"]
-        if t < A["d3"]:
-            im = plate("flow_blueprint_bg", 0.5 + bt * 0.75)
-        else:
-            im = plate("flow_blueprint_panels", 3.2 + (t - A["d3"]) * 0.8)
-        im = darken(im, 0.35)
-    else:
-        im = plate("flow_line_transition", 5.0 + (t - A["direct"]) * 0.5)
-        im = darken(im, 0.35)
-    stage_t = {0: A["site"], 1: A["direct"], 2: A["install"]}[stage]
-    draw_band(im, 270, 420, strength=170)
-    epc_tracker(im, t, stage, stage_t)
-    vis, is_badge = step_visual(idx)
-    if real:
-        # real footage carries the moment; label as a clean lower-third
-        draw_band(im, 820, 1120, strength=190)
-        rise_text(im, text_img(f"{idx + 1:02d}", HEAD, 50, CYAN, shadow=False), 120, 900, t, t0, anchor="l",
-                  dist=15)
-        for k, l in enumerate(lines):
-            wipe_text(im, text_img(l, HEAD, 96, "metal" if k == 0 else "blue"), 116, 990 + k * 100, t,
-                      t0 + 0.05 + 0.1 * k, anchor="l")
-    elif anchor == "direct":
-        draw_band(im, 470, 1060, strength=150)
-        rise_text(im, text_img("DIRECT", HEAD, 120, "gold", glow=6), 540, 600, t, t0, dist=25)
-        wipe_text(im, text_img("MANUFACTURER", HEAD, 104, "metal"), 540, 730, t, t0 + 0.25)
-        wipe_text(im, text_img("PARTNERSHIPS", HEAD, 104, "metal"), 540, 850, t, t0 + 0.45)
-        rise_text(im, text_img("SOURCED AT THE SOURCE", SEMI, 32, SILVER, track=10), 540, 960, t, t0 + 1.0)
-    else:
-        scale_in(im, vis, 540, 760, t, t0, dur=0.32, s0=0.9, s1=1.0, hold_zoom=0.015)
-        if is_badge:
-            pass  # supplied badge already carries its label
-    # flash on step change
-    fl = 1 - prog(t, t0, 0.18)
-    if fl > 0 and idx > 0:
-        im = Image.blend(im, Image.new("RGB", im.size, (180, 230, 255)), 0.18 * fl)
-    return im
-
-
-def sc_accountable(t):
-    """35.35-39.30: Every stage. Every detail. One accountable EPC partner."""
-    lt = t - A["stage"]
-    im = yusuf_plate("wide", lt, 3.95, speed=0.45, zoom0=1.04, zoom1=1.0, cx0=0.55, cx1=0.45)
-    im = darken(im, 0.3)
-    draw_band(im, 360, 1080, strength=200)
-    ex = A["zimmedari"] - 0.15
-    wipe_text(im, text_img("EVERY STAGE.", HEAD, 116, "metal"), 540, 560, t, A["stage"], exit_t=ex)
-    wipe_text(im, text_img("EVERY DETAIL.", HEAD, 116, "blue", glow=8), 540, 700, t, A["detail"], exit_t=ex)
-    z0 = A["zimmedari"]
-    rise_text(im, text_img("NIKSOL ENERGY", BOLD, 46, "gold", track=12), 540, 500, t, z0 + 0.05, dist=20)
-    scale_in(im, text_img("ONE ACCOUNTABLE", HEAD, 104, "metal"), 540, 640, t, z0 + 0.1, dur=0.35, s0=1.12)
-    scale_in(im, text_img("EPC PARTNER", HEAD, 128, "blue", glow=10), 540, 775, t, z0 + 0.3, dur=0.35, s0=1.12)
-    hline(im, 260, 820, 870, t, z0 + 0.55, color=CYAN, width=5, center=True)
-    return im
-
-
-QUALITY = [
-    # (anchor, big line, small line, style, bg)
-    ("tier1", "TIER-1", "SOLAR PANELS", "metal", ("yusuf", "close")),
-    ("inverters", "QUALITY", "INVERTERS", "blue", ("yusuf", "inverters")),
-    ("custom", "CUSTOM", "ENGINEERING", "metal", ("clip", "flow_blueprint_bg")),
-    ("warranty", "10-YEAR", "STRUCTURAL WARRANTY", "gold", ("035", None)),
-]
-
-
-def sc_quality(t):
-    """39.30-47.17: Tier-1 panels, quality inverters, custom engineering, 10-yr structural warranty."""
-    idx = 0
-    for j, q in enumerate(QUALITY):
-        if t >= A[q[0]] - (0.9 if j == 0 else 0):
-            idx = j
-    anchor, big, small, style, bg = QUALITY[idx]
-    t0 = A[anchor] - (0.9 if idx == 0 else 0)
-    t1 = A[QUALITY[idx + 1][0]] if idx + 1 < len(QUALITY) else 47.17
-    lt = t - t0
-    if bg[0] == "yusuf":
-        if bg[1] == "inverters":
-            # crop the upper part of the frame to keep the burned caption out
-            im = yusuf_plate("inverters", lt, t1 - t0, speed=0.8, zoom0=1.26, zoom1=1.32, cx0=0.25, cx1=0.3,
-                             cy=0.38)
-        else:
-            im = plate("real_yusuf", 8.6 + lt * 0.55, zoom=1.0 + 0.05 * lt / (t1 - t0), cx=0.6)
-    elif bg[0] == "035":
-        # steel canopy structure of the real installation
-        im = plate("real_035", 6.6 + lt * 0.35, zoom=1.08 - 0.04 * lt / (t1 - t0), cx=0.78, cy=0.45)
-    else:
-        im = plate(bg[1], 6.0 + lt * 0.6)
-    im = darken(im, 0.22)
-    draw_band(im, 420, 1020, strength=200)
-    # progress pips
-    d = ImageDraw.Draw(im)
-    for j in range(4):
-        x = 540 + (j - 1.5) * 44
-        on = j <= idx
-        d.rounded_rectangle([x - 14, 440, x + 14, 446], 3, fill=GOLD if j == idx else (CYAN if on else (60, 80, 110)))
-    if idx == 3:
-        # structural frame outline over the real canopy, then the warranty lockup
-        p = ease_out(prog(t, t0, 0.6))
-        fr = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        fd = ImageDraw.Draw(fr)
-        a = int(120 * p)
-        for k in range(5):
-            x = 160 + k * 190
-            fd.line([(x, 520), (x, 520 + 420 * p)], fill=CYAN + (a,), width=2)
-        fd.line([(160, 520), (160 + 760 * p, 520)], fill=CYAN + (a,), width=2)
-        fd.line([(160, 940), (160 + 760 * p, 940)], fill=CYAN + (a,), width=2)
-        for k in range(4):
-            x = 160 + k * 190
-            fd.line([(x, 520), (x + 190 * p, 940)], fill=CYAN + (a // 2,), width=2)
-        paste(im, fr, 0, 0, anchor="tl", alpha=0.8)
-        draw_band(im, 540, 980, strength=170)
-        scale_in(im, text_img("10-YEAR", HEAD, 190, "gold", glow=8), 540, 680, t, t0 + 0.1, dur=0.4, s0=1.15)
-        wipe_text(im, text_img("STRUCTURAL", HEAD, 92, "metal"), 540, 820, t, t0 + 0.35)
-        wipe_text(im, text_img("WARRANTY", HEAD, 92, "metal"), 540, 920, t, t0 + 0.5)
-    else:
-        scale_in(im, text_img(big, HEAD, 170 if len(big) < 8 else 140, style, glow=8 if style == "blue" else 0),
-                 540, 650, t, A[anchor] if idx == 0 else t0, dur=0.38, s0=1.12)
-        wipe_text(im, text_img(small, HEAD, 84, "metal" if style != "metal" else "blue", glow=6), 540, 800, t,
-                  (A[anchor] if idx == 0 else t0) + 0.2)
-        if idx == 0:
-            rise_text(im, text_img("ONLY", BOLD, 44, CYAN, track=14), 540, 520, t, t0 + 0.2, dist=15)
-    return im
-
-
-SUPPORT = [("monitoring", "SYSTEM MONITORING", "monitor"), ("support", "TECHNICAL SUPPORT", "headset"),
-           ("aftersales", "AFTER-SALES SERVICES", "shield")]
-
-
-def sc_support(t):
-    """47.17-51.67: monitoring, technical support, after-sales (illustrative dashboard)."""
-    lt = t - 47.17
-    if t < A["support"]:
-        im = plate("flow_dashboard_c", 1.0 + lt * 0.8)
-    else:
-        im = plate("flow_dashboard_b", 3.0 + (t - A["support"]) * 0.8)
-    im = darken(im, 0.4)
-    draw_band(im, 380, 1080, strength=170)
-    rise_text(im, text_img("AFTER INSTALLATION", SEMI, 32, CYAN, track=10, shadow=False), 540, 440, t, 47.3,
-              dist=15)
-    active = 0
-    for j, s in enumerate(SUPPORT):
-        if t >= A[s[0]]:
-            active = j
-    for j, (anchor, lab, ic) in enumerate(SUPPORT):
-        t0 = A[anchor]
-        if t < t0:
-            continue
-        y = 560 + j * 170
-        p = ease_out(prog(t, t0, 0.4))
-        on = j == active
-        box = (110 + (1 - p) * 60, y - 66, 970 + (1 - p) * 60, y + 66)
-        glass_panel(im, box, alpha=p, border=CYAN if on else (70, 110, 160), fill_a=190 if on else 140)
-        paste(im, icon(ic, 72, CYAN if on else SILVER), box[0] + 80, y, alpha=p)
-        paste(im, text_img(lab, HEAD, 54 if len(lab) < 19 else 50, "metal" if on else SILVER), box[0] + 150, y,
-              anchor="l", alpha=p * (1 if on else 0.75))
-    paste(im, text_img("Illustrative visualisation", MED, 22, (150, 170, 200), shadow=False), 970, 1060,
-          anchor="r", alpha=0.8)
-    return im
-
-
-def sc_cta_contact(t):
-    """51.67-56.26: Contact Niksol for your factory / commercial building."""
-    lt = t - A["cta"]
-    im = plate("real_035", 4.2 + lt * 0.75, zoom=1.0 + 0.05 * lt / 4.6, cx=0.62, cy=0.5)
-    im = darken(im, 0.25)
-    draw_band(im, 380, 1100, strength=200)
-    ex = A["contact"] - 0.2
-    rise_text(im, text_img("FOR YOUR", BOLD, 50, CYAN, track=14), 540, 500, t, A["cta"] + 0.1, exit_t=ex)
-    wipe_text(im, text_img("FACTORY", HEAD, 130, "metal"), 540, 630, t, A["cta"] + 0.35, exit_t=ex)
-    wipe_text(im, text_img("& COMMERCIAL", HEAD, 104, "blue", glow=8), 540, 760, t, A["cta"] + 1.4, exit_t=ex)
-    wipe_text(im, text_img("BUILDING", HEAD, 104, "metal"), 540, 870, t, A["cta"] + 1.6, exit_t=ex)
-    c0 = A["contact"]
-    rise_text(im, text_img("CONTACT", HEAD, 110, "metal"), 540, 560, t, c0, dist=25)
-    wipe_text(im, text_img("NIKSOL ENERGY", HEAD, 110, "gold", glow=6), 540, 690, t, c0 + 0.2)
-    rise_text(im, text_img("TODAY", BOLD, 56, SILVER, track=18), 540, 800, t, c0 + 0.45, dist=20)
-    if t >= c0 + 0.7:
-        p = ease_out(prog(t, c0 + 0.7, 0.4))
-        glass_panel(im, (170, 880, 910, 990), alpha=p, border=GOLD, fill_a=200, radius=55)
-        paste(im, icon("phone", 54, GOLD), 245, 935, alpha=p)
-        paste(im, text_img("+92 333 0755575", HEAD, 58, WHITE), 580, 935, alpha=p)
-    return im
-
-
-def sc_cta_offer(t):
-    """56.26-62.04: Within 24 hours - FREE site assessment, 3D design, quotation."""
-    lt = t - A["h24"]
-    im = plate("flow_blueprint_bg", 5.0 + lt * 0.7, zoom=1.04)
-    im = darken(im, 0.35)
-    draw_band(im, 300, 1140, strength=190)
-    # 24 hours chip
-    if t >= A["h24"]:
-        p = ease_out_back(prog(t, A["h24"], 0.4))
-        chip = text_img("WITHIN 24 HOURS", HEAD, 50, NAVY, track=4, shadow=False)
-        cw, chh = chip.width + 80, 84
-        layer = Image.new("RGBA", (cw, chh), (0, 0, 0, 0))
-        ImageDraw.Draw(layer).rounded_rectangle([0, 0, cw - 1, chh - 1], 42, fill=GOLD + (255,))
-        layer.paste(chip, (40, (chh - chip.height) // 2), chip)
-        s = max(0.01, p)
-        lay = layer.resize((max(1, int(cw * s)), max(1, int(chh * s))), Image.BICUBIC)
-        paste(im, lay, 540, 400, alpha=clamp(p))
-    f0 = A["free"]
-    rise_text(im, text_img("BOOK YOUR", BOLD, 50, SILVER, track=16), 540, 505, t, f0 - 0.25, dist=20)
-    free = text_img("FREE", HEAD, 230, "metal", glow=12)
-    scale_in(im, free, 540, 640, t, f0, dur=0.35, s0=1.18)
-    light_sweep(im, (540 - free.width // 2 - 20, 640 - free.height // 2, 540 + free.width // 2 + 20,
-                     640 + free.height // 2), t, f0 + 0.35, 0.8)
-    wipe_text(im, text_img("SITE ASSESSMENT", HEAD, 92, "blue", glow=8), 540, 790, t, f0 + 0.25)
-    for j, (anchor, lab) in enumerate((("design3d", "PROFESSIONAL 3D SOLAR DESIGN"),
-                                       ("quote", "DETAILED PROJECT QUOTATION"))):
-        t0 = A[anchor]
-        if t < t0:
-            continue
-        y = 920 + j * 100
-        p = ease_out(prog(t, t0, 0.4))
-        paste(im, icon("check", 56, CYAN), 130 + (1 - p) * 40, y, alpha=p)
-        paste(im, text_img(lab, HEAD, 46, "metal"), 180 + (1 - p) * 40, y, anchor="l", alpha=p)
-    return im
 
 
 def sc_endcard(t):

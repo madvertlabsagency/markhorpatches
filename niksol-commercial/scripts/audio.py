@@ -190,6 +190,82 @@ def scene_times():
     return [s for _, s in SCENES]
 
 
+HOOK_CUTS = [0.62, 1.30, 2.10, 2.85, 3.55, 4.30, 5.15]
+INTERNAL_CUTS = HOOK_CUTS + [21.15, A["load"], A["feas"], A["d3"], 27.30, A["struct"], A["procure"], A["install"],
+                             A["commission"], A["inverters"], A["custom"], A["warranty"], A["support"],
+                             A["aftersales"], A["contact"], A["free"], A["design3d"], A["quote"]]
+TYPE_HITS = [A["commercial"], A["industrial"], 1.95, 3.10, 3.95, 4.80, 7.25, A["panels"], 18.0 - 1.1, 17.15,
+             A["epc_complete"] - 0.05, A["direct"], 30.0, A["stage"], A["detail"], A["zimmedari"] + 0.1,
+             A["tier1"], A["support"], A["cta"] + 0.35, A["contact"]]
+STEP_CLICKS = [A["site"], A["load"], A["feas"], A["d3"], 27.30, A["struct"], A["procure"], A["install"],
+               A["commission"], 30.07, 30.29, 30.51, 30.73, A["zimmedari"] + 0.6, A["inverters"], A["custom"],
+               A["monitoring"], A["aftersales"], A["contact"] + 0.7, A["h24"], A["design3d"], A["quote"],
+               A["brand"] + 1.0]
+MOU_DROPS = [31.05, 31.55, 32.05]
+
+BPM = 96
+# intensity of the duff bed per section (0 = silent)
+DUFF_ENV = ([0, 6.09, 10.17, 19.49, 29.87, 35.35, 39.30, 51.67, 62.04, 62.05],
+            [0.8, 0.5, 1.0, 0.75, 0.9, 0.35, 0.75, 0.95, 0.95, 0.0])
+
+
+def section_level(tt):
+    xs, ys = DUFF_ENV
+    lvl = ys[0]
+    for x, y in zip(xs, ys):
+        if tt >= x:
+            lvl = y
+    return lvl
+
+
+def room_reverb(x, seconds=1.1, wet=0.22, seed=9):
+    r = np.random.default_rng(seed)
+    n = int(seconds * SR)
+    ir = fft_filter(r.standard_normal(n), lo=150, hi=4000) * np.exp(-np.arange(n) / SR / (seconds / 5))
+    ir /= np.sqrt(np.sum(ir ** 2))
+    m = len(x) + n
+    y = np.fft.irfft(np.fft.rfft(x, m) * np.fft.rfft(ir, m), m)[: len(x)]
+    return x + y * wet
+
+
+def duff_bed(t):
+    """Traditional frame-drum pattern: dum . . tak dum . tak (tak) per bar, humanised."""
+    beat = 60 / BPM
+    eighth = beat / 2
+    bar = [(0, "dum", -24), (3, "tak", -31), (4, "dum", -27), (6, "tak", -30), (7, "tak", -37)]
+    out = np.zeros(N)
+    r = np.random.default_rng(21)
+    hits = {}
+    k = 0
+    tt0 = 0.0
+    while tt0 < 62.04:
+        lvl = section_level(tt0)
+        for pos, kind, g in bar:
+            tt = tt0 + pos * eighth + r.normal(0, 0.006)
+            if tt >= 62.04 or lvl <= 0:
+                continue
+            if lvl < 0.5 and kind == "tak":
+                continue  # sparse in the quiet "every stage" moment
+            key = (kind, k % 6)
+            if key not in hits:
+                hits[key] = (duff_dum if kind == "dum" else duff_tak)(seed=600 + k % 6)
+            place(out, hits[key], max(0, tt), db(g + r.normal(0, 0.8)) * lvl)
+            k += 1
+        tt0 += 8 * eighth
+    return room_reverb(out) * db(12)  # bed sits ~12 LU under the voice
+
+
+def duff_accents():
+    out = np.zeros(N)
+    pattern = [(A["alhamdulillah"], "dum", -21), (A["mills"], "dum", -22), (A["factories"], "dum", -22),
+               (A["setups"], "dum", -21), (A["setups"] + 0.36, "tak", -28), (A["zimmedari"], "dum", -22),
+               (A["warranty"], "dum", -22), (A["free"], "dum", -21), (A["brand"], "dum", -20),
+               (A["brand"] + 0.48, "tak", -28), (A["brand"] + 0.96, "dum", -24)]
+    for k, (tt, kind, g) in enumerate(pattern):
+        place(out, (duff_dum if kind == "dum" else duff_tak)(seed=80 + k), tt, db(g))
+    return room_reverb(out, wet=0.18)
+
+
 def build():
     vo = read_vo()
     t = np.arange(N) / SR
@@ -205,33 +281,33 @@ def build():
     natural += wnd * wind_env * db(-28)
 
     sfx = np.zeros(N)
-    # transitions: whoosh slightly before each cut
+    # scene transitions: full whoosh slightly before each cut
     for k, st in enumerate(scene_times()[1:]):
-        w = whoosh(0.65, seed=k)
-        place(sfx, w, st - 0.38, db(-21))
+        place(sfx, whoosh(0.65, seed=k), st - 0.38, db(-21))
+    # fast internal cuts (hook montage, step/card changes): short bright swish
+    for k, tt in enumerate(INTERNAL_CUTS):
+        place(sfx, whoosh(0.32, f0=900, f1=6000, seed=200 + k), tt - 0.2, db(-24))
+    # kinetic-type hits: click + small air thump on every slam / text lock
+    for k, tt in enumerate(TYPE_HITS):
+        place(sfx, click(seed=300 + k, bright=1.3), tt, db(-21))
+        place(sfx, air_impact(seed=400 + k), tt, db(-27))
     # reveal impacts
     for k, tt in enumerate([0.02, A["alhamdulillah"], A["mills"], A["factories"], A["setups"], A["epc_complete"],
                             A["zimmedari"], A["warranty"], A["free"], A["brand"]]):
         place(sfx, air_impact(seed=10 + k), tt, db(-15 if k in (0, 9) else -18))
-    # clicks on step / item locks
-    for k, tt in enumerate([A["site"], A["load"], A["feas"], A["d3"], A["struct"], A["procure"], A["install"],
-                            A["commission"], A["detail"], A["zimmedari"] + 0.6, A["tier1"], A["inverters"],
-                            A["custom"], A["monitoring"], A["support"], A["aftersales"], A["contact"] + 0.7,
-                            A["h24"], A["design3d"], A["quote"], A["brand"] + 1.0]):
-        place(sfx, click(seed=40 + k), tt, db(-24))
+    # clicks on step / item locks and partner logo pops
+    for k, tt in enumerate(STEP_CLICKS):
+        place(sfx, click(seed=40 + k), tt, db(-23))
+    # MOU photos landing on the board
+    for k, tt in enumerate(MOU_DROPS):
+        place(sfx, air_impact(seed=500 + k), tt + 0.2, db(-19))
+        place(sfx, click(seed=520 + k, bright=0.7), tt + 0.22, db(-22))
 
-    # Version A: sparse duff accents (simple, calm; never a groove)
-    duff = np.zeros(N)
-    pattern = [(A["alhamdulillah"], "dum", -21), (A["mills"], "dum", -22), (A["factories"], "dum", -22),
-               (A["setups"], "dum", -21), (A["setups"] + 0.36, "tak", -28), (A["zimmedari"], "dum", -22),
-               (A["warranty"], "dum", -22), (A["free"], "dum", -21), (A["brand"], "dum", -20),
-               (A["brand"] + 0.48, "tak", -28), (A["brand"] + 0.96, "dum", -24)]
-    for k, (tt, kind, g) in enumerate(pattern):
-        place(duff, (duff_dum if kind == "dum" else duff_tak)(seed=80 + k), tt, db(g))
-
+    # Version A: gentle frame-duff bed (calm, sparse groove, never louder than the voice)
+    duff = duff_bed(t) + duff_accents()
     duck = duck_curve(vo)
     bed_nat = (natural + sfx) * duck
-    bed_duff = duff * (0.6 + 0.4 * duck)
+    bed_duff = duff * (0.5 + 0.5 * duck)
 
     fade = np.clip((DURATION - t) / 0.6, 0, 1)
     vo_st = stereo(vo)
