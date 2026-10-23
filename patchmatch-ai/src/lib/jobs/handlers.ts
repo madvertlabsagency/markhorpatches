@@ -1,4 +1,5 @@
 import "server-only";
+import { objectKey } from "@/lib/files";
 import { prisma } from "@/lib/db";
 import { sendEmailJob } from "@/lib/notifications";
 import { processRfq } from "@/lib/domain/rfq";
@@ -20,7 +21,7 @@ async function enrichRfq(rfqId: string) {
     if (att.status !== "READY") continue;
     if (["png", "jpg", "jpeg"].includes(att.extension)) {
       try {
-        stats.push({ type: att.extension, ...(await artworkStats(await storage().read(att.storageKey))) });
+        stats.push({ type: att.extension, ...(await artworkStats(await storage().read(objectKey(att.storageKey)!))) });
       } catch {
         stats.push({ type: att.extension });
       }

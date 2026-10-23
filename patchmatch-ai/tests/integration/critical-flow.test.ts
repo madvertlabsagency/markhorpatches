@@ -216,3 +216,50 @@ describe("dispute → credit decision → ledger", () => {
     expect(await prisma.auditLog.count({ where: { entityId: d.id } })).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe("buyer consent decides how many manufacturers can receive a request", () => {
+  const setShared = (enabled: boolean) => prisma.featureFlag.upsert({ where: { key: "limited_shared_rfqs" }, create: { key: "limited_shared_rfqs", enabled, description: "test" }, update: { enabled } });
+
+  it("stays exclusive while limited sharing is disabled, even if the buyer asked for 3", async () => {
+    await setShared(false);
+    const rfq = await submitVerifiedRfq({ maxRecipients: 3, leadSource: "marketplace" } as never);
+    expect(rfq.maxRecipients).toBe(1);
+  });
+
+  it("allows up to 3 only for marketplace buyers who chose it; landing-page leads are always single", async () => {
+    await setShared(true);
+    try {
+      const shared = await submitVerifiedRfq({ maxRecipients: 3, leadSource: "marketplace" } as never);
+      const exclusive = await submitVerifiedRfq({ maxRecipients: 1, leadSource: "marketplace" } as never);
+      const landing = await submitVerifiedRfq({ maxRecipients: 3, leadSource: "landing:custom-patch-quote" } as never);
+      expect(shared.maxRecipients).toBe(3);
+      expect(exclusive.maxRecipients).toBe(1);
+      expect(landing.maxRecipients).toBe(1);
+      expect(landing.leadSource).toBe("landing:custom-patch-quote");
+      const consent = await prisma.consentRecord.findFirstOrThrow({ where: { rfqId: shared.id, kind: "DATA_SHARING" } });
+      expect(consent.maxRecipients).toBe(3);
+
+      // A shared listing can never exceed the buyer's consent, and an exclusive one can't be published as shared.
+      const { seller } = await makeSeller({ credits: 10_000 });
+      for (const r of [shared, exclusive]) {
+        await processRfq(r.id);
+        await adminQualifyRfq(null, r.id, { tier: "A", pricingTier: "STANDARD", source: "SYSTEM" });
+        await runMatching(r.id);
+      }
+      const opp = await publishOpportunity(shared.id, null, { distributionMode: "LIMITED_SHARED", maxUnlocks: 10 });
+      expect(opp.maxUnlocks).toBe(3);
+      await expect(publishOpportunity(exclusive.id, null, { distributionMode: "LIMITED_SHARED", maxUnlocks: 2 })).rejects.toThrow(/consented/);
+      expect(seller.id).toBeTruthy();
+    } finally {
+      await setShared(false);
+    }
+  });
+
+  it("public activity events never contain buyer identity", async () => {
+    const rfq = await submitVerifiedRfq({ contactName: "Zelda Q Private", contactCompany: "Hidden Brand Co", contactPhone: "+1 312 555 0199" });
+    const events = await prisma.activityEvent.findMany({ where: { rfqId: rfq.id } });
+    expect(events.some((e) => e.kind === "RFQ_POSTED")).toBe(true);
+    const text = JSON.stringify(events);
+    for (const secret of ["Zelda", "Hidden Brand", "555 0199", rfq.contactEmail]) expect(text).not.toContain(secret);
+  });
+});

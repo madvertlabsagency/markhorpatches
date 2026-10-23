@@ -8,10 +8,19 @@ import { cn } from "@/lib/utils";
  * fabricated product shots). Each texture hints at the real process: satin stitches,
  * moulded PVC layers, terry loops, fine weave, dye gradients, debossed grain, halftone print.
  */
-export function PatchArt({ type, className, shape = "shield", label }: { type: PatchTypeCode; className?: string; shape?: "shield" | "circle" | "rounded"; label?: string }) {
+export function PatchArt(props: { type: PatchTypeCode; className?: string; shape?: "shield" | "circle" | "rounded"; label?: string; vector?: boolean }) {
+  const info = PATCH_TYPES.find((p) => p.code === props.type);
+  // Brand photography of real embroidered/PVC/woven samples (from the brand kit) where available.
+  if (info && !props.vector) {
+    return <img src={`/patches/${info.slug}.webp`} alt={props.label ?? `${info.name} example`} loading="lazy" className={cn("h-auto w-full object-contain drop-shadow-[0_14px_22px_rgba(11,31,59,0.28)]", props.className)} />;
+  }
+  return <PatchVector {...props} />;
+}
+
+function PatchVector({ type, className, shape = "shield", label }: { type: PatchTypeCode; className?: string; shape?: "shield" | "circle" | "rounded"; label?: string }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const info = PATCH_TYPES.find((p) => p.code === type);
-  const art = info?.art ?? { base: "#121C2E", accent: "#00E5FF", edge: "#00B4FF", texture: "stitch" as const };
+  const art = info?.art ?? { base: "#0B1F3B", accent: "#F15A24", edge: "#D9B382", texture: "stitch" as const };
   const id = (s: string) => `${s}${uid}`;
   const path =
     shape === "circle"
@@ -33,7 +42,7 @@ export function PatchArt({ type, className, shape = "shield", label }: { type: P
           <path d={path} />
         </clipPath>
         <linearGradient id={id("dye")} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#00E5FF" />
+          <stop offset="0" stopColor="#F15A24" />
           <stop offset="0.5" stopColor="#7C3AED" />
           <stop offset="1" stopColor="#F59E0B" />
         </linearGradient>
@@ -91,9 +100,9 @@ export function PatchArt({ type, className, shape = "shield", label }: { type: P
         {art.texture === "rubber" ? (
           <g>
             <path d="M52 140 L88 84 L106 110 L120 92 L150 140 Z" fill={art.accent} />
-            <path d="M52 140 L88 84 L106 110 L120 92 L150 140 Z" fill="none" stroke="#0A0F1C" strokeWidth="4" strokeLinejoin="round" />
-            <circle cx="132" cy="66" r="10" fill="#F7F9FC" stroke="#0A0F1C" strokeWidth="4" />
-            <path d="M58 150 h86" stroke="#0A0F1C" strokeWidth="6" strokeLinecap="round" />
+            <path d="M52 140 L88 84 L106 110 L120 92 L150 140 Z" fill="none" stroke="#0B1F3B" strokeWidth="4" strokeLinejoin="round" />
+            <circle cx="132" cy="66" r="10" fill="#F8F6F1" stroke="#0B1F3B" strokeWidth="4" />
+            <path d="M58 150 h86" stroke="#0B1F3B" strokeWidth="6" strokeLinecap="round" />
           </g>
         ) : art.texture === "grain" ? (
           <g opacity="0.55">
@@ -102,7 +111,7 @@ export function PatchArt({ type, className, shape = "shield", label }: { type: P
           </g>
         ) : art.texture === "terry" ? (
           <g>
-            <text x="100" y="140" textAnchor="middle" fontFamily="Georgia, serif" fontWeight="700" fontSize="92" fill={art.accent} stroke="#0A0F1C" strokeWidth="5" paintOrder="stroke">
+            <text x="100" y="140" textAnchor="middle" fontFamily="Georgia, serif" fontWeight="700" fontSize="92" fill={art.accent} stroke="#0B1F3B" strokeWidth="5" paintOrder="stroke">
               P
             </text>
           </g>
@@ -110,14 +119,14 @@ export function PatchArt({ type, className, shape = "shield", label }: { type: P
           <g>
             <path d="M52 140 L88 84 L106 110 L120 92 L150 140 Z" fill={art.accent} opacity={art.texture === "dye" ? 0.9 : 1} />
             <path d="M72 112 L88 84 L98 98" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
-            <circle cx="132" cy="66" r="9" fill="#F7F9FC" />
+            <circle cx="132" cy="66" r="9" fill="#F8F6F1" />
           </g>
         )}
         <path d={path} fill={`url(#${id("shine")})`} />
       </g>
       {/* Border construction */}
       {art.texture === "rubber" ? (
-        <path d={path} fill="none" stroke="#0A0F1C" strokeWidth="5" />
+        <path d={path} fill="none" stroke="#0B1F3B" strokeWidth="5" />
       ) : art.texture === "grain" ? (
         <path d={inner} fill="none" stroke="#3B2410" strokeOpacity="0.5" strokeWidth="2" strokeDasharray="1 6" strokeLinecap="round" />
       ) : (

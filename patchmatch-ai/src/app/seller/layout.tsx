@@ -12,7 +12,7 @@ export default async function SellerLayout({ children }: { children: React.React
     seller.verificationStatus === "VERIFIED" ? prisma.rfqMatch.count({ where: { sellerId: seller.id, eligible: true, status: { in: ["NOTIFIED", "APPROVED"] }, rfq: { opportunity: { status: "AVAILABLE" }, unlocks: { none: { sellerId: seller.id, status: "ACTIVE" } } } } }) : 0,
   ]);
   const nav: NavGroup[] = [
-    { items: [{ label: "Dashboard", href: "/seller/dashboard", icon: "LayoutDashboard" }] },
+    { items: [{ label: "Dashboard", href: "/seller/dashboard", icon: "LayoutDashboard" }, { label: "Live marketplace", href: "/live", icon: "Activity" }, { label: "Guide", href: "/guide/sellers", icon: "BookOpen" }] },
     {
       title: "Opportunities",
       items: [

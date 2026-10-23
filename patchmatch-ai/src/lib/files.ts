@@ -69,12 +69,22 @@ export async function verifyAndFinalize(att: Attachment): Promise<{ ok: true; at
 export type FileVariant = "original" | "preview" | "teaser";
 
 /**
+ * Demo databases share one stored artwork object per patch type: those attachments use the
+ * unique storageKey "demo-shared/<type>/<file>~<uuid>", and the object key is the part before
+ * "~". Every other key is returned unchanged.
+ */
+export function objectKey(key: string | null | undefined): string | null {
+  if (!key) return null;
+  return key.startsWith("demo-shared/") && key.includes("~") ? key.slice(0, key.indexOf("~")) : key;
+}
+
+/**
  * Server-side authorization for every file download. Returns the storage key to sign, or null.
  * Original buyer artwork is never public: it requires buyer ownership, an ACTIVE unlock, or staff.
  */
 export async function authorizeFile(att: Attachment, variant: FileVariant, user: CurrentUser | null): Promise<string | null> {
   if (att.status !== "READY" || att.deletedAt) return null;
-  const key = variant === "preview" ? att.previewKey : variant === "teaser" ? att.teaserKey : att.storageKey;
+  const key = objectKey(variant === "preview" ? att.previewKey : variant === "teaser" ? att.teaserKey : att.storageKey);
   if (!key) return null;
   const staff = (p: Parameters<typeof can>[1]) => !!user && can(user.platformRole, p);
   const inOrg = (orgId: string | null | undefined) => !!user && !!orgId && user.memberships.some((m) => m.orgId === orgId);

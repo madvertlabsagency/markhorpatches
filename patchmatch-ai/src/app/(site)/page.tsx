@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, EyeOff, FileSearch, Gauge, Lock, MessagesSquare, Scale, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
-import { MatchVisual } from "@/components/marketing/MatchVisual";
+import { LiveHeroPanel } from "@/components/live/LivePanels";
 import { QuickStart } from "@/components/marketing/QuickStart";
 import { CheckList, CtaBand, FaqSection, PatchTypeGrid, ProcessSteps, SectionHeading } from "@/components/marketing/sections";
 import { PatchArt } from "@/components/brand/PatchArt";
@@ -11,42 +11,77 @@ export default function HomePage() {
   return (
     <>
       {/* 1 · Hero */}
-      <section className="relative overflow-hidden bg-navy text-white">
-        <div className="grid-bg-dark absolute inset-0 [mask-image:radial-gradient(ellipse_at_top,black_40%,transparent_75%)]" aria-hidden />
-        <div className="absolute -top-40 left-1/2 h-[34rem] w-[60rem] -translate-x-1/2 rounded-full bg-electric/20 blur-[140px]" aria-hidden />
-        <div className="container-page relative grid items-center gap-14 pt-16 pb-20 sm:pt-24 lg:grid-cols-[1.1fr_1fr] lg:pb-28">
+      <section className="bg-navy-hero relative overflow-hidden text-white">
+        <img src="/photos/hero-patches.webp" alt="" aria-hidden className="pointer-events-none absolute top-0 right-0 hidden h-full w-[46%] object-cover opacity-25 [mask-image:linear-gradient(to_left,black,transparent)] lg:block" />
+        <div className="container-page relative grid items-center gap-12 pt-14 pb-24 sm:pt-20 lg:grid-cols-[1.15fr_0.85fr] lg:pb-28">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs font-medium text-white/75">
-              <Sparkles className="h-3.5 w-3.5 text-cyan" /> AI-assisted sourcing · human-verified manufacturers
-            </p>
-            <h1 className="mt-6 text-[2.6rem] leading-[1.02] font-semibold tracking-[-0.035em] sm:text-6xl lg:text-[4.1rem]">
-              Your custom patch. <span className="bg-gradient-to-r from-electric via-cyan to-white bg-clip-text text-transparent">Matched</span> with the right manufacturer.
+            <p className="font-display text-xs font-semibold tracking-[0.28em] text-gold uppercase">Custom patch sourcing platform</p>
+            <h1 className="mt-5 text-[2.6rem] leading-[1.04] font-extrabold tracking-[-0.03em] sm:text-6xl lg:text-[4.2rem]">
+              Your Patch.
+              <br />
+              Our Network.
+              <br />
+              <span className="text-brand-gradient">Real Manufacturers.</span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/70">Upload your artwork, share your requirements, and connect with qualified custom patch manufacturers.</p>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/75">Post your patch requirements, get matched with verified manufacturers in Pakistan, the US and beyond, and receive competitive quotes — free for buyers.</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <ButtonLink href="/get-quotes" size="lg">
+                Get Free Quotes <ArrowRight className="h-4 w-4" />
+              </ButtonLink>
+              <ButtonLink href="/how-it-works" variant="outlineLight" size="lg">
+                How It Works
+              </ButtonLink>
+            </div>
             <div className="mt-8 max-w-xl">
               <QuickStart tone="dark" />
             </div>
-            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-white/60">
-              <span className="flex items-center gap-1.5">
-                <Lock className="h-4 w-4 text-cyan" /> Free for buyers
-              </span>
-              <span className="flex items-center gap-1.5">
-                <EyeOff className="h-4 w-4 text-cyan" /> Contact details stay private
-              </span>
-              <Link href="/become-a-seller" className="flex items-center gap-1.5 font-semibold text-white hover:text-cyan">
-                Become a Verified Manufacturer <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+            <ul className="mt-8 grid max-w-xl grid-cols-2 gap-3 text-sm text-white/80 sm:grid-cols-4">
+              {[
+                [BadgeCheck, "Verified manufacturers"],
+                [Sparkles, "Smart matching"],
+                [Scale, "Compare quotes"],
+                [ShieldCheck, "Secure & transparent"],
+              ].map(([Icon, t]) => {
+                const I = Icon as typeof BadgeCheck;
+                return (
+                  <li key={t as string} className="flex items-center gap-2">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/15 bg-white/5 text-orange"><I className="h-4 w-4" /></span>
+                    <span className="leading-tight">{t as string}</span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-          <MatchVisual />
+          <div className="relative">
+            <img src="/photos/round-patch.webp" alt="" aria-hidden className="animate-float absolute -top-10 -left-10 hidden w-28 rotate-[-10deg] rounded-full shadow-2xl [--r:-10deg] lg:block" />
+            <LiveHeroPanel />
+          </div>
+        </div>
+        <div className="h-1.5 bg-[linear-gradient(90deg,#F15A24,#D9B382,#1E6B4B,#F15A24)]" aria-hidden />
+      </section>
+
+      {/* Real-world applications */}
+      <section className="bg-navy pb-16 text-white">
+        <div className="container-page grid gap-3 sm:grid-cols-4">
+          {[
+            ["/photos/p-fabric.webp", "Embroidered on denim"],
+            ["/photos/cap.webp", "Caps & hats"],
+            ["/photos/hang-tag.webp", "Woven labels & tags"],
+            ["/photos/hero-patches-2.webp", "PVC, woven & more"],
+          ].map(([src, label]) => (
+            <figure key={src} className="group relative overflow-hidden rounded-2xl">
+              <img src={src} alt={label} loading="lazy" className="aspect-[4/3] w-full object-cover transition duration-700 group-hover:scale-105" />
+              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy/90 to-transparent px-4 pt-10 pb-3 text-sm font-semibold">{label}</figcaption>
+            </figure>
+          ))}
         </div>
       </section>
 
       {/* 2 · Patch type selector */}
-      <section className="container-page -mt-10 relative z-10">
+      <section className="container-page relative z-10 -mt-8">
         <div className="card p-5 sm:p-6">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-            <p className="font-display text-sm font-semibold">Start with a patch type</p>
+            <p className="font-display text-base font-bold">Browse patch types</p>
             <Link href="/patch-types" className="text-sm font-semibold text-electric hover:underline">
               Compare all types →
             </Link>
@@ -81,8 +116,7 @@ export default function HomePage() {
       </section>
 
       {/* 6 · Matching explanation */}
-      <section className="relative overflow-hidden bg-navy py-24 text-white">
-        <div className="grid-bg-dark absolute inset-0" aria-hidden />
+      <section className="bg-navy-hero relative overflow-hidden py-24 text-white">
         <div className="container-page relative grid gap-14 lg:grid-cols-2 lg:items-center">
           <div>
             <SectionHeading dark eyebrow="Manufacturer matching" title="Hard filters first. Then a transparent score." description="AI helps read your request and explain matches — but eligibility is decided by explicit rules that AI can't override." />
@@ -92,7 +126,7 @@ export default function HomePage() {
                 ["Then scored on", "Capability 25 · Capacity 20 · Delivery 20 · Quality 15 · Budget 10 · Response 5 · Logistics 5"],
               ].map(([k, v]) => (
                 <div key={k} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-                  <p className="font-display text-xs tracking-[0.16em] text-cyan uppercase">{k}</p>
+                  <p className="font-display text-xs tracking-[0.16em] text-gold uppercase">{k}</p>
                   <p className="mt-2 text-sm leading-relaxed text-white/75">{v}</p>
                 </div>
               ))}
@@ -114,7 +148,7 @@ export default function HomePage() {
                   <span className="tabular text-white/45">weight {f.v}%</span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full rounded-full bg-gradient-to-r from-electric to-cyan" style={{ width: f.w }} />
+                  <div className="h-full rounded-full bg-gradient-to-r from-orange to-gold" style={{ width: f.w }} />
                 </div>
               </div>
             ))}
@@ -159,8 +193,8 @@ export default function HomePage() {
                 <p className="text-sm text-muted">Business documents, factory photos and samples reviewed by our team</p>
               </div>
             </div>
-            <PatchArt type="CHENILLE" shape="circle" className="w-full" />
-            <PatchArt type="LEATHER" shape="rounded" className="w-full" />
+            <img src="/photos/bear.webp" alt="Embroidered bear patch" className="w-full rounded-2xl object-cover shadow-[var(--shadow-lift)]" />
+            <img src="/photos/usa.webp" alt="Embroidered USA flag patch" className="w-full rounded-2xl object-cover shadow-[var(--shadow-lift)]" />
           </div>
           <div>
             <SectionHeading eyebrow="Supplier verification" title="People review every manufacturer." description="Software screens; humans decide. No manufacturer can access protected requests until they are approved." />
@@ -215,7 +249,7 @@ export default function HomePage() {
       <section className="container-page pb-4">
         <div className="card grid gap-6 p-8 md:grid-cols-[1fr_auto] md:items-center">
           <div className="flex items-start gap-4">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-navy text-cyan">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-navy text-gold">
               <ShieldCheck className="h-6 w-6" />
             </span>
             <div>

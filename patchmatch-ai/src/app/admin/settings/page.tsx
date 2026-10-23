@@ -1,3 +1,4 @@
+import { storageDriver } from "@/lib/services/storage";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
@@ -16,7 +17,7 @@ export default async function AdminSettings() {
   const [flags, bank] = await Promise.all([prisma.featureFlag.findMany({ orderBy: { key: "asc" } }), prisma.platformSetting.findUnique({ where: { key: "bankTransfer" } })]);
   const integrations: [string, boolean, string][] = [
     ["Payments", paymentProvider().configured && paymentProvider().name !== "sandbox", `${paymentProvider().displayName}. Pakistani gateways (${allProviders().filter((p) => !p.configured).map((p) => p.displayName).join(", ")}) need merchant approval + official API docs.`],
-    ["Object storage", process.env.STORAGE_DRIVER === "s3", process.env.STORAGE_DRIVER === "s3" ? `S3 bucket ${process.env.S3_BUCKET}` : "Local disk (development only)"],
+    ["Object storage", storageDriver() !== "local", storageDriver() === "s3" ? `S3 bucket ${process.env.S3_BUCKET}` : storageDriver() === "vercel-blob" ? "Vercel Blob (private access when the store supports it)" : "Local disk (development only)"],
     ["Email", !!process.env.EMAIL_PROVIDER && process.env.EMAIL_PROVIDER !== "console", process.env.EMAIL_PROVIDER ?? "console (emails logged, not sent)"],
     ["AI", aiProviderName() === "anthropic", aiProviderName() === "anthropic" ? "Claude via Anthropic API" : "Deterministic rules (no external AI)"],
     ["Google login", !!process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_ID ? "Configured" : "GOOGLE_CLIENT_ID/SECRET not set"],

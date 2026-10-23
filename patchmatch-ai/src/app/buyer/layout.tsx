@@ -8,7 +8,7 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   const { user, org } = await requireBuyer();
   const unread = await unreadCount({ buyerOrgId: org.id });
   const nav: NavGroup[] = [
-    { items: [{ label: "Dashboard", href: "/buyer/dashboard", icon: "LayoutDashboard" }] },
+    { items: [{ label: "Dashboard", href: "/buyer/dashboard", icon: "LayoutDashboard" }, { label: "Live marketplace", href: "/live", icon: "Activity" }, { label: "Guide", href: "/guide/buyers", icon: "BookOpen" }] },
     {
       title: "Sourcing",
       items: [

@@ -20,7 +20,7 @@ export function MobileNav({ links, signedInHref }: { links: { label: string; hre
   }, [open]);
   return (
     <RDialog.Root open={open} onOpenChange={setOpen}>
-      <RDialog.Trigger className="grid h-10 w-10 place-items-center rounded-xl border border-line bg-surface lg:hidden" aria-label="Open menu">
+      <RDialog.Trigger className="grid h-10 w-10 place-items-center rounded-xl border border-white/25 bg-white/5 text-white lg:hidden" aria-label="Open menu">
         <Menu className="h-5 w-5" />
       </RDialog.Trigger>
       <RDialog.Portal>
@@ -45,7 +45,7 @@ export function MobileNav({ links, signedInHref }: { links: { label: string; hre
             </Link>
           </nav>
           <div className="mt-auto space-y-2">
-            <Link href="/get-quotes" className="flex h-12 items-center justify-center rounded-xl bg-electric font-semibold text-navy">
+            <Link href="/get-quotes" className="flex h-12 items-center justify-center rounded-xl bg-electric font-semibold text-[var(--pm-primary-fg)]">
               Get free custom patch quotes
             </Link>
             <Link href={signedInHref ?? "/login"} className="flex h-12 items-center justify-center rounded-xl border border-line font-semibold">

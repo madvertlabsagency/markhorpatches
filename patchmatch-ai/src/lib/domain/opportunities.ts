@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { redactContactInfo } from "@/lib/rfq/disclosure";
+import { estimateOrderValueMinor } from "@/lib/activity";
 import type { Prisma } from "@/generated/prisma/client";
 
 /**
@@ -8,7 +9,7 @@ import type { Prisma } from "@/generated/prisma/client";
  * (eligible + notified/approved match, or invitation/assignment) are returned, and only
  * non-identifying fields are selected — contact fields are never read here.
  */
-export async function listSellerOpportunities(sellerId: string, filter: { status?: "open" | "all"; patchType?: string } = {}) {
+export async function listSellerOpportunities(sellerId: string, filter: { status?: "open" | "all"; patchType?: string; minValueMinor?: number; noOffers?: boolean } = {}) {
   const visibility: Prisma.RfqWhereInput = {
     OR: [
       { opportunity: { distributionMode: { in: ["EXCLUSIVE", "LIMITED_SHARED"] } }, matches: { some: { sellerId, eligible: true, status: { in: ["NOTIFIED", "APPROVED"] } } } },
@@ -26,7 +27,7 @@ export async function listSellerOpportunities(sellerId: string, filter: { status
     },
     select: {
       id: true, publicRef: true, patchType: true, intendedUse: true, createdAt: true, disclosureMode: true, isDemo: true,
-      spec: { select: { width: true, height: true, unit: true, quantity: true, backing: true, destinationCountry: true, destinationState: true, requiredBy: true, rush: true, budgetUndisclosed: true, budgetTotalMinor: true, aiSummary: true } },
+      spec: { select: { width: true, height: true, unit: true, quantity: true, backing: true, destinationCountry: true, destinationState: true, requiredBy: true, rush: true, budgetUndisclosed: true, budgetTotalMinor: true, targetUnitMinor: true, aiSummary: true } },
       opportunity: true,
       qualifications: { where: { isCurrent: true }, select: { tier: true, pricingTier: true } },
       matches: { where: { sellerId }, select: { score: true, explanation: true } },
@@ -35,9 +36,9 @@ export async function listSellerOpportunities(sellerId: string, filter: { status
       reservations: { where: { status: "ACTIVE", expiresAt: { gt: new Date() } }, select: { sellerId: true } },
     },
     orderBy: { createdAt: "desc" },
-    take: 100,
+    take: 150,
   });
-  return rfqs.map((r) => ({
+  const cards = rfqs.map((r) => ({
     id: r.id,
     ref: r.publicRef,
     patchType: r.patchType,
@@ -65,7 +66,15 @@ export async function listSellerOpportunities(sellerId: string, filter: { status
     expiresAt: r.opportunity!.expiresAt,
     teaserId: r.artwork[0]?.attachment.status === "READY" && r.artwork[0].attachment.teaserKey ? r.artwork[0].attachmentId : null,
     unlocked: r.unlocks.length > 0,
+    /** Order size estimate: buyer budget, else target unit × quantity, else a typical-price estimate. */
+    estValueMinor: r.spec ? estimateOrderValueMinor(r.patchType, r.spec.quantity, r.spec.budgetUndisclosed ? null : r.spec.budgetTotalMinor, r.spec.targetUnitMinor) : 0,
+    noOffersYet: r.opportunity!.unlockCount === 0,
+    publishedAt: r.opportunity!.publishedAt,
+    isNew: !!r.opportunity!.publishedAt && Date.now() - r.opportunity!.publishedAt.getTime() < 3 * 60_000,
   }));
+  return cards
+    .filter((c) => (!filter.minValueMinor || c.estValueMinor >= filter.minValueMinor) && (!filter.noOffers || c.noOffersYet))
+    .sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
 }
 
 export type OpportunityCardData = Awaited<ReturnType<typeof listSellerOpportunities>>[number];

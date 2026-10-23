@@ -47,7 +47,7 @@ export const PATCH_TYPES: PatchTypeInfo[] = [
       { q: "What is the smallest readable text?", a: "As a rule of thumb, lettering below about 4 mm tall loses definition. Manufacturers will usually advise during quoting." },
       { q: "Can embroidered patches use gradients?", a: "True gradients are difficult in thread. Manufacturers typically approximate them with stepped colours, or suggest sublimated or printed patches." },
     ],
-    art: { base: "#0A2A6B", accent: "#00E5FF", edge: "#00B4FF", texture: "stitch" },
+    art: { base: "#1E6B4B", accent: "#F15A24", edge: "#D9B382", texture: "stitch" },
   },
   {
     code: "PVC",
@@ -73,7 +73,7 @@ export const PATCH_TYPES: PatchTypeInfo[] = [
       { q: "Are PVC patches waterproof?", a: "PVC itself is water-resistant and does not fray, which is why it is popular for outdoor use." },
       { q: "Can PVC be iron-on?", a: "Generally no — heat can deform PVC. Hook-and-loop, sew-on or adhesive backings are typical." },
     ],
-    art: { base: "#101827", accent: "#F59E0B", edge: "#00E5FF", texture: "rubber" },
+    art: { base: "#0B1F3B", accent: "#F15A24", edge: "#D9B382", texture: "rubber" },
   },
   {
     code: "CHENILLE",
@@ -92,7 +92,7 @@ export const PATCH_TYPES: PatchTypeInfo[] = [
     backings: ["SEW_ON", "IRON_ON", "ADHESIVE"],
     considerations: ["Best for larger, bold shapes — fine detail is usually stitched in embroidery around the chenille.", "Usually produced at larger sizes than standard embroidered patches."],
     faqs: [{ q: "Can chenille hold small text?", a: "Small text is normally done with flat embroidery on top of the chenille areas." }],
-    art: { base: "#16A34A", accent: "#F7F9FC", edge: "#0A0F1C", texture: "terry" },
+    art: { base: "#1E6B4B", accent: "#F8F6F1", edge: "#0B1F3B", texture: "terry" },
   },
   {
     code: "WOVEN",
@@ -106,7 +106,7 @@ export const PATCH_TYPES: PatchTypeInfo[] = [
     backings: ["SEW_ON", "IRON_ON", "HOOK_AND_LOOP", "ADHESIVE"],
     considerations: ["Colour count is usually limited by the loom.", "Flatter and lighter than embroidered patches."],
     faqs: [{ q: "Woven or embroidered?", a: "Woven is better for fine detail and small text; embroidered gives a raised, textured look." }],
-    art: { base: "#121C2E", accent: "#00B4FF", edge: "#E5EAF0", texture: "weave" },
+    art: { base: "#0B1F3B", accent: "#D9B382", edge: "#F8F6F1", texture: "weave" },
   },
   {
     code: "SUBLIMATED",
@@ -120,7 +120,7 @@ export const PATCH_TYPES: PatchTypeInfo[] = [
     backings: ["SEW_ON", "IRON_ON", "HOOK_AND_LOOP", "ADHESIVE"],
     considerations: ["Flat surface, no raised texture.", "High-resolution artwork is important."],
     faqs: [{ q: "Is there a colour limit?", a: "Sublimation is a full-colour process, so colour count is not normally limited." }],
-    art: { base: "#7C3AED", accent: "#00E5FF", edge: "#F7F9FC", texture: "dye" },
+    art: { base: "#F15A24", accent: "#D9B382", edge: "#0B1F3B", texture: "dye" },
   },
   {
     code: "LEATHER",
@@ -148,7 +148,7 @@ export const PATCH_TYPES: PatchTypeInfo[] = [
     backings: ["SEW_ON", "IRON_ON", "ADHESIVE"],
     considerations: ["Flat finish.", "Durability depends on print method and fabric."],
     faqs: [{ q: "Printed or sublimated?", a: "Both are full colour. Suppliers can explain which suits your fabric, run size and durability needs." }],
-    art: { base: "#DC2626", accent: "#F7F9FC", edge: "#0A0F1C", texture: "print" },
+    art: { base: "#D2470F", accent: "#F8F6F1", edge: "#0B1F3B", texture: "print" },
   },
 ];
 
@@ -209,6 +209,7 @@ export const COUNTRIES: { code: string; name: string }[] = [
   { code: "CA", name: "Canada" },
   { code: "GB", name: "United Kingdom" },
   { code: "PK", name: "Pakistan" },
+  { code: "IN", name: "India" },
   { code: "AU", name: "Australia" },
   { code: "DE", name: "Germany" },
   { code: "FR", name: "France" },

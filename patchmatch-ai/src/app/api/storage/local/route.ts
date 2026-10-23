@@ -3,10 +3,11 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { verifyPayload } from "@/lib/crypto";
 import { localPath, readLocal } from "@/lib/services/storage/local";
+import { storageDriver } from "@/lib/services/storage";
 
 /** Development storage endpoint. Only active with STORAGE_DRIVER=local. All access via signed, expiring tokens. */
 function enabled() {
-  return (process.env.STORAGE_DRIVER ?? "local") === "local";
+  return storageDriver() === "local";
 }
 
 export async function PUT(req: Request) {

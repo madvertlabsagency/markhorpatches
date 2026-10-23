@@ -42,7 +42,7 @@ export function Analytics() {
         <p className="text-fg">We use optional analytics and advertising cookies to measure how visitors find PatchMatch AI. They are off unless you allow them.</p>
         <p className="mt-1 text-muted">See our <Link href="/privacy" className="underline">privacy policy</Link>.</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <button type="button" onClick={() => choose("granted")} className="rounded-xl bg-electric px-3.5 py-2 font-semibold text-navy">Allow analytics</button>
+          <button type="button" onClick={() => choose("granted")} className="rounded-xl bg-electric px-3.5 py-2 font-semibold text-[var(--pm-primary-fg)]">Allow analytics</button>
           <button type="button" onClick={() => choose("denied")} className="rounded-xl border border-line px-3.5 py-2 font-semibold">Decline</button>
         </div>
       </div>

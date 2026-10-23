@@ -70,7 +70,7 @@ export function MatchVisual() {
           </svg>
           {SELLERS.map((s, i) => (
             <motion.div key={s.name} {...fade(0.45 + i * 0.15)} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-3.5 backdrop-blur-xl">
-              <div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-electric to-cyan font-display text-sm font-bold text-navy">
+              <div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-orange to-gold font-display text-sm font-bold text-navy">
                 {s.score}
                 <span className="absolute -right-1 -bottom-1 grid h-4.5 w-4.5 place-items-center rounded-full bg-navy">
                   <BadgeCheck className="h-3.5 w-3.5 text-cyan" />

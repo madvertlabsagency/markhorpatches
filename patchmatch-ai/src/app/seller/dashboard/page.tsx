@@ -1,3 +1,5 @@
+import { LiveFeedCard } from "@/components/live/LivePanels";
+import { AutoRefresh } from "@/components/live/AutoRefresh";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Clock, Coins, Inbox, MessageSquareQuote, Percent, RotateCcw, Trophy, Unlock } from "lucide-react";
@@ -62,11 +64,15 @@ export default async function SellerDashboard() {
         <StatCard label="Avg. time to quote" value={seller.avgResponseMinutes != null ? `${Math.round(seller.avgResponseMinutes / 60)}h` : "—"} icon={Clock} hint={seller.avgResponseMinutes == null ? "Needs 3+ quotes" : undefined} />
         <StatCard label="Credits / refunds" value={formatMoney(credits.reduce((a, r) => a + r.amountMinor, 0))} icon={RotateCcw} href="/seller/quality-claims" hint={`Balance ${formatMoney(wallet?.balanceMinor ?? 0)}`} />
       </div>
-      <div className="mt-8">
+      <AutoRefresh everyMs={9000} />
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_380px]">
+        <div className="min-w-0">
         <div className="mb-4 flex items-end justify-between"><h2 className="text-lg font-semibold">New matching RFQs</h2><Link href="/seller/opportunities" className="text-sm font-semibold text-electric">See all</Link></div>
         {opps.length === 0 ? <EmptyState icon={Inbox} title="No open opportunities right now" description="We'll notify you when a qualified RFQ matches your capabilities. Broadening patch types or shipping destinations increases matches." action={<ButtonLink href="/seller/capabilities" variant="secondary">Review capabilities</ButtonLink>} /> : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{opps.slice(0, 6).map((o) => <OpportunityCard key={o.id} o={o} />)}</div>
+          <div className="grid gap-4 md:grid-cols-2">{opps.slice(0, 6).map((o) => <OpportunityCard key={o.id} o={o} />)}</div>
         )}
+        </div>
+        <LiveFeedCard title="Marketplace right now" max={9} footer={<Link href="/seller/opportunities?fresh=1" className="font-semibold text-electric">Requests with no offers yet →</Link>} />
       </div>
       {unlocks.length > 0 && quotedRfqs.size < unlocks.filter((u) => u.status === "ACTIVE").length && (
         <p className="mt-6 text-sm text-muted">You have unlocked RFQs without a quote. <Link href="/seller/unlocked-rfqs" className="font-semibold text-electric">Send quotes →</Link></p>

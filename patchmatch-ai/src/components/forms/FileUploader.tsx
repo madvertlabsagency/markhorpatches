@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText, ImageIcon, Loader2, Trash2, UploadCloud, XCircle } from "lucide-react";
 import { acceptAttr, PURPOSE_RULES, validateUploadMeta, type UploadPurpose } from "@/lib/services/storage/validation";
 import { cn } from "@/lib/utils";
+import type { UploadTarget } from "@/lib/services/storage/types";
 
 export interface UploadedFile {
   id: string;
@@ -58,7 +59,13 @@ export function FileUploader({ purpose, value, onChange, maxFiles, label = "Drop
         const signRes = await fetch("/api/uploads/sign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: file.name, contentType: file.type, size: file.size, purpose }) });
         const sign = await signRes.json();
         if (!signRes.ok) throw new Error(sign.error ?? "Upload could not start");
-        await putWithProgress(sign.upload.url, file, sign.upload.headers, (p) => update(key, { progress: p }));
+        const target = sign.upload as UploadTarget;
+        if (target.kind === "vercel-blob") {
+          const { put } = await import("@vercel/blob/client");
+          await put(target.pathname, file, { access: target.access, token: target.token, contentType: target.contentType, onUploadProgress: (e) => update(key, { progress: Math.round(e.percentage) }) });
+        } else {
+          await putWithProgress(target.url, file, target.headers, (p) => update(key, { progress: p }));
+        }
         update(key, { status: "verifying", progress: 100 });
         const doneRes = await fetch("/api/uploads/complete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: sign.id }) });
         const done = await doneRes.json();

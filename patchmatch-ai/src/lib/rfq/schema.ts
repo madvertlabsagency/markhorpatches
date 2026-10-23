@@ -79,6 +79,10 @@ export const stepConsent = z.object({
   consentMatching: z.literal(true, { message: "You must agree to supplier matching to submit an RFQ." }),
   consentSharing: z.literal(true, { message: "You must agree to how your RFQ information is shared." }),
   disclosureMode: z.enum(["FULL_CONTACT", "PLATFORM_MESSAGING_ONLY"]).default("FULL_CONTACT"),
+  /** How many manufacturers may receive the request: 1 (exclusive, default) or up to 3 (limited shared, marketplace funnel only). */
+  maxRecipients: z.preprocess((v) => (v === undefined || v === "" ? 1 : Number(v)), z.union([z.literal(1), z.literal(3)])).default(1),
+  /** "marketplace" (full wizard) or "landing:<slug>" (single-manufacturer quote page). */
+  leadSource: z.string().regex(/^(marketplace|landing:[a-z0-9-]{1,40})$/).default("marketplace"),
   consentTerms: z.literal(true, { message: "Please accept the Buyer Terms." }),
   consentMarketing: z.boolean().default(false),
   /** Honeypot — must stay empty. */

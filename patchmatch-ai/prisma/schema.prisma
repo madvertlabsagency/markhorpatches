@@ -537,7 +537,13 @@ model SellerProfile {
   // performance (computed from real platform activity only)
   avgResponseMinutes Int?
   quotesSubmitted    Int                @default(0)
+  /// Delivery and satisfaction rates. Production: computed from confirmed orders and buyer
+  /// feedback only (null until enough data). Demo databases: fictional values.
+  onTimeDeliveryPct  Int?
+  satisfactionPct    Int?
+  completedOrders    Int                @default(0)
   isDemo             Boolean            @default(false)
+  simulated          Boolean            @default(false)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -703,7 +709,12 @@ model Rfq {
   selectedQuoteId  String?        @unique @db.Uuid
   duplicateOfId    String?        @db.Uuid
   submitIp         String?
+  /// Funnel the request came from: "marketplace" (buyer chose how many manufacturers may quote)
+  /// or "landing:<slug>" (single-manufacturer quote page; always one recipient).
+  leadSource       String         @default("marketplace")
   isDemo           Boolean        @default(false)
+  /// Created by the demo marketplace simulator (demo databases only); pruned automatically.
+  simulated        Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -728,6 +739,7 @@ model Rfq {
   @@index([contactEmail])
   @@index([buyerOrgId])
   @@index([isDemo, createdAt])
+  @@index([simulated, createdAt])
 }
 
 model RfqStatusEvent {
@@ -885,6 +897,8 @@ model Opportunity {
   publishedAt      DateTime?
   publishedById    String?           @db.Uuid
   expiresAt        DateTime?
+  /// When matched manufacturers were reminded that nobody had claimed it yet (once per opportunity).
+  nudgedAt         DateTime?
   isDemo           Boolean           @default(false)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -1486,4 +1500,38 @@ model PlatformSetting {
   key       String   @id
   value     Json
   updatedAt DateTime @updatedAt
+}
+
+enum ActivityKind {
+  RFQ_POSTED
+  SELLER_APPLIED
+  SELLER_VERIFIED
+  RFQ_UNLOCKED
+  QUOTE_SENT
+  SELLER_SELECTED
+  PREVIEW_VIEWED
+  OFFER_NUDGE
+}
+
+/// Anonymised marketplace activity for live feeds. Never holds buyer identity or contact data.
+model ActivityEvent {
+  id         String       @id @default(uuid()) @db.Uuid
+  kind       ActivityKind
+  title      String
+  detail     String?
+  rfqId      String?      @db.Uuid
+  sellerId   String?      @db.Uuid
+  patchType  String?
+  quantity   Int?
+  valueMinor Int?
+  region     String?
+  /// Visible on public feeds (false for internal events such as seller preview views).
+  public     Boolean      @default(true)
+  isDemo     Boolean      @default(false)
+  simulated  Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+
+  @@index([createdAt])
+  @@index([isDemo, public, createdAt])
+  @@index([rfqId])
 }

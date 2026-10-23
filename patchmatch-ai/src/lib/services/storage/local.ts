@@ -20,7 +20,7 @@ export const localStorage: StorageAdapter = {
   name: "local",
   async createUploadUrl(key, contentType, maxBytes) {
     const token = signPayload({ op: "put", key, contentType, maxBytes }, 15 * 60);
-    return { url: `/api/storage/local?token=${encodeURIComponent(token)}`, method: "PUT", headers: { "Content-Type": contentType } };
+    return { kind: "put", url: `/api/storage/local?token=${encodeURIComponent(token)}`, method: "PUT", headers: { "Content-Type": contentType } };
   },
   async getDownloadUrl(key, opts = {}) {
     const token = signPayload({ op: "get", key, filename: opts.filename, inline: !!opts.inline }, opts.expiresIn ?? 15 * 60);

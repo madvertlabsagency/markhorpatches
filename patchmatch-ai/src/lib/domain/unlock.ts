@@ -1,4 +1,5 @@
 import "server-only";
+import { recordRfqEvent } from "@/lib/activity";
 import { prisma } from "@/lib/db";
 import { siteUrl } from "@/lib/env";
 import { formatMoney } from "@/lib/money";
@@ -98,6 +99,7 @@ async function afterUnlock(unlockId: string) {
     },
   });
   await trackEvent("RFQUnlocked", { rfqId: unlock.rfqId, orgId: unlock.seller.orgId, props: { method: unlock.method, priceMinor: unlock.priceMinor }, isDemo: unlock.isDemo });
+  await recordRfqEvent("RFQ_UNLOCKED", unlock.rfqId, unlock.sellerId);
 }
 
 export type StartUnlockResult =

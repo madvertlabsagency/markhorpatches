@@ -1,4 +1,5 @@
 import "server-only";
+import { recordRfqEvent } from "@/lib/activity";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { siteUrl } from "@/lib/env";
@@ -92,6 +93,7 @@ export async function saveQuote(args: { sellerId: string; userId: string; rfqId:
       await queueEmail(rfq.contactEmail, "quote_received", { ...data, url: siteUrl(`/rfq/track/${rfq.publicRef}`) }, `quote:${quote.id}:v${quote.version}:guest`);
     }
     await trackEvent("QuoteSubmitted", { rfqId: rfq.id, orgId: seller.orgId, props: { totalMinor: quote.totalMinor, version: quote.version }, isDemo: rfq.isDemo });
+    if (quote.version === 1) await recordRfqEvent("QUOTE_SENT", rfq.id, seller.id, { valueMinor: quote.totalMinor });
     await refreshSellerResponseTime(args.sellerId);
   }
   return quote;
@@ -141,6 +143,7 @@ export async function buyerQuoteAction(args: { rfqId: string; quoteId: string; u
         dedupeKey: `selected:${q.id}`, email: { template: "seller_selected", data: { seller: q.seller.tradingName ?? q.seller.legalName, ref: q.rfq.publicRef, url: siteUrl(`/seller/messages?rfq=${q.rfqId}`) } },
       });
       await trackEvent("BuyerSelectedSeller", { rfqId: q.rfqId, userId: args.userId, isDemo: q.isDemo });
+      await recordRfqEvent("SELLER_SELECTED", q.rfqId, q.sellerId);
       return;
     }
   }

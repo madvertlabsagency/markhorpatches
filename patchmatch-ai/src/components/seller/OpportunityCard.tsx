@@ -13,8 +13,9 @@ const MODE_LABEL: Record<string, string> = { EXCLUSIVE: "Exclusive", LIMITED_SHA
 
 export function OpportunityCard({ o }: { o: OpportunityCardData }) {
   const available = o.oppStatus === "AVAILABLE" && !o.unlocked;
+  const isNew = o.isNew;
   return (
-    <Link href={`/seller/opportunities/${o.id}`} className="group card flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:border-electric/40 hover:shadow-[var(--shadow-lift)]">
+    <Link href={`/seller/opportunities/${o.id}`} className={`group card flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:border-electric/40 hover:shadow-[var(--shadow-lift)] ${isNew ? "animate-slide-in ring-2 ring-orange/50" : ""}`}>
       <div className="relative flex gap-4 p-5">
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-line bg-surface-2">
           {o.teaserId ? (
@@ -29,13 +30,14 @@ export function OpportunityCard({ o }: { o: OpportunityCardData }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <p className="tabular text-xs font-semibold text-muted">{o.ref}</p>
-            {o.score != null && <span className="tabular rounded-lg bg-gradient-to-br from-electric to-cyan px-2 py-0.5 text-xs font-bold text-navy" title="Match score">{o.score}</span>}
+            {o.score != null && <span className="tabular rounded-lg bg-gradient-to-br from-orange to-gold px-2 py-0.5 text-xs font-bold text-navy" title="Match score">{o.score}</span>}
           </div>
           <p className="mt-0.5 font-semibold">{o.quantity.toLocaleString()} × {patchTypeName(o.patchType)}</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {o.tier && <Badge tone={statusTone("tier", o.tier)}>{TIER_LABEL[o.tier] ?? `Tier ${o.tier}`}</Badge>}
             <Badge tone="neutral">{MODE_LABEL[o.mode]}</Badge>
-            {o.isDemo && <Badge tone="violet">Demo</Badge>}
+            {isNew && <Badge tone="red" dot>New</Badge>}
+            {available && o.noOffersYet && <Badge tone="amber">No offers yet — be first</Badge>}
           </div>
         </div>
       </div>
@@ -43,7 +45,7 @@ export function OpportunityCard({ o }: { o: OpportunityCardData }) {
         <div className="flex items-center gap-1.5 text-muted"><Ruler className="h-3.5 w-3.5" /><dd>{o.size ?? "Size TBC"}</dd></div>
         <div className="flex items-center gap-1.5 text-muted"><MapPin className="h-3.5 w-3.5" /><dd>{o.region}</dd></div>
         <div className="flex items-center gap-1.5 text-muted"><CalendarClock className="h-3.5 w-3.5" /><dd>{o.requiredBy ? `By ${formatDate(o.requiredBy)}` : "Flexible"}</dd></div>
-        <div className="flex items-center gap-1.5 text-muted"><Package className="h-3.5 w-3.5" /><dd>{o.budgetMinor ? `Budget ${formatMoney(o.budgetMinor, o.currency, { compact: true })}` : "Budget undisclosed"}</dd></div>
+        <div className="flex items-center gap-1.5 text-muted"><Package className="h-3.5 w-3.5" /><dd>{o.budgetMinor ? `Budget ${formatMoney(o.budgetMinor, o.currency, { compact: true })}` : `Est. order ${formatMoney(o.estValueMinor, o.currency, { compact: true })}`}</dd></div>
         {o.rush && <div className="flex items-center gap-1.5 font-semibold text-warning"><Zap className="h-3.5 w-3.5" /> Rush</div>}
         {o.messagingOnly && <div className="flex items-center gap-1.5 text-muted"><MessagesSquare className="h-3.5 w-3.5" /> Messaging only</div>}
       </dl>
@@ -52,7 +54,7 @@ export function OpportunityCard({ o }: { o: OpportunityCardData }) {
           <p className="tabular font-display text-lg font-semibold">{formatMoney(o.priceMinor, o.currency)}</p>
           <p className="text-[11px] text-muted">{o.unlocked ? "Unlocked" : o.oppStatus === "SOLD_OUT" ? "No longer available" : o.reservedByOther ? "Reserved — check back shortly" : `${o.remaining} of ${o.maxUnlocks} available`}</p>
         </div>
-        <span className={available ? "rounded-xl bg-electric px-3.5 py-2 text-sm font-semibold text-navy group-hover:bg-[#19BDFF]" : "rounded-xl border border-line px-3.5 py-2 text-sm font-semibold"}>{o.unlocked ? "Open" : available ? "Unlock This RFQ" : "View"}</span>
+        <span className={available ? "rounded-xl bg-electric px-3.5 py-2 text-sm font-semibold text-[var(--pm-primary-fg)] group-hover:bg-[#B93C0A] dark:group-hover:bg-[#FF8A5B]" : "rounded-xl border border-line px-3.5 py-2 text-sm font-semibold"}>{o.unlocked ? "Open" : available ? "Unlock This RFQ" : "View"}</span>
       </div>
     </Link>
   );

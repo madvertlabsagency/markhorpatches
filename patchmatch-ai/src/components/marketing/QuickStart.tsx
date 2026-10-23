@@ -39,7 +39,7 @@ export function QuickStart({ tone = "light" }: { tone?: "light" | "dark" }) {
         <input id="qs-qty" inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value.replace(/\D/g, "").slice(0, 7))} className={cn("tabular h-12 w-full rounded-xl pr-12 pl-3.5 text-[15px] font-medium focus:outline-none", dark ? "bg-white/5 text-white" : "bg-surface-2")} />
         <span className={cn("pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm", dark ? "text-white/50" : "text-muted")}>pcs</span>
       </div>
-      <button type="submit" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-electric px-5 font-semibold text-navy shadow-[var(--shadow-glow)] transition hover:bg-[#19BDFF]">
+      <button type="submit" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-electric px-5 font-semibold text-[var(--pm-primary-fg)] shadow-[var(--shadow-glow)] transition hover:bg-[#19BDFF]">
         Get free quotes <ArrowRight className="h-4 w-4" />
       </button>
     </form>

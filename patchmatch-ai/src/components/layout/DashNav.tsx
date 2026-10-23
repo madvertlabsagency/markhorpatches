@@ -5,10 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import * as RDialog from "@radix-ui/react-dialog";
 import {
-  LayoutDashboard, FileText, Radar, MessageSquareQuote, MessagesSquare, Image, Bell, Settings, Inbox, Unlock, Receipt, CreditCard, ShieldAlert, BarChart3, Wrench, Images, BadgeCheck, Users, Building2, ClipboardCheck, Gauge, Store, Tags, Wallet, RotateCcw, Scale, Megaphone, ShieldBan, ScrollText, KeyRound, SlidersHorizontal, Sparkles, Search, Menu, X, Sun, Moon, Circle, Briefcase, Factory, Calculator, FileSearch,
+  LayoutDashboard, FileText, Radar, MessageSquareQuote, MessagesSquare, Image, Bell, Settings, Inbox, Unlock, Receipt, CreditCard, ShieldAlert, BarChart3, Wrench, Images, BadgeCheck, Users, Building2, ClipboardCheck, Gauge, Store, Tags, Wallet, RotateCcw, Scale, Megaphone, ShieldBan, ScrollText, KeyRound, SlidersHorizontal, Sparkles, Search, Menu, X, Sun, Moon, Circle, Briefcase, Factory, Calculator, FileSearch, BookOpen, Activity,
 } from "lucide-react";
 
-const Icons = { LayoutDashboard, FileText, Radar, MessageSquareQuote, MessagesSquare, Image, Bell, Settings, Inbox, Unlock, Receipt, CreditCard, ShieldAlert, BarChart3, Wrench, Images, BadgeCheck, Users, Building2, ClipboardCheck, Gauge, Store, Tags, Wallet, RotateCcw, Scale, Megaphone, ShieldBan, ScrollText, KeyRound, SlidersHorizontal, Sparkles, Search, Menu, X, Sun, Moon, Circle, Briefcase, Factory, Calculator, FileSearch };
+const Icons = { BookOpen, Activity, LayoutDashboard, FileText, Radar, MessageSquareQuote, MessagesSquare, Image, Bell, Settings, Inbox, Unlock, Receipt, CreditCard, ShieldAlert, BarChart3, Wrench, Images, BadgeCheck, Users, Building2, ClipboardCheck, Gauge, Store, Tags, Wallet, RotateCcw, Scale, Megaphone, ShieldBan, ScrollText, KeyRound, SlidersHorizontal, Sparkles, Search, Menu, X, Sun, Moon, Circle, Briefcase, Factory, Calculator, FileSearch };
 import { Logo } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +50,7 @@ export function DashNav({ groups, onNavigate }: { groups: NavGroup[]; onNavigate
                   >
                     <Icon className={cn("h-4.5 w-4.5", active && "text-electric")} />
                     <span className="flex-1 truncate">{item.label}</span>
-                    {!!item.badge && <span className="tabular rounded-full bg-electric px-1.5 text-[11px] font-bold text-navy">{item.badge}</span>}
+                    {!!item.badge && <span className="tabular rounded-full bg-electric px-1.5 text-[11px] font-bold text-[var(--pm-primary-fg)]">{item.badge}</span>}
                   </Link>
                 </li>
               );

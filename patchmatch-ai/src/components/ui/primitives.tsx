@@ -24,7 +24,7 @@ export function CardHeader({ title, description, action, className }: { title: R
 
 const BADGE_TONES = {
   neutral: "bg-surface-2 text-muted ring-line",
-  blue: "bg-electric/10 text-[#0077B6] ring-electric/25 dark:text-cyan",
+  blue: "bg-electric/10 text-[#B93C0A] ring-electric/25 dark:text-cyan",
   green: "bg-success/10 text-success ring-success/25",
   amber: "bg-warning/12 text-[#B45309] ring-warning/30 dark:text-warning",
   red: "bg-danger/10 text-danger ring-danger/25",
@@ -140,7 +140,7 @@ export function Avatar({ name, className }: { name: string; className?: string }
     .slice(0, 2)
     .join("")
     .toUpperCase();
-  return <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-deep to-[#12305A] font-display text-xs font-semibold text-cyan", className)}>{initials || "?"}</span>;
+  return <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-deep to-[#1E6B4B] font-display text-xs font-semibold text-cyan", className)}>{initials || "?"}</span>;
 }
 
 export function Divider({ className }: { className?: string }) {

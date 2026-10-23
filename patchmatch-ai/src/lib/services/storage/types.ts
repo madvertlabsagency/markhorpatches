@@ -1,12 +1,11 @@
-export interface UploadTarget {
-  url: string;
-  method: "PUT";
-  headers: Record<string, string>;
-}
+/** How the browser sends a file: a direct signed PUT, or a Vercel Blob client upload with a scoped token. */
+export type UploadTarget =
+  | { kind: "put"; url: string; method: "PUT"; headers: Record<string, string> }
+  | { kind: "vercel-blob"; pathname: string; token: string; access: "public" | "private"; contentType: string };
 
 export interface StorageAdapter {
   readonly name: string;
-  /** Short-lived URL the browser PUTs the file to directly. */
+  /** Short-lived target the browser uploads the file to directly. */
   createUploadUrl(key: string, contentType: string, maxBytes: number): Promise<UploadTarget>;
   /** Short-lived private download URL. */
   getDownloadUrl(key: string, opts?: { filename?: string; inline?: boolean; expiresIn?: number }): Promise<string>;

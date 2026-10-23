@@ -13,7 +13,7 @@ const schema = z.object({
   PAYMENTS_PROVIDER: z.enum(PAYMENT_PROVIDERS).default("sandbox"),
   ALLOW_SANDBOX_PAYMENTS: z.string().optional(),
   SANDBOX_WEBHOOK_SECRET: z.string().optional(),
-  STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
+  STORAGE_DRIVER: z.enum(["local", "s3", "vercel-blob"]).optional(),
   S3_BUCKET: z.string().optional(),
   EMAIL_PROVIDER: z.enum(["console", "resend", "postmark"]).default("console"),
   EMAIL_FROM: z.string().default("PatchMatch AI <hello@example.com>"),

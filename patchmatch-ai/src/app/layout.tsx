@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { inter, spaceGrotesk } from "./fonts";
+import { inter, poppins } from "./fonts";
 import { siteUrl } from "@/lib/env";
 import { Analytics } from "@/components/layout/Analytics";
 import "./globals.css";
@@ -15,14 +15,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [{ media: "(prefers-color-scheme: dark)", color: "#0A0F1C" }, { color: "#F7F9FC" }],
+  themeColor: [{ media: "(prefers-color-scheme: dark)", color: "#07152A" }, { color: "#0B1F3B" }],
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-US" className={`${spaceGrotesk.variable} ${inter.variable}`}>
+    <html lang="en-US" className={`${poppins.variable} ${inter.variable}`}>
       <body>
         <a href="#main" className="sr-only z-[100] rounded-lg bg-navy px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
           Skip to content

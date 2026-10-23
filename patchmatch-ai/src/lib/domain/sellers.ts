@@ -1,4 +1,5 @@
 import "server-only";
+import { recordSellerEvent } from "@/lib/activity";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { siteUrl } from "@/lib/env";
@@ -152,6 +153,7 @@ export async function submitForVerification(sellerId: string, userId: string) {
   const { ready, seller } = await verificationChecklist(sellerId);
   if (!ready) throw new DomainError("INCOMPLETE", "Complete every checklist item before submitting.");
   await transitionVerification(sellerId, "PENDING_REVIEW", { actorId: userId, reason: "Submitted by seller" });
+  await recordSellerEvent("SELLER_APPLIED", sellerId);
   await alertAdmins("New seller verification", `${seller.legalName} (${seller.country}) submitted for verification.`, `/admin/seller-verification/${seller.id}`, `seller_verify:${seller.id}:${Date.now()}`, ["SUPER_ADMIN", "ADMIN", "REVIEWER"]);
 }
 
@@ -177,6 +179,9 @@ export async function transitionVerification(sellerId: string, to: VerificationS
       const label = { VERIFIED: "Verified", INFO_REQUIRED: "Additional information required", REJECTED: "Not approved", SUSPENDED: "Suspended" }[to as "VERIFIED"];
       await notify({ userIds: await orgUserIds(seller.orgId), type: "seller_verification", title: `Verification: ${label}`, body: msg, link: "/seller/verification", dedupeKey: `verification:${sellerId}:${to}:${Date.now()}`, email: { template: "seller_verification_decision", data: { company: seller.tradingName ?? seller.legalName, status: label, message: msg, url: siteUrl("/seller/dashboard") } } });
     }
-    if (to === "VERIFIED") await trackEvent("SellerVerified", { orgId: seller.orgId, isDemo: seller.isDemo });
+    if (to === "VERIFIED") {
+      await trackEvent("SellerVerified", { orgId: seller.orgId, isDemo: seller.isDemo });
+      await recordSellerEvent("SELLER_VERIFIED", sellerId);
+    }
   }
 }

@@ -1,4 +1,5 @@
 import "server-only";
+import { recordRfqPosted } from "@/lib/activity";
 import { prisma } from "@/lib/db";
 import { randomToken, sha256 } from "@/lib/crypto";
 import { siteUrl } from "@/lib/env";
@@ -59,7 +60,10 @@ export async function createRfq(input: RfqSubmission, ctx: SubmitContext) {
   }
 
   const guestToken = randomToken(24);
-  const maxRecipients = 1; // Launch default: exclusive. Limited-shared consent is behind a feature flag.
+  // Launch default: exclusive (1). Up to 3 recipients only when the buyer chose it in the marketplace
+  // wizard AND the limited-shared feature is enabled. Landing-page leads are always single-manufacturer.
+  const sharedAllowed = input.leadSource === "marketplace" && input.maxRecipients > 1 && (await featureEnabled("limited_shared_rfqs"));
+  const maxRecipients = sharedAllowed ? 3 : 1;
   const currency = "USD";
 
   const rfq = await prisma.$transaction(async (tx) => {
@@ -83,6 +87,7 @@ export async function createRfq(input: RfqSubmission, ctx: SubmitContext) {
         preferredContact: input.preferredContact,
         disclosureMode: input.disclosureMode,
         maxRecipients,
+        leadSource: input.leadSource,
         emailVerifiedAt: verifiedViaAccount ? new Date() : null,
         guestAccessHash: sha256(guestToken),
         submittedAt: new Date(),
@@ -188,6 +193,7 @@ export async function verifyRfqEmail(token: string) {
     if (user && buyerOrg && !rfq.buyerOrgId) await tx.rfq.update({ where: { id: rfqId }, data: { buyerOrgId: buyerOrg.id, buyerUserId: user.id } });
   });
   await trackEvent("RFQVerified", { rfqId, isDemo: rfq.isDemo });
+  await recordRfqPosted(rfqId);
   return { ok: true as const, rfq, already: false };
 }
 

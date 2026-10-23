@@ -1,3 +1,5 @@
+import { DemoBanner } from "@/components/demo/DemoBanner";
+import { LiveToaster } from "@/components/live/LivePanels";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { Bell, LogOut } from "lucide-react";
@@ -32,7 +34,8 @@ export async function DashboardShell({
   const unread = await prisma.notification.count({ where: { userId: user.id, readAt: null } });
   return (
     <div className={cn("min-h-dvh bg-bg text-fg", theme === "dark" && "dark")}>
-      {isDemoMode() && <div className="bg-violet-600 px-4 py-1 text-center text-xs font-semibold text-white">Demo environment — all data is fictional.</div>}
+      <DemoBanner />
+      <LiveToaster />
       <div className="flex">
         <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line bg-surface lg:flex">
           <div className="flex h-16 items-center gap-2 border-b border-line px-5">
@@ -74,7 +77,7 @@ export async function DashboardShell({
               <ThemeToggle theme={theme as "light" | "dark"} />
               <Link href={notificationsHref} className="relative grid h-10 w-10 place-items-center rounded-xl text-muted hover:bg-surface-2 hover:text-fg" aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}>
                 <Bell className="h-5 w-5" />
-                {unread > 0 && <span className="tabular absolute top-1.5 right-1.5 grid h-4.5 min-w-4.5 place-items-center rounded-full bg-electric px-1 text-[10px] font-bold text-navy">{unread > 99 ? "99+" : unread}</span>}
+                {unread > 0 && <span className="tabular absolute top-1.5 right-1.5 grid h-4.5 min-w-4.5 place-items-center rounded-full bg-electric px-1 text-[10px] font-bold text-[var(--pm-primary-fg)]">{unread > 99 ? "99+" : unread}</span>}
               </Link>
               <form action={logoutAction} className="lg:hidden">
                 <button className="grid h-10 w-10 place-items-center rounded-xl text-muted hover:bg-surface-2" aria-label="Sign out">

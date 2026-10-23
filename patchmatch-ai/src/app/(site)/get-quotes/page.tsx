@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { RfqWizard } from "@/components/rfq/RfqWizard";
 import { wizardPrefill } from "@/app/actions/rfq";
 import { getCurrentUser } from "@/lib/auth/session";
+import { featureEnabled } from "@/lib/domain/rfq";
 
 export const metadata: Metadata = {
   title: "Get Free Custom Patch Quotes",
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function GetQuotesPage({ searchParams }: { searchParams: Promise<{ type?: string; qty?: string }> }) {
   const sp = await searchParams;
-  const [prefill, user] = await Promise.all([wizardPrefill(), getCurrentUser()]);
+  const [prefill, user, sharedEnabled] = await Promise.all([wizardPrefill(), getCurrentUser(), featureEnabled("limited_shared_rfqs")]);
   return (
     <div className="bg-bg">
       <div className="relative overflow-hidden border-b border-line bg-surface">
@@ -23,7 +24,7 @@ export default async function GetQuotesPage({ searchParams }: { searchParams: Pr
         </div>
       </div>
       <div className="container-page py-10">
-        <RfqWizard initialType={sp.type} initialQty={sp.qty} prefill={prefill} signedInEmail={user?.emailVerifiedAt ? user.email : null} />
+        <RfqWizard initialType={sp.type} initialQty={sp.qty} prefill={prefill} signedInEmail={user?.emailVerifiedAt ? user.email : null} sharedEnabled={sharedEnabled} />
       </div>
     </div>
   );

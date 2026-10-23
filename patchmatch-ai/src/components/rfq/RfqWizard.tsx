@@ -39,7 +39,7 @@ const TIPS: Record<string, string> = {
   review: "Check everything, then confirm how your information may be shared.",
 };
 
-export function RfqWizard({ initialType, initialQty, prefill, signedInEmail }: { initialType?: string; initialQty?: string; prefill?: Record<string, string> | null; signedInEmail?: string | null }) {
+export function RfqWizard({ initialType, initialQty, prefill, signedInEmail, sharedEnabled = false, leadSource = "marketplace" }: { initialType?: string; initialQty?: string; prefill?: Record<string, string> | null; signedInEmail?: string | null; sharedEnabled?: boolean; leadSource?: string }) {
   const reduce = useReducedMotion();
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -54,6 +54,8 @@ export function RfqWizard({ initialType, initialQty, prefill, signedInEmail }: {
     destinationCountry: "US",
     preferredContact: "EMAIL",
     disclosureMode: "FULL_CONTACT",
+    maxRecipients: 1,
+    leadSource,
     repeatPotential: false,
     sampleRequired: false,
     rush: false,
@@ -152,7 +154,7 @@ export function RfqWizard({ initialType, initialQty, prefill, signedInEmail }: {
                 className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition", i === step ? "bg-surface font-semibold shadow-[var(--shadow-card)]" : i < step ? "text-fg hover:bg-surface/70" : "text-muted")}
                 aria-current={i === step ? "step" : undefined}
               >
-                <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold", i < step ? "bg-success text-white" : i === step ? "bg-electric text-navy" : "border border-line")}>
+                <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold", i < step ? "bg-success text-white" : i === step ? "bg-electric text-[var(--pm-primary-fg)]" : "border border-line")}>
                   {i < step ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : i + 1}
                 </span>
                 {s.title}
@@ -300,7 +302,7 @@ export function RfqWizard({ initialType, initialQty, prefill, signedInEmail }: {
                 </div>
               )}
               {current.key === "contact" && <StepContact data={data} set={set} err={err} signedInEmail={signedInEmail} />}
-              {current.key === "review" && <StepReview data={data} set={set} err={err} goTo={go} />}
+              {current.key === "review" && <StepReview data={data} set={set} err={err} goTo={go} sharedEnabled={sharedEnabled && leadSource === "marketplace"} single={leadSource !== "marketplace"} />}
             </motion.div>
           </AnimatePresence>
 
@@ -562,8 +564,9 @@ function StepContact({ data, set, err, signedInEmail }: { data: Data; set: SetFn
   );
 }
 
-function StepReview({ data, set, err, goTo }: { data: Data; set: SetFn; err: (k: string) => string | undefined; goTo: (i: number) => void }) {
+function StepReview({ data, set, err, goTo, sharedEnabled, single }: { data: Data; set: SetFn; err: (k: string) => string | undefined; goTo: (i: number) => void; sharedEnabled: boolean; single: boolean }) {
   const mode = (data.disclosureMode as "FULL_CONTACT" | "PLATFORM_MESSAGING_ONLY") ?? "FULL_CONTACT";
+  const max = sharedEnabled && Number(data.maxRecipients) === 3 ? 3 : 1;
   const rows: { step: number; label: string; value: string }[] = [
     { step: 0, label: "Patch type", value: patchTypeName(String(data.patchType)) },
     { step: 1, label: "Use", value: labelFor(INTENDED_USES, String(data.intendedUse)) + (data.intendedUseOther ? ` — ${data.intendedUseOther}` : "") },
@@ -597,11 +600,22 @@ function StepReview({ data, set, err, goTo }: { data: Data; set: SetFn; err: (k:
         </div>
       </fieldset>
 
+      {sharedEnabled && (
+        <fieldset className="space-y-3">
+          <legend className="mb-2 text-sm font-semibold">How many manufacturers may quote?</legend>
+          <div className="grid gap-3 sm:grid-cols-2" role="radiogroup">
+            <ChoiceCard selected={max === 1} onSelect={() => set({ maxRecipients: 1 })} title="One manufacturer (exclusive)" description="Only the first verified manufacturer to claim your request receives it. Fewest contacts." />
+            <ChoiceCard selected={max === 3} onSelect={() => set({ maxRecipients: 3 })} title="Up to 3 manufacturers" description="Get up to three competing quotes. Your details go to no more than three verified manufacturers." />
+          </div>
+        </fieldset>
+      )}
+      {single && <p className="rounded-xl border border-line bg-surface-2/40 px-4 py-3 text-sm text-muted">Your request goes to <strong className="text-fg">one</strong> verified manufacturing partner, who contacts you directly with a quote.</p>}
+
       <fieldset className="space-y-4 rounded-2xl border border-line bg-surface-2/40 p-4">
         <legend className="sr-only">Consent</legend>
         <Checkbox id="consentMatching" checked={!!data.consentMatching} onChange={(e) => set({ consentMatching: e.target.checked || undefined })} label="Supplier matching" description={CONSENT_TEXT.SUPPLIER_MATCHING} />
         {err("consentMatching") && <p className="text-sm text-danger" role="alert">{err("consentMatching")}</p>}
-        <Checkbox id="consentSharing" checked={!!data.consentSharing} onChange={(e) => set({ consentSharing: e.target.checked || undefined })} label="How my information is shared" description={sharingText(mode, 1)} />
+        <Checkbox id="consentSharing" checked={!!data.consentSharing} onChange={(e) => set({ consentSharing: e.target.checked || undefined })} label="How my information is shared" description={sharingText(mode, max)} />
         {err("consentSharing") && <p className="text-sm text-danger" role="alert">{err("consentSharing")}</p>}
         <Checkbox
           id="consentTerms"
@@ -671,7 +685,7 @@ function Confirmation({ result, email, signedInEmail }: { result: Extract<Submit
         <ol className="space-y-3 text-sm">
           {["Email verification", "Our team reviews your request (usually within 1 business day)", "Matching with verified manufacturers", "Quotes arrive — compare and choose"].map((s, i) => (
             <li key={s} className="flex items-center gap-3">
-              <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold", i === 0 && result.verified ? "bg-success text-white" : i === 0 || (i === 1 && result.verified) ? "bg-electric text-navy" : "border border-line text-muted")}>{i === 0 && result.verified ? <Check className="h-3.5 w-3.5" /> : i + 1}</span>
+              <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold", i === 0 && result.verified ? "bg-success text-white" : i === 0 || (i === 1 && result.verified) ? "bg-electric text-[var(--pm-primary-fg)]" : "border border-line text-muted")}>{i === 0 && result.verified ? <Check className="h-3.5 w-3.5" /> : i + 1}</span>
               {s}
             </li>
           ))}
@@ -695,11 +709,11 @@ function Confirmation({ result, email, signedInEmail }: { result: Extract<Submit
         </div>
         <div className="flex flex-wrap gap-3">
           {signedInEmail ? (
-            <Link href={`/buyer/rfqs/${result.rfqId}`} className="inline-flex h-11 items-center rounded-xl bg-electric px-5 font-semibold text-navy">
+            <Link href={`/buyer/rfqs/${result.rfqId}`} className="inline-flex h-11 items-center rounded-xl bg-electric px-5 font-semibold text-[var(--pm-primary-fg)]">
               View request
             </Link>
           ) : (
-            <Link href={`/register?next=${encodeURIComponent("/buyer/rfqs")}`} className="inline-flex h-11 items-center rounded-xl bg-electric px-5 font-semibold text-navy">
+            <Link href={`/register?next=${encodeURIComponent("/buyer/rfqs")}`} className="inline-flex h-11 items-center rounded-xl bg-electric px-5 font-semibold text-[var(--pm-primary-fg)]">
               Create an account to track quotes
             </Link>
           )}

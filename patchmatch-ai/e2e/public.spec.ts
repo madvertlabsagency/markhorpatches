@@ -15,7 +15,7 @@ test("public pages render without client errors", async ({ page }) => {
 
 test("homepage hero and CTAs @mobile", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Matched with the right manufacturer");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Your Patch.");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(1);
   await page.getByRole("button", { name: "Open menu" }).click();

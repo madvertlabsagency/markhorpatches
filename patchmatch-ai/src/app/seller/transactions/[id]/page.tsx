@@ -20,7 +20,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
       <div className="mb-4 flex justify-end print:hidden"><PrintButton /></div>
       <article className="card p-8 print:border-0 print:shadow-none">
         <header className="flex items-start justify-between">
-          <div className="flex items-center gap-2"><LogoMark className="h-9 w-9" /><span className="font-display text-lg font-bold">PatchMatch AI</span></div>
+          <div className="flex items-center gap-2"><LogoMark className="h-9" /><span className="font-display text-lg font-bold">PatchMatch AI</span></div>
           <div className="text-right"><p className="text-xs text-muted uppercase">Receipt</p><p className="tabular font-semibold">{u.receiptNumber}</p></div>
         </header>
         <dl className="mt-8 grid grid-cols-2 gap-4 text-sm">

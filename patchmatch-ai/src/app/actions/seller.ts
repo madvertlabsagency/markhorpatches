@@ -1,5 +1,6 @@
 "use server";
 
+import { recordRfqEvent } from "@/lib/activity";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -162,8 +163,11 @@ export async function unlockAction(rfqId: string, method: "CARD" | "CREDITS"): P
 }
 
 export async function trackPreviewAction(rfqId: string) {
-  const { org } = await assertSeller();
+  const { org, seller } = await assertSeller();
   await trackEvent("RFQPreviewViewed", { rfqId, orgId: org.id });
+  // Internal (admin-only) activity: which manufacturers are looking at which requests. One per seller per RFQ per hour.
+  const recent = await prisma.activityEvent.count({ where: { kind: "PREVIEW_VIEWED", rfqId, sellerId: seller.id, createdAt: { gte: new Date(Date.now() - 3_600_000) } } });
+  if (!recent) await recordRfqEvent("PREVIEW_VIEWED", rfqId, seller.id, { public: false });
 }
 
 export async function saveQuoteAction(_prev: ActionState, fd: FormData): Promise<ActionState> {

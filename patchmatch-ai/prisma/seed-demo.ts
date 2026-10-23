@@ -1,192 +1,174 @@
 /**
  * DEMO ENVIRONMENT SEED — fictional data only.
  *
- *  • 20 fictional buyers, 30 fictional manufacturers, 100 fictional RFQs, quotes, messages,
- *    simulated transactions, verification cases and matching scenarios.
- *  • Every record is flagged isDemo = true and names carry "(Demo)". Production reporting
- *    excludes isDemo data. Run this ONLY against a separate demo database with DEMO_MODE=true.
- *  • Data flows through the real domain services (qualification, matching, publishing, unlocks,
- *    quotes, disputes) so the demo exercises the same code paths as production.
+ *  • 3 presenter accounts (admin, manufacturer, buyer), 200 fictional manufacturers in Pakistan,
+ *    the US and India (verified, pending applications, info requested, suspended), 40 fictional
+ *    buyer brands and ~160 requests pushed through the real pipeline (qualification, matching,
+ *    publication, credit unlocks, quotations, messages, buyer selections).
+ *  • Every record is isDemo=true and the UI shows a "fictional demo" banner on every page.
+ *    Production reporting excludes isDemo data. Run ONLY against a dedicated demo database.
+ *  • Artwork comes from the brand-kit patch samples in public/patches (one stored object per type).
  *
- * Usage: DEMO_MODE=true npm run db:seed:demo   (refuses to run unless DEMO_MODE=true)
+ * Usage: DEMO_MODE=true npm run db:seed:demo          (refuses unless DEMO_MODE=true)
+ *        npm run db:seed:demo -- --if-demo            (no-op unless DEMO_MODE=true; used by vercel-build)
  */
 import "dotenv/config";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import bcrypt from "bcryptjs";
 import { prisma } from "../src/lib/db";
-import { createRfq, verifyRfqEmail, processRfq, adminQualifyRfq, adminRequestClarification, adminRejectRfq } from "../src/lib/domain/rfq";
-import { runMatching, publishOpportunity } from "../src/lib/domain/matching";
-import { startUnlock, creditWallet } from "../src/lib/domain/unlock";
+import { storage } from "../src/lib/services/storage";
+import { generatePreviews } from "../src/lib/services/storage/previews";
+import { sha256 } from "../src/lib/crypto";
+import { startUnlock } from "../src/lib/domain/unlock";
 import { saveQuote, buyerQuoteAction } from "../src/lib/domain/quotes";
 import { postMessage } from "../src/lib/domain/messages";
 import { fileDispute, decideDispute } from "../src/lib/domain/finance";
-import { storage } from "../src/lib/services/storage";
-import { generatePreviews } from "../src/lib/services/storage/previews";
-import { randomToken, sha256 } from "../src/lib/crypto";
-import sharp from "sharp";
-import bcrypt from "bcryptjs";
-import type { RfqSubmission } from "../src/lib/rfq/schema";
+import { createDemoRfq, createDemoSeller, rnd } from "../src/lib/demo/factory";
+import { BUYER_BRANDS, DEMO_ACCOUNTS, DEMO_PASSWORD_DEFAULT, DEMO_PATCH_TYPES, FIRST_NAMES, LAST_NAMES, UNIT_PRICE, type DemoPatchType } from "../src/lib/demo/catalog";
+import { PATCH_TYPES } from "../src/lib/catalog";
 
+const IF_DEMO = process.argv.includes("--if-demo");
 if (process.env.DEMO_MODE !== "true") {
+  if (IF_DEMO) process.exit(0);
   console.error("Refusing to seed demo data: set DEMO_MODE=true and point DATABASE_URL at a dedicated demo database.");
   process.exit(1);
 }
 
-// Deterministic pseudo-random generator so the demo is reproducible.
-let seed = 42;
-const rand = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
-const pick = <T,>(a: readonly T[]) => a[Math.floor(rand() * a.length)];
-const int = (min: number, max: number) => Math.floor(rand() * (max - min + 1)) + min;
+const daysAgo = (d: number, h = 0) => new Date(Date.now() - d * 86_400_000 - h * 3_600_000);
 
-const FIRST = ["Avery", "Jordan", "Riley", "Casey", "Morgan", "Taylor", "Quinn", "Reese", "Skyler", "Rowan", "Emerson", "Hayden", "Parker", "Sawyer", "Dakota", "Finley", "Harper", "Kendall", "Logan", "Peyton"];
-const LAST = ["Brooks", "Carter", "Diaz", "Ellis", "Foster", "Gray", "Hughes", "Irwin", "Jensen", "Keller", "Lane", "Moreno", "Nash", "Ortiz", "Price", "Reed", "Shaw", "Tate", "Vance", "Wells"];
-const BRANDS = ["Northbound Supply", "Ember & Oak", "Static Bloom", "Ridgeway Athletics", "Copperline Caps", "Lantern Club", "Harbor Street", "Bluefin Racing", "Granite Guild", "Moonlit Collective", "Pine Hollow Scouts", "Velvet Arcade", "Summit Run Co", "Driftwood Denim", "Halcyon Events", "Iron Kite", "Juniper Lane", "Kestrel Outdoor", "Lowtide Skate", "Maple & Mortar"];
-const STATES = ["CA", "NY", "TX", "FL", "IL", "WA", "CO", "GA", "NC", "OR", "AZ", "MA"];
-const SELLER_CITIES_PK = ["Sialkot", "Lahore", "Karachi", "Faisalabad", "Gujranwala"];
-const SELLER_CITIES_US = ["Los Angeles", "Dallas", "Charlotte", "Chicago", "Newark"];
-const TYPES = ["EMBROIDERED", "PVC", "CHENILLE", "WOVEN", "SUBLIMATED", "LEATHER", "PRINTED"] as const;
-const USES = ["CLOTHING_BRAND", "STREETWEAR", "HATS", "UNIFORMS", "SPORTS_TEAMS", "CLUBS", "EVENTS", "PROMOTIONAL"] as const;
-const BACKINGS = ["SEW_ON", "IRON_ON", "HOOK_AND_LOOP", "ADHESIVE"] as const;
+async function artworkPool() {
+  const pool: Record<string, { key: string; previewKey: string; teaserKey: string; size: number; sha: string }> = {};
+  for (const t of PATCH_TYPES) {
+    const file = path.join(process.cwd(), "public", "patches", `${t.slug}.webp`);
+    const buf = await readFile(file);
+    const p = await generatePreviews(buf);
+    const key = `demo-shared/${t.code.toLowerCase()}/original.webp`;
+    await storage().put(key, buf, "image/webp");
+    await storage().put(`${key}.preview.webp`, p.preview, "image/webp");
+    await storage().put(`${key}.teaser.webp`, p.teaser, "image/webp");
+    pool[t.code] = { key, previewKey: `${key}.preview.webp`, teaserKey: `${key}.teaser.webp`, size: buf.length, sha: sha256(buf) };
+  }
+  pool.NOT_SURE = pool.EMBROIDERED;
+  await prisma.platformSetting.upsert({ where: { key: "demo.artworkPool" }, create: { key: "demo.artworkPool", value: pool }, update: { value: pool } });
+}
 
-async function demoArtwork(label: string, hue: number) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" rx="120" fill="hsl(${hue},60%,30%)"/><circle cx="300" cy="260" r="140" fill="hsl(${(hue + 160) % 360},80%,60%)"/><text x="300" y="500" font-size="64" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold">${label}</text></svg>`;
-  const png = await sharp(Buffer.from(svg)).png().toBuffer();
-  const att = await prisma.attachment.create({ data: { purpose: "RFQ_ARTWORK", storageKey: `pending/${randomToken(12)}`, originalFilename: `${label.toLowerCase().replace(/\W+/g, "-")}-logo.png`, sanitizedFilename: "logo.png", mimeType: "image/png", extension: "png", sizeBytes: png.length, guestOwnerHash: "demo-seed" } });
-  const key = `rfq_artwork/demo/${att.id}/logo.png`;
-  const p = await generatePreviews(png);
-  await storage().put(key, png, "image/png");
-  await storage().put(`${key}.preview.webp`, p.preview, "image/webp");
-  await storage().put(`${key}.teaser.webp`, p.teaser, "image/webp");
-  await prisma.attachment.update({ where: { id: att.id }, data: { storageKey: key, previewKey: `${key}.preview.webp`, teaserKey: `${key}.teaser.webp`, status: "READY", sha256: sha256(png), scanStatus: "UNSUPPORTED" } });
-  return att.id;
+async function quoteFor(sellerId: string, userId: string, rfqId: string) {
+  const rfq = await prisma.rfq.findUniqueOrThrow({ where: { id: rfqId }, include: { spec: true } });
+  const type = (rfq.patchType === "NOT_SURE" ? "EMBROIDERED" : rfq.patchType) as DemoPatchType;
+  const [lo, hi] = UNIT_PRICE[type];
+  const qty = rfq.spec!.quantity;
+  return saveQuote({
+    sellerId, userId, rfqId, submit: true,
+    input: {
+      quantity: qty, unitPrice: Math.round((lo + Math.random() * (hi - lo)) * (qty >= 1000 ? 0.8 : 1) * 100) / 100, setupFee: rnd.pick([0, 25, 40, 60]), sampleFee: rnd.pick([0, 15, 25]),
+      toolingFee: type === "PVC" ? 80 : 0, artworkFee: 0, shipping: rnd.pick([35, 45, 65, 90]), currency: "USD", productionDays: rnd.int(7, 18), deliveryEstimate: rnd.pick(["5–7 business days by courier", "4–6 business days DHL Express"]),
+      samplePolicy: "Free digital proof; physical sample $25", paymentTerms: rnd.pick(["50% deposit, 50% before shipping", "100% after proof approval"]), revisionPolicy: "Unlimited proof revisions before production",
+      notes: "Thanks for the request — we can match your thread colours exactly.", validDays: 30,
+    },
+  });
 }
 
 async function main() {
-  const existing = await prisma.user.count({ where: { isDemo: true } });
-  if (existing > 0) {
-    console.log(`[demo] ${existing} demo users already exist — skipping (drop the demo database to reseed).`);
+  if (await prisma.user.findUnique({ where: { email: DEMO_ACCOUNTS.admin.email } })) {
+    console.log("[demo] Demo data already present — skipping (use a fresh demo database to reseed).");
     return;
   }
-  const password = await bcrypt.hash(process.env.DEMO_PASSWORD ?? "DemoPass!2026", 12);
+  const t0 = Date.now();
+  const passwordHash = await bcrypt.hash(process.env.DEMO_PASSWORD ?? DEMO_PASSWORD_DEFAULT, 10);
+  await artworkPool();
+  // Demo databases show the buyer-consented limited-shared workflow; production keeps it off.
+  await prisma.featureFlag.updateMany({ where: { key: "limited_shared_rfqs" }, data: { enabled: true } });
+  await prisma.matchingConfiguration.updateMany({ where: { active: true }, data: { maxNotified: 8 } });
 
-  // Demo admin (separate from the real admin).
-  const admin = await prisma.user.create({ data: { email: "demo-admin@patchmatch.demo", name: "Demo Admin (Demo)", passwordHash: password, platformRole: "SUPER_ADMIN", emailVerifiedAt: new Date(), mfaEnabledAt: null, isDemo: true } });
+  // ── Presenter accounts ──
+  const admin = await prisma.user.create({ data: { email: DEMO_ACCOUNTS.admin.email, name: DEMO_ACCOUNTS.admin.name, passwordHash, platformRole: "SUPER_ADMIN", emailVerifiedAt: new Date(), isDemo: true } });
+  const star = await createDemoSeller({ market: "PK", email: DEMO_ACCOUNTS.seller.email, name: DEMO_ACCOUNTS.seller.name, company: DEMO_ACCOUNTS.seller.company, passwordHash, allTypes: true, star: true, credits: 50_000, createdAt: daysAgo(420), reviewerId: admin.id });
+  await prisma.sellerProfile.update({ where: { id: star.seller.id }, data: { city: "Sialkot", region: "Punjab", factoryLocation: "Small Industrial Estate, Sialkot" } });
 
-  // ── 30 manufacturers with verification cases ──
-  const sellers: { id: string; orgId: string; userId: string; email: string }[] = [];
-  for (let i = 0; i < 30; i++) {
-    const pk = i < 20;
-    const name = `${pick(["Crest", "Thread", "Loom", "Stitch", "Badge", "Emblem", "Patchworks", "Needle"])} ${pick(["Craft", "Works", "Industries", "Studio", "Manufacturing", "Atelier"])} ${i + 1} (Demo)`;
-    const email = `seller${i + 1}@patchmatch.demo`;
-    const status = i < 22 ? "VERIFIED" : i < 25 ? "PENDING_REVIEW" : i < 27 ? "INFO_REQUIRED" : i < 29 ? "UNVERIFIED" : "SUSPENDED";
-    const user = await prisma.user.create({ data: { email, name: `${pick(FIRST)} ${pick(LAST)} (Demo)`, passwordHash: password, emailVerifiedAt: new Date(), isDemo: true } });
-    const types = [...new Set<(typeof TYPES)[number]>([pick(TYPES), pick(TYPES), i % 3 === 0 ? "EMBROIDERED" : pick(TYPES), "EMBROIDERED"])];
-    const org = await prisma.organization.create({
-      data: {
-        type: "SELLER", name, slug: `demo-seller-${i + 1}`, country: pk ? "PK" : "US", isDemo: true, members: { create: { userId: user.id, role: "OWNER" } }, wallet: { create: { currency: "USD" } },
-        sellerProfile: {
-          create: {
-            legalName: name, publicSlug: `demo-seller-${i + 1}`, country: pk ? "PK" : "US", city: pk ? pick(SELLER_CITIES_PK) : pick(SELLER_CITIES_US), contactName: user.name!, email, phone: pk ? "+92 300 0000000" : "+1 555 0100",
-            verificationStatus: status, verifiedAt: status === "VERIFIED" ? new Date() : null, yearsOperating: int(1, 25), factoryLocation: pk ? "Sialkot, Punjab" : "Los Angeles, CA",
-            description: "Fictional demo manufacturer for product demonstrations.", exportMarkets: ["US", "GB", "CA"], shippingCountries: pk ? ["US", "GB", "CA", "AU"] : ["US", "CA"],
-            backingOptions: ["SEW_ON", "IRON_ON", "HOOK_AND_LOOP", ...(i % 2 ? (["ADHESIVE"] as const) : [])], borderOptions: ["MERROWED", "HOT_CUT", "LASER_CUT"], artworkSupport: i % 4 !== 0, sampleCapable: i % 3 !== 0, rushCapable: i % 2 === 0,
-            dailyRfqLimit: 20, maxDailySpendMinor: 50_000, isDemo: true, notificationPrefs: { emailOpportunities: false }, avgResponseMinutes: i < 10 ? int(30, 900) : null, quotesSubmitted: 0,
-            capabilities: { create: types.map((t) => ({ patchType: t, moq: pick([25, 50, 100, 250]), maxQuantity: pick([5000, 20000, 100000]), weeklyCapacity: pick([2000, 5000, 15000]), standardDays: int(7, 21), rushDays: int(4, 7), priceMinMinor: int(40, 120), priceMaxMinor: int(150, 450) })) },
-          },
-        },
-      },
-      include: { sellerProfile: true },
-    });
-    const sp = org.sellerProfile!;
-    await prisma.sellerVerification.create({ data: { sellerId: sp.id, fromStatus: "UNVERIFIED", toStatus: status === "UNVERIFIED" ? "UNVERIFIED" : "PENDING_REVIEW", reason: "Submitted (demo)" } });
-    if (status !== "UNVERIFIED" && status !== "PENDING_REVIEW") await prisma.sellerVerification.create({ data: { sellerId: sp.id, fromStatus: "PENDING_REVIEW", toStatus: status, reason: status === "INFO_REQUIRED" ? "Please upload a clearer business registration certificate (demo)." : status === "SUSPENDED" ? "Repeated upheld quality claims (demo)." : "Documents and samples reviewed (demo).", reviewerId: admin.id } });
-    if (status === "VERIFIED") await prisma.$transaction((tx) => creditWallet(tx, { orgId: org.id, amountMinor: 20_000, currency: "USD", type: "ADJUSTMENT", memo: "Demo credits (fictional)", idempotencyKey: `demo-credit:${org.id}` }));
-    sellers.push({ id: sp.id, orgId: org.id, userId: user.id, email });
+  // ── 200 manufacturers ──
+  const statuses: ("VERIFIED" | "PENDING_REVIEW" | "INFO_REQUIRED" | "UNVERIFIED" | "SUSPENDED")[] = [
+    ...Array(165).fill("VERIFIED"), ...Array(20).fill("PENDING_REVIEW"), ...Array(7).fill("INFO_REQUIRED"), ...Array(5).fill("UNVERIFIED"), ...Array(3).fill("SUSPENDED"),
+  ];
+  for (const [i, status] of statuses.entries()) {
+    await createDemoSeller({ status, passwordHash, credits: status === "VERIFIED" ? 10_000 : 0, createdAt: status === "PENDING_REVIEW" ? daysAgo(rnd.int(0, 6), rnd.int(0, 20)) : undefined, reviewerId: admin.id });
+    if (i % 50 === 49) console.log(`[demo] ${i + 1} manufacturers…`);
   }
 
-  // ── 20 buyers ──
-  const buyers: { userId: string; email: string; name: string; company: string }[] = [];
-  for (let i = 0; i < 20; i++) {
-    const name = `${FIRST[i]} ${LAST[(i * 7) % LAST.length]} (Demo)`;
-    const email = `buyer${i + 1}@patchmatch.demo`;
-    const user = await prisma.user.create({ data: { email, name, passwordHash: password, emailVerifiedAt: new Date(), isDemo: true } });
-    await prisma.organization.create({ data: { type: "BUYER", name: `${BRANDS[i]} (Demo)`, slug: `demo-buyer-${i + 1}`, isDemo: true, members: { create: { userId: user.id, role: "OWNER" } }, buyerProfile: { create: { companyName: `${BRANDS[i]} (Demo)` } } } });
-    buyers.push({ userId: user.id, email, name, company: `${BRANDS[i]} (Demo)` });
+  // ── 40 buyer brands (the presenter buyer is the first) ──
+  const buyers: { userId: string; orgId: string; name: string; email: string; company: string }[] = [];
+  for (let i = 0; i < 40; i++) {
+    const company = i === 0 ? DEMO_ACCOUNTS.buyer.company : BUYER_BRANDS[i % BUYER_BRANDS.length];
+    const name = i === 0 ? DEMO_ACCOUNTS.buyer.name : `${rnd.pick(FIRST_NAMES)} ${rnd.pick(LAST_NAMES)}`;
+    const email = i === 0 ? DEMO_ACCOUNTS.buyer.email : `buyer${i + 1}@patchmatch.demo`;
+    const user = await prisma.user.create({ data: { email, name, passwordHash, emailVerifiedAt: daysAgo(60), isDemo: true } });
+    const org = await prisma.organization.create({ data: { type: "BUYER", name: company, slug: `demo-buyer-${i + 1}`, isDemo: true, members: { create: { userId: user.id, role: "OWNER" } }, buyerProfile: { create: { companyName: company } } } });
+    buyers.push({ userId: user.id, orgId: org.id, name, email, company });
   }
 
-  // ── 100 RFQs through the real pipeline ──
-  const artworkPool: string[] = [];
-  for (let i = 0; i < 12; i++) artworkPool.push(await demoArtwork(`DEMO ${i + 1}`, i * 30));
-  let n = 0;
-  for (let i = 0; i < 100; i++) {
-    const b = buyers[i % 20];
-    const type = i % 9 === 0 ? "NOT_SURE" : pick(TYPES);
-    const quantity = pick([50, 100, 200, 300, 500, 750, 1000, 2500, 5000]);
-    const scenario = i < 8 ? "unverified" : i < 14 ? "clarify" : i < 18 ? "reject" : i < 24 ? "review" : "qualify";
-    const art = scenario === "clarify" ? [] : [artworkPool.shift() ?? ""].filter(Boolean);
-    const sub = {
-      patchType: type, intendedUse: pick(USES), unit: "IN", width: scenario === "clarify" ? undefined : pick([2, 2.5, 3, 3.5, 4]), height: scenario === "clarify" ? undefined : pick([2, 2.5, 3, 3.5]), borderType: "MERROWED",
-      quantity, repeatPotential: rand() > 0.5, sampleRequired: false, backing: scenario === "clarify" ? undefined : pick(BACKINGS), colorCount: int(2, 8), specialFinishing: [], artworkIds: art,
-      artworkNotes: "Fictional demo request — brand colours navy and white.", destinationCountry: "US", destinationState: pick(STATES), destinationPostal: String(int(10000, 99999)),
-      requiredBy: new Date(Date.now() + int(25, 90) * 86_400_000).toISOString().slice(0, 10), rush: rand() > 0.85, sampleBeforeProduction: rand() > 0.6, budgetUndisclosed: rand() > 0.7, budgetTotal: quantity * pick([1.2, 1.8, 2.5, 3.5]),
-      contactName: b.name, contactCompany: b.company, contactEmail: b.email, contactPhone: "+1 555 01" + String(10 + (i % 80)), preferredContact: "EMAIL",
-      consentMatching: true, consentSharing: true, disclosureMode: i % 6 === 0 ? "PLATFORM_MESSAGING_ONLY" : "FULL_CONTACT", consentTerms: true, consentMarketing: false, website2: "",
-    } as unknown as RfqSubmission;
-    if (art.length) await prisma.attachment.update({ where: { id: art[0] }, data: { guestOwnerHash: "demo-seed" } });
-    const { rfq } = await createRfq(sub, { guestOwnerHash: art.length ? "demo-seed" : null, ip: `198.51.100.${i % 250}`, isDemo: true, attribution: { utm_source: pick(["meta", "google", "seo", "referral"]), utm_campaign: pick(["fall-launch", "brand-search", "retarget"]) } });
-    // Spread creation dates over the last 60 days.
-    const created = new Date(Date.now() - int(0, 60) * 86_400_000);
-    await prisma.rfq.update({ where: { id: rfq.id }, data: { createdAt: created, submittedAt: created } });
-    if (scenario === "unverified") continue;
-    const token = randomToken();
-    await prisma.verificationToken.create({ data: { tokenHash: sha256(token), purpose: "RFQ_EMAIL_VERIFY", email: b.email, data: { rfqId: rfq.id }, expiresAt: new Date(Date.now() + 3_600_000) } });
-    await verifyRfqEmail(token);
-    await prisma.rfq.update({ where: { id: rfq.id }, data: { buyerOrgId: (await prisma.organizationMember.findFirstOrThrow({ where: { userId: b.userId } })).orgId, buyerUserId: b.userId } });
-    await processRfq(rfq.id);
-    if (scenario === "clarify") {
-      await adminRequestClarification(admin.id, rfq.id, ["What size should the patch be?", "Which backing do you need?"]);
-      continue;
-    }
-    if (scenario === "reject") {
-      await adminRejectRfq(admin.id, rfq.id, "Duplicate test submission (demo)");
-      continue;
-    }
-    if (scenario === "review") continue;
-    await adminQualifyRfq(admin.id, rfq.id, { tier: i % 4 === 0 ? "B" : "A", pricingTier: quantity >= 1000 ? "PREMIUM" : i % 4 === 0 ? "STANDARD" : "HIGH_INTENT", note: "Demo qualification" });
-    const m = await runMatching(rfq.id, admin.id);
-    if (!m.eligible || i % 10 === 3) continue; // leave some in matching / manual sourcing
-    await publishOpportunity(rfq.id, admin.id, { distributionMode: "EXCLUSIVE" });
-    if (i % 3 === 0) continue; // available, unsold
-    const notified = await prisma.rfqMatch.findMany({ where: { rfqId: rfq.id, status: "NOTIFIED" }, include: { seller: { include: { org: { include: { members: { include: { user: true } } } } } } } });
-    const s = notified[0]?.seller;
-    if (!s) continue;
-    const owner = s.org.members[0].user;
+  // ── ~160 requests through the real pipeline ──
+  let unlocked = 0;
+  for (let i = 0; i < 160; i++) {
+    const buyer = i < 8 ? buyers[0] : rnd.chance(0.55) ? rnd.pick(buyers.slice(1)) : undefined;
+    const created = i < 8 ? daysAgo(rnd.int(0, 12), rnd.int(1, 20)) : daysAgo(rnd.int(0, 29), rnd.int(0, 23));
+    const stopAt = i % 23 === 5 ? "unverified" : i % 17 === 3 ? "review" : undefined;
+    const landing = rnd.chance(0.25);
+    let rfq;
     try {
-      await startUnlock({ sellerId: s.id, orgId: s.orgId, userId: owner.id, userEmail: owner.email, rfqId: rfq.id, method: "CREDITS" });
+      rfq = await createDemoRfq({ adminId: admin.id, buyer, patchType: rnd.pick(DEMO_PATCH_TYPES), createdAt: created, stopAt, leadSource: landing ? "landing:custom-patch-quote" : "marketplace", shared: !landing && rnd.chance(0.3) });
     } catch (e) {
-      console.warn(`[demo] unlock skipped for ${rfq.publicRef}: ${(e as Error).message}`);
+      console.warn(`[demo] request ${i} skipped: ${(e as Error).message}`);
       continue;
     }
-    n++;
-    if (i % 5 === 1) {
-      const unlock = await prisma.rfqUnlock.findFirstOrThrow({ where: { rfqId: rfq.id, sellerId: s.id } });
-      const d = await fileDispute({ sellerId: s.id, userId: owner.id, unlockId: unlock.id, reason: "INVALID_CONTACT", description: "Demo claim: phone number unreachable and email bounced twice." });
-      if (i % 10 === 1) await decideDispute({ adminId: admin.id, disputeId: d.id, decision: "CREDIT", note: "Demo decision: bounce verified, credit issued." });
-      continue;
+    if (i % 20 === 19) console.log(`[demo] ${i + 1} requests…`);
+    if (stopAt) continue;
+    const opp = await prisma.opportunity.findUnique({ where: { rfqId: rfq.id } });
+    if (!opp || rnd.chance(0.38)) continue; // leave a healthy pool of open opportunities
+    const notified = await prisma.rfqMatch.findMany({ where: { rfqId: rfq.id, status: "NOTIFIED" }, include: { seller: { include: { org: { include: { members: { include: { user: true } } } } } } } });
+    const claimers = notified.map((m) => m.seller).filter((s) => (s.id === star.seller.id ? rnd.chance(0.35) : true)).slice(0, opp.maxUnlocks > 1 ? rnd.int(1, opp.maxUnlocks) : 1);
+    for (const s of claimers) {
+      const owner = s.org.members[0].user;
+      try {
+        await startUnlock({ sellerId: s.id, orgId: s.orgId, userId: owner.id, userEmail: owner.email, rfqId: rfq.id, method: "CREDITS" });
+      } catch {
+        continue;
+      }
+      unlocked++;
+      if (rnd.chance(0.07)) {
+        const u = await prisma.rfqUnlock.findFirstOrThrow({ where: { rfqId: rfq.id, sellerId: s.id } });
+        const d = await fileDispute({ sellerId: s.id, userId: owner.id, unlockId: u.id, reason: "INVALID_CONTACT", description: "Phone number unreachable and email bounced twice." });
+        if (rnd.chance(0.5)) await decideDispute({ adminId: admin.id, disputeId: d.id, decision: "CREDIT", note: "Bounce verified — credit issued." });
+        continue;
+      }
+      if (s.id === star.seller.id && rnd.chance(0.4)) continue; // presenter has unlocked requests waiting for a quote
+      const q = await quoteFor(s.id, owner.id, rfq.id).catch(() => null);
+      if (!q) continue;
+      await postMessage({ rfqId: rfq.id, sellerId: s.id, side: "SELLER", userId: owner.id, body: "Hi! Thanks for your request. We've sent an itemised quote — happy to adjust colours or size." });
+      if (buyer) {
+        await postMessage({ rfqId: rfq.id, sellerId: s.id, side: "BUYER", userId: buyer.userId, body: "Thanks! Could you confirm the thread colours will match our brand navy?" });
+        if (rnd.chance(0.3)) await buyerQuoteAction({ rfqId: rfq.id, quoteId: q.id, userId: buyer.userId, action: "SELECT" }).catch(() => {});
+      }
     }
-    const q = await saveQuote({
-      sellerId: s.id, userId: owner.id, rfqId: rfq.id, submit: true,
-      input: { quantity, unitPrice: pick([0.9, 1.15, 1.4, 1.85, 2.4]), setupFee: pick([0, 25, 40, 60]), sampleFee: 0, toolingFee: type === "PVC" ? 80 : 0, artworkFee: 0, shipping: pick([45, 65, 90]), currency: "USD", productionDays: int(8, 18), deliveryEstimate: "5–7 business days by courier", samplePolicy: "Digital proof free; physical sample $25", paymentTerms: "50% deposit, 50% before shipping", revisionPolicy: "Two free proof revisions", notes: "Fictional demo quotation.", validDays: 30 },
-    });
-    await postMessage({ rfqId: rfq.id, sellerId: s.id, side: "SELLER", userId: owner.id, body: "Hi! Thanks for your request (demo). We've sent a quote — happy to adjust colours or size." });
-    await postMessage({ rfqId: rfq.id, sellerId: s.id, side: "BUYER", userId: b.userId, body: "Thanks — could you confirm the thread colours match our navy? (demo)" });
-    if (i % 4 === 0) await buyerQuoteAction({ rfqId: rfq.id, quoteId: q.id, userId: b.userId, action: "SELECT" });
   }
 
-  // Simulated ad spend (clearly fictional) for CPL/forecast demos.
+  // Align activity, unlock and quote timestamps with each request's history so charts and feeds look natural.
+  await prisma.$executeRaw`UPDATE "RfqUnlock" u SET "createdAt" = LEAST(now(), r."createdAt" + interval '3 hours' + (random() * interval '30 hours')) FROM "Rfq" r WHERE u."rfqId" = r.id AND r."isDemo"`;
+  await prisma.$executeRaw`UPDATE "Quote" q SET "submittedAt" = LEAST(now(), u."createdAt" + interval '40 minutes' + (random() * interval '8 hours')), "createdAt" = LEAST(now(), u."createdAt" + interval '30 minutes') FROM "RfqUnlock" u WHERE u."rfqId" = q."rfqId" AND u."sellerId" = q."sellerId" AND q."isDemo"`;
+  await prisma.$executeRaw`UPDATE "Opportunity" o SET "publishedAt" = LEAST(now(), r."createdAt" + interval '50 minutes') FROM "Rfq" r WHERE o."rfqId" = r.id AND r."isDemo"`;
+  await prisma.$executeRaw`UPDATE "ActivityEvent" e SET "createdAt" = CASE e.kind
+      WHEN 'RFQ_POSTED' THEN r."createdAt" + interval '5 minutes'
+      WHEN 'RFQ_UNLOCKED' THEN COALESCE((SELECT min(u."createdAt") FROM "RfqUnlock" u WHERE u."rfqId" = r.id), e."createdAt")
+      WHEN 'QUOTE_SENT' THEN COALESCE((SELECT min(q."submittedAt") FROM "Quote" q WHERE q."rfqId" = r.id), e."createdAt")
+      ELSE LEAST(now(), r."createdAt" + interval '2 days') END
+    FROM "Rfq" r WHERE e."rfqId" = r.id AND e."isDemo"`;
+  await prisma.$executeRaw`UPDATE "Notification" n SET "readAt" = now() FROM "User" u WHERE n."userId" = u.id AND u."isDemo" AND n."createdAt" < now() - interval '1 day'`;
+
   for (let d = 0; d < 30; d++) {
-    await prisma.adSpendEntry.create({ data: { date: new Date(Date.now() - d * 86_400_000), channel: d % 2 ? "Meta Ads" : "Google Search Ads", campaign: "Demo campaign (fictional)", amountMinor: int(4000, 12000), leads: int(1, 5), isDemo: true } });
+    await prisma.adSpendEntry.create({ data: { date: daysAgo(d), channel: d % 2 ? "Meta Ads" : "Google Search Ads", campaign: "Demo campaign (fictional)", amountMinor: rnd.int(4000, 12000), leads: rnd.int(3, 9), isDemo: true } });
   }
-  await prisma.backgroundJob.deleteMany({ where: { type: "email.send" } }); // demo emails are never sent
-  console.log(`[demo] seeded 20 buyers, 30 manufacturers, 100 RFQs (${n} unlocked). Sign in as demo-admin@patchmatch.demo / buyer1@patchmatch.demo / seller1@patchmatch.demo with DEMO_PASSWORD.`);
+  await prisma.backgroundJob.deleteMany({ where: { type: { in: ["email.send", "rfq.match", "ai.enrich_rfq"] } } }); // demo emails are never sent; matching already ran
+  console.log(`[demo] Seeded 200 manufacturers, 40 buyers, 160 requests (${unlocked} unlocks) in ${Math.round((Date.now() - t0) / 1000)}s.`);
+  console.log(`[demo] Sign in as ${DEMO_ACCOUNTS.admin.email} / ${DEMO_ACCOUNTS.seller.email} / ${DEMO_ACCOUNTS.buyer.email}`);
 }
 
 main()

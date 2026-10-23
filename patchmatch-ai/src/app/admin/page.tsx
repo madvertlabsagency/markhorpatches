@@ -1,3 +1,5 @@
+import { LiveFeedCard } from "@/components/live/LivePanels";
+import { isDemoMode } from "@/lib/env";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AlertTriangle, BadgeCheck, ClipboardCheck, CreditCard, Radar, Scale, ShieldBan } from "lucide-react";
@@ -16,7 +18,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   await requireAdmin("admin:view");
   const sp = await searchParams;
   const days = RANGES.includes(Number(sp.days)) ? Number(sp.days) : 30;
-  const includeDemo = sp.demo === "1";
+  const includeDemo = sp.demo === "1" || (isDemoMode() && sp.demo !== "0");
   const [m, q] = await Promise.all([executiveMetrics(rangeFromDays(days), includeDemo), operationalQueues()]);
   const money = (v: number | null) => (v == null ? "—" : formatMoney(v));
   const pct = (v: number | null) => (v == null ? "—" : formatPercent(v, 0));
@@ -30,11 +32,15 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             <div className="flex gap-1 rounded-xl border border-line bg-surface-2/60 p-1">
               {RANGES.map((r) => <Link key={r} href={`/admin?days=${r}${includeDemo ? "&demo=1" : ""}`} className={cn("rounded-lg px-3 py-1 text-sm font-medium", r === days ? "bg-surface shadow-[var(--shadow-card)]" : "text-muted")}>{r}d</Link>)}
             </div>
-            <Link href={`/admin?days=${days}${includeDemo ? "" : "&demo=1"}`} className="text-xs font-semibold text-muted hover:text-fg">{includeDemo ? "Hide demo" : "Include demo"}</Link>
+            <Link href={`/admin?days=${days}${includeDemo ? "&demo=0" : "&demo=1"}`} className="text-xs font-semibold text-muted hover:text-fg">{includeDemo ? "Hide demo" : "Include demo"}</Link>
           </div>
         }
       />
       {includeDemo && <div className="mb-4"><Badge tone="violet">Demo data included</Badge></div>}
+      <div className="mb-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+        <LiveFeedCard scope="admin" title="Live activity" max={10} footer={<span className="text-muted">Includes internal events — which manufacturers opened which request, and unclaimed-request reminders.</span>} />
+        <LiveFeedCard title="What buyers & sellers see" max={10} footer={<Link href="/live" className="font-semibold text-electric">Open the public live board →</Link>} />
+      </div>
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
         {[
           { label: "RFQs to review", v: q.review, href: "/admin/rfq-review", icon: ClipboardCheck },

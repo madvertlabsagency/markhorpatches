@@ -1,5 +1,30 @@
 # Deployment Guide
 
+## 0. Quick start: live demo on Vercel (Neon + Vercel Blob)
+The demo deployment shows the fictional marketplace with live simulated activity and one-click role accounts.
+
+1. In Vercel → Project → Settings → General, set **Root Directory** to the folder that contains `package.json`. Use `./` if the app is at the repository root, or `patchmatch-ai` inside the markhorpatches repository. The framework is detected from `vercel.json`.
+2. Connect **Neon**, which provides `DATABASE_URL` / `DATABASE_URL_UNPOOLED`, and **Vercel Blob**, which provides `BLOB_READ_WRITE_TOKEN`, under Storage. Create the Blob store as **Private**. A public store only works with `BLOB_ACCESS=public`, which is not recommended.
+3. Under Settings → Environment Variables (Production), add:
+   ```
+   APP_SECRET=<openssl rand -base64 48>
+   DEMO_MODE=true
+   PAYMENTS_PROVIDER=sandbox
+   ALLOW_SANDBOX_PAYMENTS=true
+   ADMIN_MFA_REQUIRED=false        # demo only, so the shared demo admin can sign in without an authenticator
+   SEED_ADMIN_EMAIL=you@yourcompany.com
+   SEED_ADMIN_PASSWORD=<strong password>
+   NEXT_PUBLIC_SITE_URL=https://<your-project>.vercel.app
+   ```
+4. Redeploy. The build performs these steps in order:
+   1. Applies the migrations.
+   2. Runs the production-safe seed.
+   3. Seeds the demo, because `DEMO_MODE=true`. This takes about a minute the first time: 200 manufacturers, 40 buyers and 160 requests, with brand-kit artwork in Blob.
+   4. Builds the app.
+5. Open `/demo` and choose **Admin**, **Manufacturer** or **Buyer**. Each account's password is shown on that page. While anyone has the site open, the live simulator adds new requests, applications, claims and offers every few seconds. It runs only on demo databases and prunes simulated rows after 6 hours.
+
+**For the real launch**, use a new Neon database, remove `DEMO_MODE`, `ALLOW_SANDBOX_PAYMENTS` and `ADMIN_MFA_REQUIRED`, set `PAYMENTS_PROVIDER=manual`, and redeploy. Demo data never appears in production reporting (`isDemo`).
+
 ## 1. Provision
 | Need | Recommended | Notes |
 |---|---|---|

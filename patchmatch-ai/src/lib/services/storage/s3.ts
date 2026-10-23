@@ -20,7 +20,7 @@ export function createS3Storage(): StorageAdapter {
     name: "s3",
     async createUploadUrl(key, contentType) {
       const url = await getSignedUrl(client, new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType }), { expiresIn: 900 });
-      return { url, method: "PUT", headers: { "Content-Type": contentType } };
+      return { kind: "put", url, method: "PUT", headers: { "Content-Type": contentType } };
     },
     async getDownloadUrl(key, opts = {}) {
       const disposition = `${opts.inline ? "inline" : "attachment"}${opts.filename ? `; filename="${opts.filename.replace(/"/g, "")}"` : ""}`;

@@ -1,9 +1,14 @@
 import localFont from "next/font/local";
 
-export const spaceGrotesk = localFont({
-  variable: "--font-space-grotesk",
+/** Brand headings: Poppins SemiBold/Bold/ExtraBold. */
+export const poppins = localFont({
+  variable: "--font-poppins",
   display: "swap",
-  src: [{ path: "./fonts/space-grotesk-latin-wght-normal.woff2", weight: "300 700", style: "normal" }],
+  src: [
+    { path: "./fonts/poppins-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/poppins-latin-700-normal.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/poppins-latin-800-normal.woff2", weight: "800", style: "normal" },
+  ],
   fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
 });
 

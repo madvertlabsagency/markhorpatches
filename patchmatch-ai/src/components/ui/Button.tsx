@@ -8,13 +8,13 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-electric text-navy shadow-[0_8px_24px_-10px_rgb(0_180_255/0.7)] hover:bg-[#19BDFF] hover:shadow-[var(--shadow-glow)]",
+        primary: "bg-electric text-[var(--pm-primary-fg)] shadow-[0_8px_24px_-12px_rgb(241_90_36/0.75)] hover:bg-[#B93C0A] dark:hover:bg-[#FF8A5B] hover:shadow-[var(--shadow-glow)]",
         dark: "bg-navy text-white hover:bg-deep dark:bg-white dark:text-navy dark:hover:bg-offwhite",
         secondary: "border border-line bg-surface text-fg hover:border-electric/50 hover:bg-surface-2",
         ghost: "text-fg hover:bg-surface-2",
         outlineLight: "border border-white/25 bg-white/5 text-white backdrop-blur hover:bg-white/10",
         danger: "bg-danger text-white hover:bg-[#b91c1c]",
-        success: "bg-success text-white hover:bg-[#15803d]",
+        success: "bg-success text-white hover:bg-[#17573C]",
         link: "h-auto px-0 text-electric underline-offset-4 hover:underline",
       },
       size: {

@@ -73,7 +73,7 @@ export async function Inbox({ side, where, selectedId, rfqFilter, basePath, send
               const mine = m.side === side;
               return (
                 <li key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
-                  <div className={cn("max-w-[80%] rounded-2xl px-4 py-2.5 text-sm", m.side === "ADMIN" || m.side === "SYSTEM" ? "border border-line bg-surface-2 text-muted" : mine ? "bg-electric text-navy" : "bg-surface-2")}>
+                  <div className={cn("max-w-[80%] rounded-2xl px-4 py-2.5 text-sm", m.side === "ADMIN" || m.side === "SYSTEM" ? "border border-line bg-surface-2 text-muted" : mine ? "bg-electric text-[var(--pm-primary-fg)]" : "bg-surface-2")}>
                     {m.side === "ADMIN" && <p className="mb-1 text-[11px] font-semibold">PatchMatch team</p>}
                     <p className="whitespace-pre-wrap break-words">{m.body}</p>
                     {m.attachments.map((a) => (

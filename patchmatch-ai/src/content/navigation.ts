@@ -3,6 +3,7 @@ export const MAIN_NAV = [
   { label: "Patch types", href: "/patch-types" },
   { label: "Manufacturers", href: "/manufacturers" },
   { label: "Sell on PatchMatch", href: "/become-a-seller" },
+  { label: "Live", href: "/live" },
 ];
 
 export const FOOTER_NAV = [
@@ -55,6 +56,9 @@ export const FOOTER_NAV = [
       { label: "About", href: "/about" },
       { label: "Contact", href: "/contact" },
       { label: "Help center", href: "/help" },
+      { label: "Buyer guide", href: "/guide/buyers" },
+      { label: "Manufacturer guide", href: "/guide/sellers" },
+      { label: "Live marketplace", href: "/live" },
       { label: "Blog", href: "/blog" },
     ],
   },

@@ -3,7 +3,7 @@
   "framework": "nextjs",
   "buildCommand": "npm run vercel-build",
   "crons": [
-    { "path": "/api/cron/jobs", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/maintenance", "schedule": "17 * * * *" }
+    { "path": "/api/cron/jobs", "schedule": "7 3 * * *" },
+    { "path": "/api/cron/maintenance", "schedule": "17 4 * * *" }
   ]
 }

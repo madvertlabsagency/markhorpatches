@@ -6,6 +6,7 @@ import { siteUrl } from "@/lib/env";
 import { formatMoney } from "@/lib/money";
 import { patchTypeName } from "@/lib/catalog";
 import { trackEvent } from "@/lib/analytics/events";
+import { recordRfqEvent } from "@/lib/activity";
 import { DEFAULT_WEIGHTS, MATCHING_ALGORITHM_VERSION, normalizeWeights, rankSellers, type FactorKey, type MatchSeller } from "@/lib/matching/engine";
 import { priceOpportunity, validateManualPrice, type PricingRuleLike } from "@/lib/pricing/engine";
 import { isSellableTier } from "@/lib/rfq/qualification";
@@ -60,8 +61,26 @@ export async function runMatching(rfqId: string, actorId: string | null = null) 
   const existing = new Map(rfq.matches.map((m) => [m.sellerId, m]));
   const eligible = results.filter((r) => r.eligible && r.score >= config.minScore);
 
+  // Persist every eligible seller, every seller already linked to this RFQ, and the 25 closest
+  // ineligible ones (with their exclusion reasons) — enough for review without storing a row per
+  // verified seller on every request.
+  const nearMisses = new Set(results.filter((r) => !(r.eligible && r.score >= config.minScore)).sort((a, b) => b.score - a.score).slice(0, 25).map((r) => r.sellerId));
+  const toStore = results.filter((r) => (r.eligible && r.score >= config.minScore) || existing.has(r.sellerId) || nearMisses.has(r.sellerId));
+
   await prisma.$transaction(async (tx) => {
-    for (const r of results) {
+    if (existing.size === 0) {
+      await tx.rfqMatch.createMany({
+        data: toStore.map((r) => {
+          const eligibleNow = r.eligible && r.score >= config.minScore;
+          return {
+            rfqId, sellerId: r.sellerId, status: "PROPOSED" as const, eligible: eligibleNow,
+            ineligibleReasons: r.eligible && r.score < config.minScore ? [`Score ${r.score} below minimum ${config.minScore}`] : r.ineligibleReasons,
+            score: r.score, breakdown: r.breakdown as unknown as Prisma.InputJsonValue, explanation: r.explanation, algorithmVersion: MATCHING_ALGORITHM_VERSION, configId: config.id,
+          };
+        }),
+      });
+    }
+    for (const r of existing.size === 0 ? [] : toStore) {
       const prev = existing.get(r.sellerId);
       const keepStatus = prev && (prev.status === "REJECTED" || prev.status === "NOTIFIED") ? prev.status : undefined;
       const data = {
@@ -238,4 +257,39 @@ export async function setOpportunityStatus(actorId: string, rfqId: string, to: "
     if (to !== "AVAILABLE") await tx.rfqReservation.updateMany({ where: { rfqId, status: "ACTIVE" }, data: { status: "RELEASED", releasedReason: `Opportunity ${to.toLowerCase()} by admin` } });
     await audit(actorId, `opportunity.${to.toLowerCase()}`, "Opportunity", opp.id, { rfqId }, tx);
   });
+}
+
+/**
+ * Reminds notified manufacturers about opportunities that are still unclaimed ("No one has made an
+ * offer yet — be the first"). One reminder per opportunity; only sellers who can actually see it.
+ */
+export async function nudgeUnclaimedOpportunities(opts: { olderThanMs: number; limit?: number; demo?: boolean }) {
+  const cutoff = new Date(Date.now() - opts.olderThanMs);
+  const opps = await prisma.opportunity.findMany({
+    where: { status: "AVAILABLE", unlockCount: 0, publishedAt: { lte: cutoff }, nudgedAt: null, ...(opts.demo === undefined ? {} : { isDemo: opts.demo }) },
+    include: { rfq: { include: { spec: true, matches: { where: { status: { in: ["NOTIFIED", "APPROVED"] }, eligible: true }, select: { sellerId: true } } } } },
+    orderBy: { publishedAt: "asc" },
+    take: opts.limit ?? 10,
+  });
+  let sent = 0;
+  for (const o of opps) {
+    const claimed = await prisma.opportunity.updateMany({ where: { id: o.id, nudgedAt: null }, data: { nudgedAt: new Date() } });
+    if (!claimed.count) continue;
+    const s = o.rfq.spec;
+    const what = s ? `${s.quantity.toLocaleString("en-US")} × ${patchTypeName(o.rfq.patchType).toLowerCase()}` : patchTypeName(o.rfq.patchType);
+    const sellers = await prisma.sellerProfile.findMany({ where: { id: { in: o.rfq.matches.map((m) => m.sellerId) }, verificationStatus: "VERIFIED" }, select: { id: true, orgId: true } });
+    for (const seller of sellers) {
+      await notify({
+        userIds: await orgUserIds(seller.orgId),
+        type: "opportunity_nudge",
+        title: `No offers yet on ${o.rfq.publicRef} — be the first`,
+        body: `${what}. Nobody has claimed this request yet. Unlock it for ${formatMoney(o.priceMinor)} and send your quote before another manufacturer does.`,
+        link: `/seller/opportunities/${o.rfqId}`,
+        dedupeKey: `nudge:${o.id}:${seller.id}`,
+      });
+    }
+    await recordRfqEvent("OFFER_NUDGE", o.rfqId, null, { public: false });
+    sent++;
+  }
+  return sent;
 }

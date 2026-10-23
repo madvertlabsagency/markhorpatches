@@ -69,7 +69,7 @@ export function MatchingProgress({ status, message, eligible, notified, unlocks,
           })}
         </ol>
         <div className="mt-4 h-1 overflow-hidden rounded-full bg-white/10">
-          <motion.div className="h-full bg-gradient-to-r from-electric to-cyan" initial={reduce ? false : { width: 0 }} animate={{ width: `${Math.min(100, ((idx + (quotes > 0 ? 1 : 0.5)) / STAGES.length) * 100)}%` }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} />
+          <motion.div className="h-full bg-gradient-to-r from-orange to-gold" initial={reduce ? false : { width: 0 }} animate={{ width: `${Math.min(100, ((idx + (quotes > 0 ? 1 : 0.5)) / STAGES.length) * 100)}%` }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} />
         </div>
         <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
