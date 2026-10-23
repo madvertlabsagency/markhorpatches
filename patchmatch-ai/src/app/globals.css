@@ -59,6 +59,7 @@
   --color-primary: var(--pm-primary);
   --color-primary-fg: var(--pm-primary-fg);
   --color-ring: var(--pm-ring);
+  --color-chart: var(--pm-chart);
 }
 
 @layer base {
@@ -72,6 +73,7 @@
     --pm-primary: #00B4FF;
     --pm-primary-fg: #0A0F1C;
     --pm-ring: #00B4FF;
+    --pm-chart: #0091D5; /* validated single-series mark color (light) */
     --gradient-brand: linear-gradient(115deg, #0A0F1C 0%, #12305A 45%, #00B4FF 85%, #00E5FF 100%);
     --header-h: 4rem;
     color-scheme: light;
@@ -86,6 +88,7 @@
     --pm-primary: #00B4FF;
     --pm-primary-fg: #0A0F1C;
     --pm-ring: #00E5FF;
+    --pm-chart: #0098D9; /* validated single-series mark color (dark) */
     color-scheme: dark;
   }
   html {

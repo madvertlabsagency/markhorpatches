@@ -1,4 +1,5 @@
 import "server-only";
+import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -19,7 +20,28 @@ export type JobType =
 
 type Tx = Prisma.TransactionClient | typeof prisma;
 
+let kickScheduled = false;
+
+/** Runs queued jobs right after the current response is sent (no frequent cron needed). */
+function scheduleKick() {
+  if (kickScheduled || process.env.JOBS_INLINE === "false") return;
+  try {
+    kickScheduled = true;
+    after(async () => {
+      kickScheduled = false;
+      const { JOB_HANDLERS } = await import("./handlers");
+      for (let i = 0; i < 5; i++) {
+        const done = await runJobs(JOB_HANDLERS, 10);
+        if (done.length < 10) break;
+      }
+    });
+  } catch {
+    kickScheduled = false; // outside a request (scripts/tests): the cron or `npm run jobs:run` processes the queue
+  }
+}
+
 export async function enqueue(type: JobType, payload: Record<string, unknown>, opts: { dedupeKey?: string; runAt?: Date; maxAttempts?: number; tx?: Tx } = {}) {
+  scheduleKick();
   const db = opts.tx ?? prisma;
   const data = { type, payload: payload as Prisma.InputJsonValue, runAt: opts.runAt ?? new Date(), maxAttempts: opts.maxAttempts ?? 5, dedupeKey: opts.dedupeKey };
   if (opts.dedupeKey) {
