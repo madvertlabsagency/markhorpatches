@@ -1,0 +1,1488 @@
+// ─────────────────────────────────────────────────────────────
+// PATCHMATCH AI — database schema
+// Conventions:
+//   • Every id is a UUID.
+//   • Money is ALWAYS integer minor units (…Minor) with an ISO-4217 currency code.
+//   • Percentages are integer basis points (2500 = 25%).
+//   • Separate state machines: Rfq.status (buyer lifecycle), Opportunity.status (allocation),
+//     Payment.status, Quote.status, SellerProfile.verificationStatus.
+//   • isDemo marks fictional demo data. Production reporting always filters isDemo = false.
+//   • Extra constraints that Prisma cannot express (CHECKs, partial unique indexes) live in
+//     the migration SQL — see prisma/migrations/*_constraints.
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── Enums ─────────────────────────
+
+enum PlatformRole {
+  NONE
+  SUPPORT
+  REVIEWER
+  FINANCE
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OrgType {
+  BUYER
+  SELLER
+}
+
+enum OrgMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum TokenPurpose {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+  RFQ_EMAIL_VERIFY
+  ORG_INVITE
+  PHONE_VERIFY
+}
+
+enum PatchType {
+  EMBROIDERED
+  PVC
+  CHENILLE
+  WOVEN
+  SUBLIMATED
+  LEATHER
+  PRINTED
+  NOT_SURE
+}
+
+enum IntendedUse {
+  CLOTHING_BRAND
+  STREETWEAR
+  HATS
+  UNIFORMS
+  SPORTS_TEAMS
+  CLUBS
+  EVENTS
+  PROMOTIONAL
+  OTHER
+}
+
+enum BackingType {
+  SEW_ON
+  IRON_ON
+  HOOK_AND_LOOP
+  ADHESIVE
+  NONE
+  OTHER
+}
+
+enum BorderType {
+  MERROWED
+  HOT_CUT
+  LASER_CUT
+  NONE
+  UNSURE
+}
+
+enum DimensionUnit {
+  IN
+  CM
+  MM
+}
+
+enum RfqStatus {
+  DRAFT
+  SUBMITTED
+  VERIFICATION_PENDING
+  UNDER_REVIEW
+  CLARIFICATION_REQUIRED
+  QUALIFIED
+  MATCHING
+  MANUAL_SOURCING
+  SELLER_NOTIFIED
+  QUOTES_RECEIVED
+  SELLER_SELECTED
+  CLOSED
+  CANCELLED
+  EXPIRED
+}
+
+enum QualificationTier {
+  A
+  B
+  C
+  D
+}
+
+enum DecisionSource {
+  SYSTEM
+  AI
+  ADMIN
+}
+
+enum DisclosureMode {
+  FULL_CONTACT
+  PLATFORM_MESSAGING_ONLY
+}
+
+enum DistributionMode {
+  EXCLUSIVE
+  LIMITED_SHARED
+  PRIVATE_INVITATION
+  ADMIN_ASSIGNMENT
+}
+
+enum OpportunityStatus {
+  DRAFT
+  AVAILABLE
+  PAUSED
+  SOLD_OUT
+  EXPIRED
+  WITHDRAWN
+}
+
+enum PricingTier {
+  STANDARD
+  HIGH_INTENT
+  PREMIUM
+  ENTERPRISE
+}
+
+enum MatchStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+  NOTIFIED
+}
+
+enum ReservationStatus {
+  ACTIVE
+  CONVERTED
+  RELEASED
+  EXPIRED
+}
+
+enum UnlockMethod {
+  CARD
+  CREDITS
+  INVOICE
+  COMPLIMENTARY
+}
+
+enum UnlockStatus {
+  ACTIVE
+  REFUNDED
+  CREDITED
+  REVOKED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING_REVIEW
+  INFO_REQUIRED
+  VERIFIED
+  SUSPENDED
+  REJECTED
+}
+
+enum SellerAvailability {
+  ACTIVE
+  PAUSED
+}
+
+enum SellerDocumentKind {
+  BUSINESS_REGISTRATION
+  TAX_CERTIFICATE
+  FACTORY_PHOTO
+  IDENTITY
+  OTHER
+}
+
+enum AttachmentPurpose {
+  RFQ_ARTWORK
+  SELLER_DOCUMENT
+  PORTFOLIO
+  QUOTE_ATTACHMENT
+  MESSAGE_ATTACHMENT
+  DISPUTE_EVIDENCE
+}
+
+enum AttachmentStatus {
+  PENDING
+  READY
+  REJECTED
+  DELETED
+}
+
+enum ScanStatus {
+  NOT_SCANNED
+  CLEAN
+  INFECTED
+  UNSUPPORTED
+}
+
+enum QuoteStatus {
+  DRAFT
+  SUBMITTED
+  VIEWED
+  CLARIFICATION_REQUESTED
+  REVISED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum MessageSide {
+  BUYER
+  SELLER
+  ADMIN
+  SYSTEM
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  REQUIRES_AUTHENTICATION
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  DISPUTED
+}
+
+enum PaymentPurpose {
+  RFQ_UNLOCK
+  CREDIT_TOPUP
+}
+
+enum LedgerEntryType {
+  TOPUP
+  UNLOCK_DEBIT
+  REFUND_CREDIT
+  ADJUSTMENT
+  REVERSAL
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  VOID
+}
+
+enum RefundMethod {
+  ORIGINAL_PAYMENT
+  CREDIT
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  PROCESSED
+  REJECTED
+  FAILED
+}
+
+enum DisputeReason {
+  INVALID_CONTACT
+  DUPLICATE
+  SPAM_OR_FRAUD
+  NOT_AS_DESCRIBED
+  BUYER_ALREADY_SOURCED
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_CREDIT
+  RESOLVED_REFUND
+  REJECTED
+}
+
+enum ConsentKind {
+  TERMS
+  SUPPLIER_MATCHING
+  DATA_SHARING
+  MARKETING
+  SELLER_TERMS
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  DEAD
+}
+
+enum AIStatus {
+  SUCCEEDED
+  FAILED
+  REJECTED_SCHEMA
+  SKIPPED
+}
+
+enum ReportStatus {
+  OPEN
+  ACTIONED
+  DISMISSED
+}
+
+// ───────────────────────── Identity ─────────────────────────
+
+model User {
+  id              String       @id @default(uuid()) @db.Uuid
+  email           String       @unique
+  passwordHash    String?
+  name            String?
+  phone           String?
+  emailVerifiedAt DateTime?
+  phoneVerifiedAt DateTime?
+  platformRole    PlatformRole @default(NONE)
+  googleSub       String?      @unique
+  mfaSecretEnc    String?
+  mfaEnabledAt    DateTime?
+  mfaRecoveryHashes String[]   @default([])
+  disabledAt      DateTime?
+  lastLoginAt     DateTime?
+  isDemo          Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  sessions       Session[]
+  memberships    OrganizationMember[]
+  tokens         VerificationToken[]
+  notifications  Notification[]
+  messages       Message[]
+  auditLogs      AuditLog[]           @relation("AuditActor")
+  rfqs           Rfq[]                @relation("RfqBuyerUser")
+  consents       ConsentRecord[]
+  invitationsSent Invitation[]        @relation("InvitedBy")
+
+  @@index([platformRole])
+}
+
+model Session {
+  id            String    @id @default(uuid()) @db.Uuid
+  tokenHash     String    @unique
+  userId        String    @db.Uuid
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt     DateTime
+  mfaVerifiedAt DateTime?
+  activeOrgId   String?   @db.Uuid
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  id        String       @id @default(uuid()) @db.Uuid
+  tokenHash String       @unique
+  purpose   TokenPurpose
+  userId    String?      @db.Uuid
+  user      User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  data      Json?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime     @default(now())
+
+  @@index([email, purpose])
+}
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  type      OrgType
+  name      String
+  slug      String   @unique
+  country   String?
+  website   String?
+  isDemo    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members        OrganizationMember[]
+  invitations    Invitation[]
+  buyerProfile   BuyerProfile?
+  sellerProfile  SellerProfile?
+  rfqs           Rfq[]                @relation("RfqBuyerOrg")
+  wallet         Wallet?
+  paymentMethods PaymentMethod[]
+  payments       Payment[]
+  invoices       Invoice[]
+
+  @@index([type])
+}
+
+model OrganizationMember {
+  id        String        @id @default(uuid()) @db.Uuid
+  orgId     String        @db.Uuid
+  org       Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId    String        @db.Uuid
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      OrgMemberRole @default(MEMBER)
+  createdAt DateTime      @default(now())
+
+  @@unique([orgId, userId])
+  @@index([userId])
+}
+
+model Invitation {
+  id          String        @id @default(uuid()) @db.Uuid
+  orgId       String        @db.Uuid
+  org         Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  email       String
+  role        OrgMemberRole @default(MEMBER)
+  tokenHash   String        @unique
+  invitedById String        @db.Uuid
+  invitedBy   User          @relation("InvitedBy", fields: [invitedById], references: [id])
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime      @default(now())
+
+  @@index([orgId])
+}
+
+/// Platform roles and their permissions are defined in code (src/lib/auth/rbac.ts) so they are
+/// versioned and reviewed with the code. This table records custom grants an admin adds on top.
+model RoleGrant {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  permission String
+  grantedById String  @db.Uuid
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, permission])
+}
+
+// ───────────────────────── Buyers ─────────────────────────
+
+model BuyerProfile {
+  id               String       @id @default(uuid()) @db.Uuid
+  orgId            String       @unique @db.Uuid
+  org              Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  companyName      String?
+  phone            String?
+  preferredContact String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+// ───────────────────────── Sellers ─────────────────────────
+
+model SellerProfile {
+  id                 String             @id @default(uuid()) @db.Uuid
+  orgId              String             @unique @db.Uuid
+  org                Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  legalName          String
+  tradingName        String?
+  publicSlug         String             @unique
+  country            String
+  addressLine1       String?
+  city               String?
+  region             String?
+  postalCode         String?
+  contactName        String
+  email              String
+  phone              String?
+  website            String?
+  registrationNumber String?
+  yearsOperating     Int?
+  factoryLocation    String?
+  exportMarkets      String[]           @default([])
+  description        String?
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  verifiedAt         DateTime?
+  availability       SellerAvailability @default(ACTIVE)
+  // capabilities shared across patch types
+  backingOptions     BackingType[]      @default([])
+  borderOptions      BorderType[]       @default([])
+  shippingCountries  String[]           @default([])
+  artworkSupport     Boolean            @default(false)
+  sampleCapable      Boolean            @default(false)
+  rushCapable        Boolean            @default(false)
+  // purchase preferences
+  dailyRfqLimit      Int                @default(10)
+  maxDailySpendMinor Int                @default(25000)
+  minBudgetMinor     Int?
+  currency           String             @default("USD")
+  notificationPrefs  Json?
+  // performance (computed from real platform activity only)
+  avgResponseMinutes Int?
+  quotesSubmitted    Int                @default(0)
+  isDemo             Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  capabilities  SellerCapability[]
+  verifications SellerVerification[]
+  documents     SellerDocument[]
+  portfolio     SellerPortfolioItem[]
+  matches       RfqMatch[]
+  assignments   RfqAssignment[]
+  reservations  RfqReservation[]
+  unlocks       RfqUnlock[]
+  quotes        Quote[]
+  conversations Conversation[]
+  disputes      Dispute[]
+  reviews       SellerReview[]
+
+  @@index([verificationStatus, availability])
+}
+
+model SellerCapability {
+  id              String        @id @default(uuid()) @db.Uuid
+  sellerId        String        @db.Uuid
+  seller          SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  patchType       PatchType
+  moq             Int
+  maxQuantity     Int?
+  weeklyCapacity  Int?
+  standardDays    Int
+  rushDays        Int?
+  priceMinMinor   Int?
+  priceMaxMinor   Int?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([sellerId, patchType])
+  @@index([patchType])
+}
+
+model SellerVerification {
+  id          String             @id @default(uuid()) @db.Uuid
+  sellerId    String             @db.Uuid
+  seller      SellerProfile      @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  fromStatus  VerificationStatus
+  toStatus    VerificationStatus
+  reason      String?
+  requestedInfo String?
+  reviewerId  String?            @db.Uuid
+  createdAt   DateTime           @default(now())
+
+  @@index([sellerId, createdAt])
+}
+
+model SellerDocument {
+  id           String             @id @default(uuid()) @db.Uuid
+  sellerId     String             @db.Uuid
+  seller       SellerProfile      @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  kind         SellerDocumentKind
+  attachmentId String             @unique @db.Uuid
+  attachment   Attachment         @relation(fields: [attachmentId], references: [id])
+  note         String?
+  createdAt    DateTime           @default(now())
+
+  @@index([sellerId])
+}
+
+model SellerPortfolioItem {
+  id           String        @id @default(uuid()) @db.Uuid
+  sellerId     String        @db.Uuid
+  seller       SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  title        String
+  patchType    PatchType?
+  attachmentId String        @unique @db.Uuid
+  attachment   Attachment    @relation(fields: [attachmentId], references: [id])
+  isPublic     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+
+  @@index([sellerId])
+}
+
+model SellerReview {
+  id         String        @id @default(uuid()) @db.Uuid
+  sellerId   String        @db.Uuid
+  seller     SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  rfqId      String        @db.Uuid
+  rfq        Rfq           @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String?
+  published  Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+
+  @@unique([rfqId, sellerId])
+}
+
+// ───────────────────────── Files ─────────────────────────
+
+model Attachment {
+  id               String            @id @default(uuid()) @db.Uuid
+  purpose          AttachmentPurpose
+  status           AttachmentStatus  @default(PENDING)
+  storageKey       String            @unique
+  previewKey       String?
+  teaserKey        String?
+  originalFilename String
+  sanitizedFilename String
+  mimeType         String
+  extension        String
+  sizeBytes        Int
+  sha256           String?
+  scanStatus       ScanStatus        @default(NOT_SCANNED)
+  rejectionReason  String?
+  uploaderUserId   String?           @db.Uuid
+  ownerOrgId       String?           @db.Uuid
+  /// Guest uploads (RFQ wizard before sign-in) are bound to a signed draft token hash.
+  guestOwnerHash   String?
+  deletedAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  rfqArtwork       RfqArtwork?
+  sellerDocument   SellerDocument?
+  portfolioItem    SellerPortfolioItem?
+  message          Message?          @relation(fields: [messageId], references: [id])
+  messageId        String?           @db.Uuid
+  quote            Quote?            @relation(fields: [quoteId], references: [id])
+  quoteId          String?           @db.Uuid
+  dispute          Dispute?          @relation(fields: [disputeId], references: [id])
+  disputeId        String?           @db.Uuid
+
+  @@index([guestOwnerHash])
+  @@index([ownerOrgId])
+}
+
+// ───────────────────────── RFQs ─────────────────────────
+
+model Rfq {
+  id               String         @id @default(uuid()) @db.Uuid
+  publicRef        String         @unique
+  status           RfqStatus      @default(DRAFT)
+  patchType        PatchType
+  intendedUse      IntendedUse
+  intendedUseOther String?
+  buyerOrgId       String?        @db.Uuid
+  buyerOrg         Organization?  @relation("RfqBuyerOrg", fields: [buyerOrgId], references: [id])
+  buyerUserId      String?        @db.Uuid
+  buyerUser        User?          @relation("RfqBuyerUser", fields: [buyerUserId], references: [id])
+  // PROTECTED buyer contact — only released via the disclosure service.
+  contactName      String
+  contactCompany   String?
+  contactEmail     String
+  contactPhone     String?
+  contactWebsite   String?
+  preferredContact String         @default("EMAIL")
+  // Consent-bound distribution
+  disclosureMode   DisclosureMode @default(FULL_CONTACT)
+  maxRecipients    Int            @default(1)
+  emailVerifiedAt  DateTime?
+  guestAccessHash  String?
+  submittedAt      DateTime?
+  qualifiedAt      DateTime?
+  closedAt         DateTime?
+  closeReason      String?
+  expiresAt        DateTime?
+  selectedQuoteId  String?        @unique @db.Uuid
+  duplicateOfId    String?        @db.Uuid
+  submitIp         String?
+  isDemo           Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  spec            RfqSpecification?
+  artwork         RfqArtwork[]
+  qualifications  RfqQualification[]
+  matches         RfqMatch[]
+  assignments     RfqAssignment[]
+  opportunity     Opportunity?
+  reservations    RfqReservation[]
+  unlocks         RfqUnlock[]
+  quotes          Quote[]           @relation("RfqQuotes")
+  selectedQuote   Quote?            @relation("SelectedQuote", fields: [selectedQuoteId], references: [id])
+  conversations   Conversation[]
+  consents        ConsentRecord[]
+  disclosures     DataDisclosureEvent[]
+  attribution     MarketingAttribution?
+  reviews         SellerReview[]
+  statusHistory   RfqStatusEvent[]
+
+  @@index([status])
+  @@index([contactEmail])
+  @@index([buyerOrgId])
+  @@index([isDemo, createdAt])
+}
+
+model RfqStatusEvent {
+  id        String    @id @default(uuid()) @db.Uuid
+  rfqId     String    @db.Uuid
+  rfq       Rfq       @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  from      RfqStatus?
+  to        RfqStatus
+  note      String?
+  actorId   String?   @db.Uuid
+  createdAt DateTime  @default(now())
+
+  @@index([rfqId, createdAt])
+}
+
+model RfqSpecification {
+  id                   String         @id @default(uuid()) @db.Uuid
+  rfqId                String         @unique @db.Uuid
+  rfq                  Rfq            @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  width                Float?
+  height               Float?
+  unit                 DimensionUnit  @default(IN)
+  shape                String?
+  borderType           BorderType?
+  material             String?
+  thickness            String?
+  quantity             Int
+  minQuantity          Int?
+  repeatPotential      Boolean        @default(false)
+  sampleRequired       Boolean        @default(false)
+  backing              BackingType?
+  backingOther         String?
+  colorCount           Int?
+  specialFinishing     String[]       @default([])
+  destinationCountry   String         @default("US")
+  destinationState     String?
+  destinationPostal    String?
+  requiredBy           DateTime?
+  rush                 Boolean        @default(false)
+  sampleBeforeProduction Boolean      @default(false)
+  budgetTotalMinor     Int?
+  targetUnitMinor      Int?
+  budgetFlexibility    String?
+  budgetUndisclosed    Boolean        @default(false)
+  currency             String         @default("USD")
+  notes                String?
+  artworkNotes         String?
+  aiSummary            String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+}
+
+model RfqArtwork {
+  id           String     @id @default(uuid()) @db.Uuid
+  rfqId        String     @db.Uuid
+  rfq          Rfq        @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  attachmentId String     @unique @db.Uuid
+  attachment   Attachment @relation(fields: [attachmentId], references: [id])
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  @@index([rfqId])
+}
+
+model RfqQualification {
+  id                    String            @id @default(uuid()) @db.Uuid
+  rfqId                 String            @db.Uuid
+  rfq                   Rfq               @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  isCurrent             Boolean           @default(true)
+  tier                  QualificationTier
+  pricingTier           PricingTier       @default(STANDARD)
+  score                 Int
+  completenessScore     Int
+  intentScore           Int
+  fraudScore            Int
+  source                DecisionSource
+  reviewerId            String?           @db.Uuid
+  needsHumanReview      Boolean           @default(true)
+  missingFields         String[]          @default([])
+  clarificationQuestions Json?
+  reasons               Json?
+  rulesVersion          String
+  createdAt             DateTime          @default(now())
+
+  signals RfqQualificationSignal[]
+
+  @@index([rfqId, isCurrent])
+  @@index([tier])
+}
+
+model RfqQualificationSignal {
+  id              String           @id @default(uuid()) @db.Uuid
+  qualificationId String           @db.Uuid
+  qualification   RfqQualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+  code            String
+  category        String
+  weight          Int
+  detail          String?
+
+  @@index([qualificationId])
+}
+
+model RfqMatch {
+  id               String        @id @default(uuid()) @db.Uuid
+  rfqId            String        @db.Uuid
+  rfq              Rfq           @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  sellerId         String        @db.Uuid
+  seller           SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  eligible         Boolean
+  ineligibleReasons String[]     @default([])
+  score            Int
+  breakdown        Json
+  explanation      String?
+  algorithmVersion String
+  configId         String?       @db.Uuid
+  status           MatchStatus   @default(PROPOSED)
+  overriddenById   String?       @db.Uuid
+  overrideNote     String?
+  notifiedAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([rfqId, sellerId])
+  @@index([sellerId, status])
+}
+
+model RfqAssignment {
+  id          String           @id @default(uuid()) @db.Uuid
+  rfqId       String           @db.Uuid
+  rfq         Rfq              @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  sellerId    String           @db.Uuid
+  seller      SellerProfile    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  kind        DistributionMode
+  createdById String           @db.Uuid
+  note        String?
+  createdAt   DateTime         @default(now())
+
+  @@unique([rfqId, sellerId])
+}
+
+/// The sellable listing for a qualified RFQ (allocation state machine).
+model Opportunity {
+  id               String            @id @default(uuid()) @db.Uuid
+  rfqId            String            @unique @db.Uuid
+  rfq              Rfq               @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  status           OpportunityStatus @default(DRAFT)
+  distributionMode DistributionMode  @default(EXCLUSIVE)
+  maxUnlocks       Int               @default(1)
+  unlockCount      Int               @default(0)
+  priceMinor       Int
+  currency         String            @default("USD")
+  pricingTier      PricingTier
+  pricingRuleId    String?           @db.Uuid
+  priceOverridden  Boolean           @default(false)
+  publishedAt      DateTime?
+  publishedById    String?           @db.Uuid
+  expiresAt        DateTime?
+  isDemo           Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  priceHistory OpportunityPriceEvent[]
+
+  @@index([status])
+}
+
+model OpportunityPriceEvent {
+  id            String      @id @default(uuid()) @db.Uuid
+  opportunityId String      @db.Uuid
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  priceMinor    Int
+  currency      String
+  pricingRuleId String?     @db.Uuid
+  reason        String
+  actorId       String?     @db.Uuid
+  createdAt     DateTime    @default(now())
+}
+
+model RfqReservation {
+  id        String            @id @default(uuid()) @db.Uuid
+  rfqId     String            @db.Uuid
+  rfq       Rfq               @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  sellerId  String            @db.Uuid
+  seller    SellerProfile     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  status    ReservationStatus @default(ACTIVE)
+  priceMinor Int
+  currency  String
+  expiresAt DateTime
+  paymentId String?           @unique @db.Uuid
+  payment   Payment?          @relation(fields: [paymentId], references: [id])
+  releasedReason String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([rfqId, status])
+  @@index([sellerId, status])
+}
+
+model RfqUnlock {
+  id         String       @id @default(uuid()) @db.Uuid
+  rfqId      String       @db.Uuid
+  rfq        Rfq          @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  sellerId   String       @db.Uuid
+  seller     SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  method     UnlockMethod
+  status     UnlockStatus @default(ACTIVE)
+  priceMinor Int
+  currency   String
+  paymentId  String?      @unique @db.Uuid
+  payment    Payment?     @relation(fields: [paymentId], references: [id])
+  receiptNumber String    @unique
+  unlockedById String?    @db.Uuid
+  isDemo     Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+
+  disputes      Dispute[]
+  refunds       Refund[]
+  disclosures   DataDisclosureEvent[]
+  ledgerEntries WalletLedgerEntry[]
+
+  @@unique([rfqId, sellerId])
+  @@index([sellerId, createdAt])
+}
+
+// ───────────────────────── Quotes ─────────────────────────
+
+model Quote {
+  id               String      @id @default(uuid()) @db.Uuid
+  rfqId            String      @db.Uuid
+  rfq              Rfq         @relation("RfqQuotes", fields: [rfqId], references: [id], onDelete: Cascade)
+  sellerId         String      @db.Uuid
+  seller           SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  status           QuoteStatus @default(DRAFT)
+  currency         String      @default("USD")
+  quantity         Int
+  unitPriceMinor   Int
+  setupFeeMinor    Int         @default(0)
+  sampleFeeMinor   Int         @default(0)
+  toolingFeeMinor  Int         @default(0)
+  artworkFeeMinor  Int         @default(0)
+  shippingMinor    Int         @default(0)
+  totalMinor       Int
+  productionDays   Int
+  deliveryEstimate String?
+  moq              Int?
+  samplePolicy     String?
+  paymentTerms     String?
+  revisionPolicy   String?
+  notes            String?
+  validUntil       DateTime?
+  version          Int         @default(1)
+  shortlisted      Boolean     @default(false)
+  submittedAt      DateTime?
+  viewedAt         DateTime?
+  decidedAt        DateTime?
+  isDemo           Boolean     @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  lineItems   QuoteLineItem[]
+  revisions   QuoteRevision[]
+  attachments Attachment[]
+  selectedFor Rfq?            @relation("SelectedQuote")
+
+  @@unique([rfqId, sellerId])
+  @@index([sellerId, status])
+}
+
+model QuoteLineItem {
+  id          String @id @default(uuid()) @db.Uuid
+  quoteId     String @db.Uuid
+  quote       Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  label       String
+  quantity    Int
+  unitMinor   Int
+  totalMinor  Int
+  sortOrder   Int    @default(0)
+}
+
+model QuoteRevision {
+  id        String   @id @default(uuid()) @db.Uuid
+  quoteId   String   @db.Uuid
+  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  version   Int
+  snapshot  Json
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([quoteId, version])
+}
+
+// ───────────────────────── Messaging ─────────────────────────
+
+model Conversation {
+  id            String        @id @default(uuid()) @db.Uuid
+  rfqId         String        @db.Uuid
+  rfq           Rfq           @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  sellerId      String        @db.Uuid
+  seller        SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  lastMessageAt DateTime?
+  buyerReadAt   DateTime?
+  sellerReadAt  DateTime?
+  lockedAt      DateTime?
+  createdAt     DateTime      @default(now())
+
+  messages Message[]
+
+  @@unique([rfqId, sellerId])
+}
+
+model Message {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  side           MessageSide
+  senderUserId   String?      @db.Uuid
+  sender         User?        @relation(fields: [senderUserId], references: [id])
+  body           String
+  /// True when contact details were masked because disclosure was not authorised.
+  redacted       Boolean      @default(false)
+  flagged        Boolean      @default(false)
+  hiddenAt       DateTime?
+  createdAt      DateTime     @default(now())
+
+  attachments Attachment[]
+
+  @@index([conversationId, createdAt])
+}
+
+model Report {
+  id          String       @id @default(uuid()) @db.Uuid
+  reporterId  String       @db.Uuid
+  entityType  String
+  entityId    String
+  reason      String
+  details     String?
+  status      ReportStatus @default(OPEN)
+  resolvedById String?     @db.Uuid
+  resolution  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([status])
+}
+
+// ───────────────────────── Payments & ledger ─────────────────────────
+
+model PaymentMethod {
+  id            String       @id @default(uuid()) @db.Uuid
+  orgId         String       @db.Uuid
+  org           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  provider      String
+  providerRef   String
+  brand         String?
+  last4         String?
+  expMonth      Int?
+  expYear       Int?
+  /// Whether the provider has approved this method for merchant-initiated (off-session) charges.
+  offSessionApproved Boolean @default(false)
+  isDefault     Boolean      @default(false)
+  revokedAt     DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@unique([provider, providerRef])
+}
+
+model Payment {
+  id             String         @id @default(uuid()) @db.Uuid
+  orgId          String         @db.Uuid
+  org            Organization   @relation(fields: [orgId], references: [id])
+  purpose        PaymentPurpose
+  status         PaymentStatus  @default(CREATED)
+  provider       String
+  providerRef    String?
+  checkoutUrl    String?
+  amountMinor    Int
+  currency       String
+  idempotencyKey String         @unique
+  rfqId          String?        @db.Uuid
+  invoiceId      String?        @db.Uuid
+  failureReason  String?
+  paidAt         DateTime?
+  initiatedById  String?        @db.Uuid
+  isDemo         Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  attempts    PaymentAttempt[]
+  reservation RfqReservation?
+  unlock      RfqUnlock?
+  refunds     Refund[]
+  ledger      WalletLedgerEntry[]
+
+  @@unique([provider, providerRef])
+  @@index([orgId, createdAt])
+  @@index([status])
+}
+
+model PaymentAttempt {
+  id          String        @id @default(uuid()) @db.Uuid
+  paymentId   String        @db.Uuid
+  payment     Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  fromStatus  PaymentStatus?
+  toStatus    PaymentStatus
+  source      String
+  providerRef String?
+  detail      Json?
+  createdAt   DateTime      @default(now())
+
+  @@index([paymentId])
+}
+
+model Wallet {
+  id           String       @id @default(uuid()) @db.Uuid
+  orgId        String       @unique @db.Uuid
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  currency     String       @default("USD")
+  balanceMinor Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  entries WalletLedgerEntry[]
+}
+
+model WalletLedgerEntry {
+  id             String          @id @default(uuid()) @db.Uuid
+  walletId       String          @db.Uuid
+  wallet         Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type           LedgerEntryType
+  amountMinor    Int
+  balanceAfter   Int
+  currency       String
+  paymentId      String?         @db.Uuid
+  payment        Payment?        @relation(fields: [paymentId], references: [id])
+  unlockId       String?         @db.Uuid
+  unlock         RfqUnlock?      @relation(fields: [unlockId], references: [id])
+  refundId       String?         @db.Uuid
+  invoiceId      String?         @db.Uuid
+  memo           String?
+  createdById    String?         @db.Uuid
+  idempotencyKey String          @unique
+  createdAt      DateTime        @default(now())
+
+  @@index([walletId, createdAt])
+}
+
+model Invoice {
+  id          String        @id @default(uuid()) @db.Uuid
+  number      String        @unique
+  orgId       String        @db.Uuid
+  org         Organization  @relation(fields: [orgId], references: [id])
+  status      InvoiceStatus @default(DRAFT)
+  amountMinor Int
+  currency    String        @default("USD")
+  description String
+  dueAt       DateTime?
+  issuedAt    DateTime?
+  paidAt      DateTime?
+  paymentReference String?
+  createdById String        @db.Uuid
+  isDemo      Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Refund {
+  id          String       @id @default(uuid()) @db.Uuid
+  unlockId    String       @db.Uuid
+  unlock      RfqUnlock    @relation(fields: [unlockId], references: [id])
+  paymentId   String?      @db.Uuid
+  payment     Payment?     @relation(fields: [paymentId], references: [id])
+  disputeId   String?      @unique @db.Uuid
+  dispute     Dispute?     @relation(fields: [disputeId], references: [id])
+  method      RefundMethod
+  status      RefundStatus @default(REQUESTED)
+  amountMinor Int
+  currency    String
+  reason      String
+  providerRef String?
+  decidedById String?      @db.Uuid
+  processedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([status])
+}
+
+model Dispute {
+  id          String        @id @default(uuid()) @db.Uuid
+  unlockId    String        @db.Uuid
+  unlock      RfqUnlock     @relation(fields: [unlockId], references: [id])
+  sellerId    String        @db.Uuid
+  seller      SellerProfile @relation(fields: [sellerId], references: [id])
+  reason      DisputeReason
+  description String
+  status      DisputeStatus @default(OPEN)
+  decision    String?
+  decidedById String?       @db.Uuid
+  decidedAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  evidence Attachment[]
+  refund   Refund?
+
+  @@index([status])
+}
+
+// ───────────────────────── Notifications ─────────────────────────
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  dedupeKey String    @unique
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}
+
+model NotificationTemplate {
+  id        String              @id @default(uuid()) @db.Uuid
+  key       String
+  channel   NotificationChannel
+  subject   String
+  body      String
+  active    Boolean             @default(true)
+  updatedAt DateTime            @updatedAt
+
+  @@unique([key, channel])
+}
+
+model NotificationDelivery {
+  id         String              @id @default(uuid()) @db.Uuid
+  channel    NotificationChannel
+  template   String
+  recipient  String
+  status     DeliveryStatus      @default(QUEUED)
+  providerId String?
+  error      String?
+  dedupeKey  String              @unique
+  createdAt  DateTime            @default(now())
+  sentAt     DateTime?
+}
+
+// ───────────────────────── Consent & disclosure ─────────────────────────
+
+model ConsentRecord {
+  id             String         @id @default(uuid()) @db.Uuid
+  kind           ConsentKind
+  granted        Boolean
+  email          String
+  userId         String?        @db.Uuid
+  user           User?          @relation(fields: [userId], references: [id])
+  rfqId          String?        @db.Uuid
+  rfq            Rfq?           @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  textVersion    String
+  textHash       String
+  maxRecipients  Int?
+  disclosureMode DisclosureMode?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime       @default(now())
+
+  @@index([email, kind])
+  @@index([rfqId])
+}
+
+model DataDisclosureEvent {
+  id        String    @id @default(uuid()) @db.Uuid
+  rfqId     String    @db.Uuid
+  rfq       Rfq       @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  sellerId  String?   @db.Uuid
+  unlockId  String?   @db.Uuid
+  unlock    RfqUnlock? @relation(fields: [unlockId], references: [id])
+  actorId   String?   @db.Uuid
+  fields    String[]
+  reason    String
+  createdAt DateTime  @default(now())
+
+  @@index([rfqId])
+  @@index([sellerId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  diff       Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+}
+
+// ───────────────────────── AI, matching, pricing ─────────────────────────
+
+model AIExecution {
+  id            String   @id @default(uuid()) @db.Uuid
+  feature       String
+  provider      String
+  model         String
+  promptVersion String
+  status        AIStatus
+  entityType    String?
+  entityId      String?
+  inputHash     String
+  output        Json?
+  confidence    Float?
+  latencyMs     Int
+  inputTokens   Int      @default(0)
+  outputTokens  Int      @default(0)
+  costMicros    Int      @default(0)
+  error         String?
+  actorId       String?  @db.Uuid
+  createdAt     DateTime @default(now())
+
+  @@index([feature, createdAt])
+  @@index([entityType, entityId])
+}
+
+model MatchingConfiguration {
+  id          String   @id @default(uuid()) @db.Uuid
+  version     String   @unique
+  weights     Json
+  minScore    Int      @default(40)
+  maxNotified Int      @default(5)
+  active      Boolean  @default(false)
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+}
+
+model PricingRule {
+  id               String            @id @default(uuid()) @db.Uuid
+  name             String
+  tier             PricingTier
+  patchType        PatchType?
+  distributionMode DistributionMode?
+  priceMinor       Int
+  minMinor         Int               @default(500)
+  maxMinor         Int               @default(50000)
+  discountBps      Int               @default(0)
+  currency         String            @default("USD")
+  priority         Int               @default(0)
+  active           Boolean           @default(true)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  createdById      String?           @db.Uuid
+  supersededById   String?           @db.Uuid
+  createdAt        DateTime          @default(now())
+
+  @@index([tier, active])
+}
+
+// ───────────────────────── Analytics & ops ─────────────────────────
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  userId    String?  @db.Uuid
+  orgId     String?  @db.Uuid
+  rfqId     String?  @db.Uuid
+  anonId    String?
+  props     Json?
+  isDemo    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+}
+
+model MarketingAttribution {
+  id          String   @id @default(uuid()) @db.Uuid
+  rfqId       String?  @unique @db.Uuid
+  rfq         Rfq?     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  sellerOrgId String?  @unique @db.Uuid
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+  gclid       String?
+  fbclid      String?
+  landingPage String?
+  referrer    String?
+  createdAt   DateTime @default(now())
+
+  @@index([utmSource, utmCampaign])
+}
+
+model AdSpendEntry {
+  id          String   @id @default(uuid()) @db.Uuid
+  date        DateTime @db.Date
+  channel     String
+  campaign    String?
+  amountMinor Int
+  currency    String   @default("USD")
+  leads       Int?
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+}
+
+model WebhookEvent {
+  id             String    @id @default(uuid()) @db.Uuid
+  provider       String
+  eventId        String
+  type           String
+  signatureValid Boolean
+  payload        Json
+  processedAt    DateTime?
+  error          String?
+  createdAt      DateTime  @default(now())
+
+  @@unique([provider, eventId])
+}
+
+model BackgroundJob {
+  id          String    @id @default(uuid()) @db.Uuid
+  type        String
+  payload     Json
+  status      JobStatus @default(QUEUED)
+  runAt       DateTime  @default(now())
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  lastError   String?
+  lockedAt    DateTime?
+  dedupeKey   String?   @unique
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, runAt])
+}
+
+model FeatureFlag {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  enabled     Boolean  @default(false)
+  description String?
+  updatedById String?  @db.Uuid
+  updatedAt   DateTime @updatedAt
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
