@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import * as RDialog from "@radix-ui/react-dialog";
 import * as RTabs from "@radix-ui/react-tabs";
@@ -196,5 +196,33 @@ export function CopyButton({ value, label = "Copy" }: { value: string; label?: s
     >
       <Copy className="h-3 w-3" /> {copied ? "Copied" : label}
     </button>
+  );
+}
+
+/** One-click server action (pass a bound action). Shows pending + inline result. */
+export function ActionButton({ action, children, confirm, variant = "secondary", size = "sm", prompt, className }: { action: (input?: string) => Promise<ActionState>; children: React.ReactNode; confirm?: string; variant?: ButtonVariant; size?: "sm" | "md"; prompt?: string; className?: string }) {
+  const [state, setState] = useState<ActionState>(null);
+  const [pending, start] = useTransition();
+  return (
+    <span className={cn("inline-flex flex-col items-start gap-1", className)}>
+      <Button
+        type="button"
+        size={size}
+        variant={variant}
+        loading={pending}
+        onClick={() => {
+          if (confirm && !window.confirm(confirm)) return;
+          let input: string | undefined;
+          if (prompt) {
+            input = window.prompt(prompt) ?? undefined;
+            if (input === undefined) return;
+          }
+          start(async () => setState(await action(input)));
+        }}
+      >
+        {children}
+      </Button>
+      <FormMessage state={state} />
+    </span>
   );
 }

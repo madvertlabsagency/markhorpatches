@@ -82,7 +82,7 @@ export default async function ManufacturerProfile({ params }: { params: Promise<
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {s.portfolio.map((p) => (
               <figure key={p.id} className="card overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                { }
                 <img src={`/api/files/${p.attachmentId}?variant=preview`} alt={p.title} className="aspect-square w-full object-cover" loading="lazy" />
                 <figcaption className="truncate px-2 py-1.5 text-xs text-muted">{p.title}</figcaption>
               </figure>

@@ -22,7 +22,7 @@ export default async function BuyerArtwork() {
             <div key={a.id} className="card overflow-hidden">
               <a href={`/api/files/${a.attachmentId}`} className="block">
                 {a.preview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img src={a.preview} alt={a.attachment.originalFilename} className="aspect-square w-full bg-surface-2 object-contain" />
                 ) : <div className="grid aspect-square place-items-center bg-surface-2"><FileText className="h-8 w-8 text-muted" /></div>}
               </a>

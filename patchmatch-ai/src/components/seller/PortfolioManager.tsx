@@ -25,7 +25,7 @@ export function PortfolioManager({ items }: { items: { id: string; title: string
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {items.map((i) => (
           <figure key={i.id} className="card overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img src={`/api/files/${i.attachmentId}?variant=preview`} alt={i.title} className="aspect-square w-full object-cover" loading="lazy" />
             <figcaption className="flex items-center gap-1 px-2 py-1.5">
               <span className="min-w-0 flex-1 truncate text-xs">{i.title}</span>

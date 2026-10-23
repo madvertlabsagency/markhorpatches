@@ -110,7 +110,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
               {view.artwork.map((a) => (
                 <div key={a.id} className="overflow-hidden rounded-xl border border-line">
                   {a.url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
+                     
                     <img src={a.url} alt={view.locked ? "Blurred artwork preview" : a.name} className="aspect-square w-full bg-surface-2 object-contain" />
                   ) : (
                     <div className="grid aspect-square place-items-center bg-surface-2"><FileText className="h-8 w-8 text-muted" /></div>

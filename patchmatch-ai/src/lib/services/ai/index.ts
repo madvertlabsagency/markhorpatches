@@ -81,14 +81,14 @@ export async function runAITask<I, O>(task: AITask<I, O>, input: I, ctx: { entit
       },
     });
 
-  const useFallback = async (status: "SKIPPED" | "FAILED" | "REJECTED_SCHEMA", error?: string, usage?: { inputTokens: number; outputTokens: number }) => {
+  const withFallback = async (status: "SKIPPED" | "FAILED" | "REJECTED_SCHEMA", error?: string, usage?: { inputTokens: number; outputTokens: number }) => {
     const output = task.fallback(input);
     if (status !== "SKIPPED") await log({ status, model: DEFAULT_MODEL, provider: "anthropic", error, ...usage });
     const exec = await log({ status: "SUCCEEDED", model: "rules-engine", provider: "rules", output });
     return { output, source: "rules" as const, executionId: exec.id, provider: "rules", model: "rules-engine" };
   };
 
-  if (provider !== "anthropic") return useFallback("SKIPPED");
+  if (provider !== "anthropic") return withFallback("SKIPPED");
 
   try {
     const response = await anthropic().beta.messages.parse({
@@ -101,20 +101,20 @@ export async function runAITask<I, O>(task: AITask<I, O>, input: I, ctx: { entit
       output_config: { effort: task.effort ?? "low", format: betaZodOutputFormat(task.schema as z.ZodType<O>) },
     });
     const usage = { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
-    if (response.stop_reason === "refusal") return useFallback("FAILED", `Model declined (${response.stop_details?.category ?? "unknown"})`, usage);
-    if (response.stop_reason === "max_tokens") return useFallback("FAILED", "Output truncated at max_tokens", usage);
+    if (response.stop_reason === "refusal") return withFallback("FAILED", `Model declined (${response.stop_details?.category ?? "unknown"})`, usage);
+    if (response.stop_reason === "max_tokens") return withFallback("FAILED", "Output truncated at max_tokens", usage);
     const parsed = response.parsed_output as O | null;
     const valid = parsed ? task.schema.safeParse(parsed) : null;
-    if (!valid?.success) return useFallback("REJECTED_SCHEMA", "Output failed schema validation", usage);
+    if (!valid?.success) return withFallback("REJECTED_SCHEMA", "Output failed schema validation", usage);
     const confidence = (valid.data as { confidence?: number }).confidence ?? null;
     if (task.minConfidence !== undefined && confidence !== null && confidence < task.minConfidence) {
-      return useFallback("REJECTED_SCHEMA", `Confidence ${confidence} below threshold ${task.minConfidence}`, usage);
+      return withFallback("REJECTED_SCHEMA", `Confidence ${confidence} below threshold ${task.minConfidence}`, usage);
     }
     const exec = await log({ status: "SUCCEEDED", model: response.model, output: valid.data, confidence, ...usage });
     return { output: valid.data, source: "ai", executionId: exec.id, provider: "anthropic", model: response.model };
   } catch (e) {
     const msg = e instanceof Anthropic.APIError ? `API ${e.status}: ${e.message}` : e instanceof Error ? e.message : String(e);
-    return useFallback("FAILED", msg);
+    return withFallback("FAILED", msg);
   }
 }
 

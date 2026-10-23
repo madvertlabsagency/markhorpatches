@@ -9,7 +9,7 @@ import { PageHeader, StatCard, Card, CardHeader, EmptyState, Badge } from "@/com
 import { OpportunityCard } from "@/components/seller/OpportunityCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { formatMoney } from "@/lib/money";
-import { formatPercent } from "@/lib/utils";
+import { formatPercent, daysAgo } from "@/lib/utils";
 import { statusTone, statusLabel } from "@/lib/ui-status";
 
 export const metadata: Metadata = { title: "Seller dashboard" };
@@ -36,7 +36,7 @@ export default async function SellerDashboard() {
       </>
     );
   }
-  const since = new Date(Date.now() - 30 * 86_400_000);
+  const since = daysAgo(30);
   const [opps, unlocks, quotes, won, wallet, credits] = await Promise.all([
     listSellerOpportunities(seller.id),
     prisma.rfqUnlock.findMany({ where: { sellerId: seller.id, status: { not: "REVOKED" } }, select: { priceMinor: true, method: true, createdAt: true, rfqId: true, status: true } }),

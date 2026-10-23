@@ -119,7 +119,7 @@ export function FileUploader({ purpose, value, onChange, maxFiles, label = "Drop
             <li key={f.id} className="flex items-center gap-3 rounded-xl border border-line bg-surface p-2.5">
               <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-surface-2">
                 {f.previewUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img src={f.previewUrl} alt="" className="h-full w-full object-cover" />
                 ) : f.extension === "pdf" ? (
                   <FileText className="h-5 w-5 text-muted" />

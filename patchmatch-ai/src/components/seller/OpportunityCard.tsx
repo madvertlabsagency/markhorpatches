@@ -19,7 +19,7 @@ export function OpportunityCard({ o }: { o: OpportunityCardData }) {
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-line bg-surface-2">
           {o.teaserId ? (
             // Blurred, metadata-free teaser (authorised server-side); never the original.
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <img src={`/api/files/${o.teaserId}?variant=teaser`} alt="Blurred artwork preview" className="h-full w-full object-cover" loading="lazy" />
           ) : (
             <div className="p-2"><PatchArt type={o.patchType as never} /></div>

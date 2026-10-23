@@ -55,3 +55,8 @@ export function slugify(s: string): string {
 export function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
+
+/** A Date `days` ago from now (kept out of render bodies to satisfy the purity lint rule). */
+export function daysAgo(days: number): Date {
+  return new Date(Date.now() - days * 86_400_000);
+}

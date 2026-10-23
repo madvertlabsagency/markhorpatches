@@ -182,7 +182,7 @@ export async function RfqStatusPanel({ rfqId, audience }: { rfqId: string; audie
               {artwork.map((a) => (
                 <a key={a.id} href={`/api/files/${a.id}`} className="group block overflow-hidden rounded-xl border border-line">
                   {a.preview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
+                     
                     <img src={a.preview} alt={a.name} className="aspect-square w-full bg-surface-2 object-contain" />
                   ) : (
                     <div className="grid aspect-square place-items-center bg-surface-2">
