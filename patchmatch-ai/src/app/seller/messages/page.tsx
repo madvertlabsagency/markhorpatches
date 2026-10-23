@@ -6,13 +6,13 @@ import { sellerMarkReadAction, sellerSendMessageAction } from "@/app/actions/sel
 
 export const metadata: Metadata = { title: "Messages" };
 
-export default async function SellerMessages({ searchParams }: { searchParams: Promise<{ c?: string; rfq?: string }> }) {
+export default async function SellerMessages({ searchParams }: { searchParams: Promise<{ c?: string; rfq?: string; q?: string }> }) {
   const { seller } = await requireSeller("/seller/messages");
   const sp = await searchParams;
   return (
     <>
       <PageHeader title="Messages" description="Conversations with buyers whose RFQs you've unlocked." />
-      <Inbox side="SELLER" where={{ sellerId: seller.id, rfq: { unlocks: { some: { sellerId: seller.id, status: { in: ["ACTIVE", "CREDITED", "REFUNDED"] } } } } }} selectedId={sp.c} rfqFilter={sp.rfq} basePath="/seller/messages" sendAction={sellerSendMessageAction} markRead={sellerMarkReadAction} />
+      <Inbox side="SELLER" where={{ sellerId: seller.id, rfq: { unlocks: { some: { sellerId: seller.id, status: { in: ["ACTIVE", "CREDITED", "REFUNDED"] } } } } }} selectedId={sp.c} rfqFilter={sp.rfq} query={sp.q} basePath="/seller/messages" sendAction={sellerSendMessageAction} markRead={sellerMarkReadAction} />
     </>
   );
 }

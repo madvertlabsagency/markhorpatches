@@ -1,15 +1,24 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { loginAction } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
 
 /** Signs in to a demo presenter account through the normal password login. */
-export function DemoLoginButton({ email, password, next, label, className }: { email: string; password: string; next: string; label: string; className?: string }) {
+export function DemoLoginButton({ email, password, next, label, className, auto }: { email: string; password: string; next: string; label: string; className?: string; auto?: boolean }) {
   const [state, action, pending] = useActionState(loginAction, null);
+  const ref = useRef<HTMLFormElement>(null);
+  const sent = useRef(false);
+  useEffect(() => {
+    // /demo/<role> links sign the presenter in straight away (demo deployments only).
+    if (auto && !sent.current) {
+      sent.current = true;
+      ref.current?.requestSubmit();
+    }
+  }, [auto]);
   return (
-    <form action={action} className="space-y-2">
+    <form ref={ref} action={action} className="space-y-2">
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="password" value={password} />
       <input type="hidden" name="next" value={next} />

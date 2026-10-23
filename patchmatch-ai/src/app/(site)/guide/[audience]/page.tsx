@@ -39,7 +39,7 @@ const GUIDES: Record<"buyers" | "sellers", Guide> = {
       { title: "Add capabilities", body: "For each patch type set your MOQ, maximum quantity, weekly capacity, standard and rush lead times. These decide which requests reach you — keep them accurate.", tips: ["More patch types and shipping destinations = more matching requests."] },
       { title: "Get verified", body: "Upload your business registration, factory photos and a few sample patches. Our team reviews them; only verified manufacturers can unlock requests." },
       { title: "Watch opportunities arrive", body: "Matching requests appear in Opportunities and as notifications. Filter by order value (e.g. $300+), patch type, or requests with no offers yet.", tips: ["“No offers yet — be first” means nobody has claimed it. Exclusive requests disappear the moment someone else unlocks them."] },
-      { title: "Unlock a request", body: "Pay the unlock fee ($15 standard, $20 high intent, $25 premium) with prepaid credits or an approved payment method. Access opens only after payment is confirmed." },
+      { title: "Unlock a request", body: "Pay the unlock fee (pilot: $10 Standard Verified, $12.50 Contact-Ready, $15 Premium Production-Ready) with prepaid credits or an approved payment method. Access opens only after payment is confirmed." },
       { title: "Contact the buyer and quote", body: "You'll see the full specification, original artwork and the buyer's contact details they agreed to share. Send an itemised quote from the builder — the buyer compares it side by side." },
       { title: "Invalid request? Claim a credit", body: "If contact details bounce or the request is clearly invalid, file a quality claim. Upheld claims are credited back to your wallet." },
     ],

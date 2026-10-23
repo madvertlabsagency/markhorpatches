@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { VerificationBadge } from "@/components/seller/VerificationBadge";
 import Link from "next/link";
 import { BadgeCheck, Factory, MapPin } from "lucide-react";
 import { prisma } from "@/lib/db";
@@ -21,7 +22,7 @@ export default async function ManufacturersPage({ searchParams }: { searchParams
   });
   return (
     <>
-      <MarketingHero eyebrow="Manufacturers" title="Verified manufacturers." description="Every manufacturer listed here passed manual verification. Profiles show declared capabilities — buyers are matched through requests, so you never need to cold-contact suppliers.">
+      <MarketingHero eyebrow="Manufacturers" title="Verified manufacturers." description="Every manufacturer listed here passed our business-identity check; badges show which reviews were completed. Profiles show declared capabilities — buyers are matched through requests, so you never need to cold-contact suppliers.">
         <ButtonLink href="/get-quotes" size="lg">Get matched</ButtonLink>
       </MarketingHero>
       <section className="container-page py-14">
@@ -33,7 +34,7 @@ export default async function ManufacturersPage({ searchParams }: { searchParams
               <Link key={s.id} href={`/manufacturers/${s.publicSlug}`} className="card p-5 transition hover:border-electric/40">
                 <div className="flex items-start justify-between gap-3">
                   <p className="font-semibold">{s.tradingName ?? s.legalName}</p>
-                  <Badge tone="green"><BadgeCheck className="h-3 w-3" /> Verified</Badge>
+                  <VerificationBadge seller={s} />
                 </div>
                 <p className="mt-1 flex items-center gap-1 text-sm text-muted"><MapPin className="h-3.5 w-3.5" /> {countryName(s.country)}</p>
                 <div className="mt-4 flex flex-wrap gap-1.5">

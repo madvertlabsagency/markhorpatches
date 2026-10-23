@@ -2,7 +2,9 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { siteUrl } from "@/lib/env";
 import { notify, orgUserIds, queueEmail } from "@/lib/notifications";
-import { redactContactInfo } from "@/lib/rfq/disclosure";
+import { contactReleased, redactContactInfo } from "@/lib/rfq/disclosure";
+import { trackEvent } from "@/lib/analytics/events";
+import type { MessageKind, Prisma } from "@/generated/prisma/client";
 import { sellerAccess } from "@/lib/domain/access";
 import { DomainError } from "@/lib/domain/rfq";
 
@@ -11,7 +13,7 @@ import { DomainError } from "@/lib/domain/rfq";
  * When the buyer chose platform-messaging-only, contact details typed by EITHER side are masked
  * (the buyer's consent governs disclosure; sellers can't harvest them via chat either).
  */
-export async function postMessage(args: { rfqId: string; sellerId: string; side: "BUYER" | "SELLER" | "ADMIN"; userId: string; body: string; attachmentIds?: string[] }) {
+export async function postMessage(args: { rfqId: string; sellerId: string; side: "BUYER" | "SELLER" | "ADMIN"; userId: string; body: string; attachmentIds?: string[]; kind?: MessageKind; meta?: Record<string, unknown> }) {
   const body = args.body.trim();
   if (!body && !args.attachmentIds?.length) throw new DomainError("EMPTY", "Write a message.");
   if (body.length > 5000) throw new DomainError("TOO_LONG", "Messages are limited to 5,000 characters.");
@@ -23,11 +25,12 @@ export async function postMessage(args: { rfqId: string; sellerId: string; side:
   const conversation = await prisma.conversation.findUnique({ where: { rfqId_sellerId: { rfqId: args.rfqId, sellerId: args.sellerId } } });
   if (!conversation) throw new DomainError("NOT_FOUND", "Conversation not found.");
   if (conversation.lockedAt) throw new DomainError("LOCKED", "This conversation has been locked by moderation.");
-  const mustMask = rfq.disclosureMode === "PLATFORM_MESSAGING_ONLY" && args.side !== "ADMIN";
+  // Contact details typed in chat are masked unless the buyer's CURRENT choice releases them to this manufacturer.
+  const mustMask = args.side !== "ADMIN" && !contactReleased(rfq.disclosureMode, !!conversation.contactSharedAt);
   const masked = mustMask ? redactContactInfo(body) : { text: body, redacted: false };
 
   const msg = await prisma.$transaction(async (tx) => {
-    const m = await tx.message.create({ data: { conversationId: conversation.id, side: args.side, senderUserId: args.userId, body: masked.text, redacted: masked.redacted } });
+    const m = await tx.message.create({ data: { conversationId: conversation.id, side: args.side, senderUserId: args.userId, body: masked.text, redacted: masked.redacted, kind: args.kind ?? "TEXT", meta: (args.meta ?? undefined) as Prisma.InputJsonValue | undefined } });
     if (args.attachmentIds?.length) {
       const n = await tx.attachment.updateMany({
         where: { id: { in: args.attachmentIds }, uploaderUserId: args.userId, purpose: "MESSAGE_ATTACHMENT", status: "READY", messageId: null },
@@ -42,6 +45,7 @@ export async function postMessage(args: { rfqId: string; sellerId: string; side:
     return m;
   });
 
+  if (args.side !== "ADMIN") await trackEvent(args.side === "BUYER" ? "BuyerMessageSent" : "SellerMessageSent", { rfqId: args.rfqId, isDemo: rfq.isDemo });
   const seller = await prisma.sellerProfile.findUniqueOrThrow({ where: { id: args.sellerId } });
   if (args.side !== "SELLER") {
     await notify({

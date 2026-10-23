@@ -9,12 +9,14 @@ import { allProviders, paymentProvider } from "@/lib/services/payments";
 import { aiProviderName } from "@/lib/services/ai";
 import { adminMfaRequired, isDemoMode } from "@/lib/env";
 import { toggleFlagAction } from "../actions";
+import { marketplaceSettings } from "@/lib/settings";
+import { MarketplaceSettingsForm } from "@/components/admin/MarketplaceSettingsForm";
 
 export const metadata: Metadata = { title: "Settings" };
 
 export default async function AdminSettings() {
   await requireAdmin("settings:manage");
-  const [flags, bank] = await Promise.all([prisma.featureFlag.findMany({ orderBy: { key: "asc" } }), prisma.platformSetting.findUnique({ where: { key: "bankTransfer" } })]);
+  const [flags, bank, market] = await Promise.all([prisma.featureFlag.findMany({ orderBy: { key: "asc" } }), prisma.platformSetting.findUnique({ where: { key: "bankTransfer" } }), marketplaceSettings()]);
   const integrations: [string, boolean, string][] = [
     ["Payments", paymentProvider().configured && paymentProvider().name !== "sandbox", `${paymentProvider().displayName}. Pakistani gateways (${allProviders().filter((p) => !p.configured).map((p) => p.displayName).join(", ")}) need merchant approval + official API docs.`],
     ["Object storage", storageDriver() !== "local", storageDriver() === "s3" ? `S3 bucket ${process.env.S3_BUCKET}` : storageDriver() === "vercel-blob" ? "Vercel Blob (private access when the store supports it)" : "Local disk (development only)"],
@@ -36,6 +38,7 @@ export default async function AdminSettings() {
         <Card><CardHeader title="Integrations & external blockers" />
           <ul className="divide-y divide-line">{integrations.map(([k, okk, d]) => <li key={k} className="flex items-start gap-3 px-5 py-3 text-sm"><Badge tone={okk ? "green" : "amber"}>{okk ? "ready" : "action needed"}</Badge><div><p className="font-semibold">{k}</p><p className="text-muted">{d}</p></div></li>)}</ul>
         </Card>
+        <Card><CardHeader title="Marketplace operations" description="Pilot parameters. Unlock prices are set under Pricing." /><div className="p-5"><MarketplaceSettingsForm value={market} /></div></Card>
         <Card><CardHeader title="Bank transfer details (shown on invoices)" /><div className="p-5"><BankSettingsForm value={(bank?.value ?? {}) as Record<string, string>} /></div></Card>
       </div>
     </>

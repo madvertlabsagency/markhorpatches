@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VerificationBadge } from "@/components/seller/VerificationBadge";
 import { BadgeCheck, FileText, Lock, MessageSquare, ShieldCheck } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { storage } from "@/lib/services/storage";
@@ -100,7 +101,7 @@ export async function RfqStatusPanel({ rfqId, audience }: { rfqId: string; audie
                       <td className="px-5 py-3.5">
                         <p className="font-semibold">{qt.seller.tradingName ?? qt.seller.legalName}</p>
                         <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
-                          <BadgeCheck className="h-3.5 w-3.5 text-success" /> Verified · {countryName(qt.seller.country)}
+                          <VerificationBadge seller={qt.seller} /> · {countryName(qt.seller.country)}
                         </p>
                         {i === 0 && rfq.quotes.length > 1 && <Badge tone="green" className="mt-1">Lowest total</Badge>}
                         {qt.shortlisted && <Badge tone="blue" className="mt-1 ml-1">Shortlisted</Badge>}
@@ -131,13 +132,17 @@ export async function RfqStatusPanel({ rfqId, audience }: { rfqId: string; audie
             </table>
           </div>
         )}
-        {rfq.quotes.some((x) => x.notes || x.paymentTerms) && (
+        {rfq.quotes.some((x) => x.notes || x.paymentTerms || x.inclusions || x.exclusions) && (
           <div className="grid gap-3 border-t border-line p-5 md:grid-cols-2">
             {rfq.quotes.map((qt) => (
               <div key={qt.id} className="rounded-xl bg-surface-2/60 p-3 text-sm">
                 <p className="font-semibold">{qt.seller.tradingName ?? qt.seller.legalName}</p>
                 {qt.paymentTerms && <p className="mt-1 text-muted"><span className="font-medium text-fg">Payment terms:</span> {qt.paymentTerms}</p>}
                 {qt.revisionPolicy && <p className="mt-1 text-muted"><span className="font-medium text-fg">Revisions:</span> {qt.revisionPolicy}</p>}
+                {qt.includedBacking && <p className="mt-1 text-muted"><span className="font-medium text-fg">Backing:</span> {qt.includedBacking}</p>}
+                {qt.inclusions && <p className="mt-1 text-muted"><span className="font-medium text-fg">Included:</span> {qt.inclusions}</p>}
+                {qt.exclusions && <p className="mt-1 text-muted"><span className="font-medium text-fg">Not included:</span> {qt.exclusions}</p>}
+                {qt.revisionNote && <p className="mt-1 text-[#9A5B00]"><span className="font-medium">You asked for a revision:</span> {qt.revisionNote}</p>}
                 {qt.notes && <p className="mt-1 whitespace-pre-line text-muted">{qt.notes}</p>}
                 {qt.validUntil && <p className="mt-1 text-xs text-muted">Valid until {formatDate(qt.validUntil)}</p>}
               </div>

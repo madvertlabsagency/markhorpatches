@@ -5,14 +5,15 @@ import { SELLER_FAQS } from "@/content/faqs";
 import { RoiCalculator } from "@/components/marketing/RoiCalculator";
 import { formatMoney } from "@/lib/money";
 import { prisma } from "@/lib/db";
+import { TIER_DESCRIPTION, TIER_LABEL } from "@/lib/rfq/tiers";
 
 export const metadata: Metadata = { title: "Seller Pricing — Pay per Qualified RFQ", description: "No subscription. Manufacturers pay a published fee only when they unlock a qualified RFQ.", alternates: { canonical: "/seller-pricing" } };
 export const dynamic = "force-dynamic";
 
 const TIERS = [
-  { tier: "STANDARD", name: "Standard", fallback: 1500, desc: "Qualified request; may need some clarification (Tier B)." },
-  { tier: "HIGH_INTENT", name: "High intent", fallback: 2000, desc: "Production-ready request with complete specs and strong intent (Tier A)." },
-  { tier: "PREMIUM", name: "Premium", fallback: 2500, desc: "Tier A with large quantity or substantial budget." },
+  { tier: "STANDARD", name: TIER_LABEL.STANDARD, fallback: 1000, desc: TIER_DESCRIPTION.STANDARD },
+  { tier: "HIGH_INTENT", name: TIER_LABEL.HIGH_INTENT, fallback: 1250, desc: TIER_DESCRIPTION.HIGH_INTENT },
+  { tier: "PREMIUM", name: TIER_LABEL.PREMIUM, fallback: 1500, desc: TIER_DESCRIPTION.PREMIUM },
 ] as const;
 
 export default async function SellerPricingPage() {

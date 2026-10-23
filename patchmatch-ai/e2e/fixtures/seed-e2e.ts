@@ -45,7 +45,7 @@ async function main() {
       specialFinishing: [], artworkIds: [], artworkNotes: "Cap front patch, navy and white", destinationCountry: "US", destinationState: "WA", destinationPostal: "98101",
       requiredBy: new Date(Date.now() + 50 * 86_400_000).toISOString().slice(0, 10), rush: false, sampleBeforeProduction: false, budgetUndisclosed: true,
       contactName: "Secret Buyer Name", contactCompany: "Hidden Hat Co", contactEmail: buyerEmail, contactPhone: "+1 206 555 0177", preferredContact: "EMAIL",
-      consentMatching: true, consentSharing: true, disclosureMode: "FULL_CONTACT", consentTerms: true, consentMarketing: false, website2: "",
+      consentMatching: true, consentSharing: true, disclosureMode: "FULL_CONTACT", consentDirectContact: true, buyingStage: "WITHIN_30_DAYS", consentTerms: true, consentMarketing: false, website2: "",
     } as never,
     { ip: "203.0.113.9" },
   );

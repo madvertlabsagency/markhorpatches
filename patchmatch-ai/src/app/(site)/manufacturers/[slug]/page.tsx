@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { VerificationBadge } from "@/components/seller/VerificationBadge";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Clock, Globe2, MapPin, Package, Truck } from "lucide-react";
 import { prisma } from "@/lib/db";
@@ -36,7 +37,7 @@ export default async function ManufacturerProfile({ params }: { params: Promise<
           <p className="eyebrow">Manufacturer profile</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">{s.tradingName ?? s.legalName}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
-            <Badge tone="green"><BadgeCheck className="h-3 w-3" /> Verified {s.verifiedAt ? formatDate(s.verifiedAt, { month: "short", year: "numeric" }) : ""}</Badge>
+            <VerificationBadge seller={s} showMeaning />
             <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {countryName(s.country)}</span>
             {s.yearsOperating != null && <span>· {s.yearsOperating} years operating</span>}
             {s.isDemo && <Badge tone="violet">Fictional demo profile</Badge>}
@@ -73,6 +74,8 @@ export default async function ManufacturerProfile({ params }: { params: Promise<
             { label: "Samples", value: <span className="flex items-center gap-1"><Package className="h-3.5 w-3.5" />{s.sampleCapable ? "Available" : "Not offered"}</span> },
             { label: "Platform performance", value: showPerformance ? <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Avg. quote time {Math.round(s.avgResponseMinutes! / 60)}h · {quotes} quotes sent</span> : "Not enough platform history yet" },
             { label: "Buyer reviews", value: avgRating ? `${avgRating.toFixed(1)} / 5 from ${s.reviews.length} verified buyers` : "No reviews yet" },
+            // Performance figures: demo databases carry fictional values (labelled); production shows them only once real order data exists.
+            ...(s.isDemo && s.onTimeDeliveryPct != null ? [{ label: "On-time delivery (simulated)", value: `${s.onTimeDeliveryPct}%` }, { label: "Buyer satisfaction (simulated)", value: `${s.satisfactionPct ?? "—"}%` }, { label: "Completed orders (simulated)", value: s.completedOrders.toLocaleString() }] : []),
           ]} />
         </Card>
       </div>

@@ -5,9 +5,10 @@ import { createRfq, processRfq, adminQualifyRfq, verifyRfqEmail } from "@/lib/do
 import { runMatching, publishOpportunity } from "@/lib/domain/matching";
 import { creditWallet } from "@/lib/domain/unlock";
 import { recordSellerEvent } from "@/lib/activity";
+import { confirmIntent, refreshPricingTier } from "@/lib/domain/engagement";
 import { randomToken, sha256 } from "@/lib/crypto";
 import type { RfqSubmission } from "@/lib/rfq/schema";
-import { BUYER_BRANDS, BUYER_NOTES, DEMO_BACKINGS, DEMO_PATCH_TYPES, DEMO_USES, FIRST_NAMES, LAST_NAMES, SELLER_MARKETS, US_STATES, type DemoPatchType, type SellerMarket } from "./catalog";
+import { demoPhone, BUYER_BRANDS, BUYER_NOTES, DEMO_BACKINGS, DEMO_PATCH_TYPES, DEMO_USES, FIRST_NAMES, LAST_NAMES, SELLER_MARKETS, US_STATES, type DemoPatchType, type SellerMarket } from "./catalog";
 
 /** Random helpers (Math.random — demo content only). */
 export const rnd = {
@@ -93,7 +94,7 @@ export async function createDemoSeller(o: DemoSellerOptions) {
   const company = o.company ?? companyName(market);
   const person = o.name ?? `${rnd.pick(FIRST_NAMES)} ${rnd.pick(LAST_NAMES)}`;
   const slug = await uniqueSellerSlug(company);
-  const email = o.email ?? `${slug}-${randomToken(3).toLowerCase()}@sellers.patchmatch.demo`;
+  const email = o.email ?? `${slug}-${randomToken(3).toLowerCase()}@example.com`;
   const status = o.status ?? "VERIFIED";
   const years = o.star ? 22 : rnd.int(3, 28);
   const types = o.allTypes ? [...DEMO_PATCH_TYPES] : [...new Set<DemoPatchType>(["EMBROIDERED", ...Array.from({ length: rnd.int(1, 4) }, () => rnd.pick(DEMO_PATCH_TYPES))])];
@@ -106,9 +107,9 @@ export async function createDemoSeller(o: DemoSellerOptions) {
       sellerProfile: {
         create: {
           legalName: `${company} ${market === "US" ? "LLC" : market === "IN" ? "Pvt. Ltd." : "(Pvt.) Ltd."}`, tradingName: company, publicSlug: slug, country: market, city, region,
-          contactName: person, email, phone: `${m.phone}${rnd.int(100, 999)} ${rnd.int(1000000, 9999999)}`, website: `https://${slug.replace(/-/g, "")}.example`,
-          verificationStatus: status, verifiedAt: status === "VERIFIED" ? created : null, yearsOperating: years, factoryLocation: `${city}, ${region}`,
-          description: `${company} has produced custom patches for ${years} years from ${city}. Fictional demo manufacturer.`,
+          contactName: person, email, phone: demoPhone(rnd.int(0, 99)), website: `https://${slug.replace(/-/g, "")}.example`,
+          verificationStatus: status, verifiedAt: status === "VERIFIED" ? created : null, identityVerifiedAt: status === "VERIFIED" ? created : null, capabilityReviewedAt: status === "VERIFIED" && (o.star || rnd.chance(0.6)) ? created : null, yearsOperating: years, factoryLocation: `${city}, ${region}`,
+          description: `${company} has produced custom patches for ${years} years from ${city}. Simulated demo manufacturer — not a real company.`,
           exportMarkets: market === "US" ? ["US", "CA"] : ["US", "GB", "CA", "AU", "AE"], shippingCountries: market === "US" ? ["US", "CA"] : ["US", "GB", "CA", "AU", "DE"],
           backingOptions: ["SEW_ON", "IRON_ON", "HOOK_AND_LOOP", ...(rnd.chance(0.6) ? (["ADHESIVE"] as const) : [])], borderOptions: ["MERROWED", "HOT_CUT", "LASER_CUT"],
           artworkSupport: o.star || rnd.chance(0.8), sampleCapable: o.star || rnd.chance(0.7), rushCapable: o.star || rnd.chance(0.5),
@@ -168,6 +169,11 @@ export interface DemoRfqOptions {
   createdAt?: Date;
   /** Stop the pipeline early to leave some requests in review/verification. */
   stopAt?: "unverified" | "review" | "matching";
+  privacy?: "PLATFORM_MESSAGING_ONLY" | "BUYER_SELECTED" | "FULL_CONTACT";
+  buyingStage?: "READY_7_DAYS" | "WITHIN_30_DAYS" | "COMPARING" | "RESEARCHING";
+  intent?: "READY" | "LATER" | "NONE";
+  noArtwork?: boolean;
+  distribution?: "EXCLUSIVE" | "LIMITED_SHARED";
 }
 
 /** A buyer RFQ pushed through the real pipeline: submission → email verification → qualification → matching → publication. */
@@ -176,19 +182,20 @@ export async function createDemoRfq(o: DemoRfqOptions) {
   const quantity = o.quantity ?? rnd.pick([50, 100, 150, 200, 300, 500, 750, 1000, 1500, 2500, 5000, 10000]);
   const brand = o.buyer?.company ?? rnd.pick(BUYER_BRANDS);
   const person = o.buyer?.name ?? `${rnd.pick(FIRST_NAMES)} ${rnd.pick(LAST_NAMES)}`;
-  const email = o.buyer?.email ?? `${person.toLowerCase().replace(/[^a-z]+/g, ".")}.${randomToken(3).toLowerCase()}@buyers.patchmatch.demo`;
+  const email = o.buyer?.email ?? `${person.toLowerCase().replace(/[^a-z]+/g, ".")}.${randomToken(3).toLowerCase()}@example.com`;
   const guest = `demo-guest:${randomToken(8)}`;
   const art = await demoAttachmentFor(type, guest);
   const unit = { EMBROIDERED: 1.6, PVC: 2.1, CHENILLE: 3.4, WOVEN: 1.3, SUBLIMATED: 1.1, LEATHER: 2.6, PRINTED: 0.8 }[type];
   const shared = !!o.shared;
+  const privacy = o.privacy ?? rnd.weighted({ PLATFORM_MESSAGING_ONLY: 45, BUYER_SELECTED: 25, FULL_CONTACT: 30 });
   const sub = {
     patchType: type, intendedUse: rnd.pick(DEMO_USES), unit: "IN", width: rnd.pick([2, 2.5, 3, 3.5, 4]), height: rnd.pick([2, 2.5, 3, 3.5]), borderType: type === "PVC" ? "NONE" : "MERROWED",
     quantity, repeatPotential: rnd.chance(0.5), sampleRequired: rnd.chance(0.3), backing: rnd.pick(DEMO_BACKINGS), colorCount: rnd.int(2, 9), specialFinishing: [],
-    artworkIds: art ? [art] : [], artworkNotes: rnd.pick(BUYER_NOTES[type]), destinationCountry: "US", destinationState: rnd.pick(US_STATES), destinationPostal: String(rnd.int(10000, 99999)),
+    artworkIds: art && !o.noArtwork ? [art] : [], artworkHelpRequested: !art || !!o.noArtwork, artworkNotes: rnd.pick(BUYER_NOTES[type]), destinationCountry: "US", destinationState: rnd.pick(US_STATES), destinationPostal: String(rnd.int(10000, 99999)),
     requiredBy: new Date(Date.now() + rnd.int(21, 75) * 86_400_000).toISOString().slice(0, 10), rush: rnd.chance(0.15), sampleBeforeProduction: rnd.chance(0.5),
     budgetUndisclosed: rnd.chance(0.35), budgetTotal: Math.round(quantity * unit * (0.8 + Math.random() * 0.6)),
-    contactName: person, contactCompany: brand, contactEmail: email, contactPhone: `+1 ${rnd.int(201, 989)} 555 ${String(rnd.int(100, 199)).padStart(4, "0")}`, preferredContact: "EMAIL",
-    consentMatching: true, consentSharing: true, disclosureMode: rnd.chance(0.15) ? "PLATFORM_MESSAGING_ONLY" : "FULL_CONTACT", consentTerms: true, consentMarketing: false, website2: "",
+    contactName: person, contactCompany: brand, contactEmail: email, contactPhone: demoPhone(rnd.int(0, 99)), preferredContact: "EMAIL", buyingStage: o.buyingStage ?? rnd.weighted({ READY_7_DAYS: 25, WITHIN_30_DAYS: 35, COMPARING: 30, RESEARCHING: 10 }),
+    consentMatching: true, consentSharing: true, disclosureMode: privacy, consentDirectContact: privacy !== "PLATFORM_MESSAGING_ONLY", consentTerms: true, consentMarketing: false, website2: "",
     maxRecipients: shared ? 3 : 1, leadSource: o.leadSource ?? "marketplace",
   } as unknown as RfqSubmission;
   const { rfq } = await createRfq(sub, { guestOwnerHash: guest, ip: `198.51.100.${rnd.int(1, 250)}`, isDemo: true, attribution: { utm_source: rnd.pick(["meta", "google", "seo", "referral", "direct"]), utm_campaign: rnd.pick(["fall-launch", "brand-search", "retarget", "hats-q4"]) } });
@@ -197,13 +204,16 @@ export async function createDemoRfq(o: DemoRfqOptions) {
   if (o.stopAt === "unverified") return rfq;
   const token = randomToken();
   await prisma.verificationToken.create({ data: { tokenHash: sha256(token), purpose: "RFQ_EMAIL_VERIFY", email, data: { rfqId: rfq.id }, expiresAt: new Date(Date.now() + 3_600_000) } });
-  await verifyRfqEmail(token);
+  await verifyRfqEmail(token, { inline: true });
   await processRfq(rfq.id);
+  const intent = o.intent ?? rnd.weighted({ READY: 65, LATER: 20, NONE: 15 });
+  if (intent !== "NONE") await confirmIntent(rfq.id, intent, { userId: o.buyer?.userId ?? null, via: "demo" });
   if (o.stopAt === "review") return rfq;
-  await adminQualifyRfq(o.adminId, rfq.id, { tier: rnd.chance(0.8) ? "A" : "B", pricingTier: quantity >= 1000 ? "PREMIUM" : rnd.chance(0.5) ? "HIGH_INTENT" : "STANDARD", note: "Demo qualification", source: o.adminId ? "ADMIN" : "SYSTEM" });
+  await adminQualifyRfq(o.adminId, rfq.id, { tier: rnd.chance(0.85) ? "A" : "B", pricingTier: "STANDARD", note: "Demo qualification", source: o.adminId ? "ADMIN" : "SYSTEM", inline: true });
+  await refreshPricingTier(rfq.id);
   const m = await runMatching(rfq.id, o.adminId);
   if (!m.eligible || o.stopAt === "matching") return rfq;
   const fresh = await prisma.rfq.findUniqueOrThrow({ where: { id: rfq.id }, include: { opportunity: true } });
-  if (!fresh.opportunity) await publishOpportunity(rfq.id, o.adminId, fresh.maxRecipients > 1 ? { distributionMode: "LIMITED_SHARED", maxUnlocks: fresh.maxRecipients } : { distributionMode: "EXCLUSIVE" });
+  if (!fresh.opportunity) await publishOpportunity(rfq.id, o.adminId, fresh.maxRecipients > 1 && o.distribution !== "EXCLUSIVE" ? { distributionMode: "LIMITED_SHARED", maxUnlocks: fresh.maxRecipients } : { distributionMode: "EXCLUSIVE" });
   return rfq;
 }

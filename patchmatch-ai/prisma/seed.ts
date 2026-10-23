@@ -21,10 +21,12 @@ const FLAGS = [
 ];
 
 const RULES = [
-  { name: "Standard (launch)", tier: "STANDARD" as const, priceMinor: 1500 },
-  { name: "High intent (launch)", tier: "HIGH_INTENT" as const, priceMinor: 2000 },
-  { name: "Premium (launch)", tier: "PREMIUM" as const, priceMinor: 2500 },
+  { name: "Standard Verified (pilot)", tier: "STANDARD" as const, priceMinor: 1000 },
+  { name: "Contact-Ready (pilot)", tier: "HIGH_INTENT" as const, priceMinor: 1250 },
+  { name: "Premium Production-Ready (pilot)", tier: "PREMIUM" as const, priceMinor: 1500 },
 ];
+/** Earlier launch defaults; rules still at these untouched values move to pilot pricing. Admin-edited prices are left alone. */
+const LEGACY_DEFAULTS: Record<string, number> = { STANDARD: 1500, HIGH_INTENT: 2000, PREMIUM: 2500 };
 
 async function main() {
   const email = process.env.SEED_ADMIN_EMAIL?.toLowerCase();
@@ -43,7 +45,12 @@ async function main() {
 
   if ((await prisma.pricingRule.count()) === 0) {
     for (const r of RULES) await prisma.pricingRule.create({ data: { ...r, minMinor: 500, maxMinor: 50_000, currency: "USD", priority: 0, active: true } });
-    console.log("[seed] created launch pricing rules ($15 / $20 / $25).");
+    console.log("[seed] created pilot pricing rules ($10 / $12.50 / $15).");
+  } else {
+    for (const r of RULES) {
+      const n = await prisma.pricingRule.updateMany({ where: { tier: r.tier, active: true, patchType: null, distributionMode: null, name: { endsWith: "(launch)" }, priceMinor: LEGACY_DEFAULTS[r.tier] }, data: { priceMinor: r.priceMinor, name: r.name } });
+      if (n.count) console.log(`[seed] moved ${r.tier} launch default to pilot price ${r.priceMinor / 100}.`);
+    }
   }
 
   if ((await prisma.matchingConfiguration.count()) === 0) {
@@ -56,6 +63,7 @@ async function main() {
     bankTransfer: { accountName: "", bankName: "", iban: "", swift: "", instructions: "Bank transfer details are provided on each invoice once configured by finance." },
     support: { email: process.env.SUPPORT_EMAIL ?? "", whatsapp: "" },
     rfqQuality: { claimWindowDays: 7 },
+    marketplace: {},
   };
   for (const [key, value] of Object.entries(settings)) await prisma.platformSetting.upsert({ where: { key }, create: { key, value: value as object }, update: {} });
   console.log("[seed] done.");

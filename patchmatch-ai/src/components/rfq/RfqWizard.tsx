@@ -35,8 +35,10 @@ const TIPS: Record<string, string> = {
   artwork: "Vector PDF or SVG gives the most accurate quotes. Originals are never public — manufacturers see a blurred preview until they're approved.",
   shipping: "We only show your state/region to manufacturers before unlock — never your full address.",
   budget: "Optional. A target helps manufacturers suggest options that fit, and avoids mismatched quotes.",
-  contact: "Your contact details are hidden from manufacturers until the rules you approve on the next step allow it.",
-  review: "Check everything, then confirm how your information may be shared.",
+  intent: "Honest timing helps manufacturers prioritise. It never limits who can quote.",
+  contact: "Your contact details stay hidden from manufacturers. On the next step you decide whether anyone may see them.",
+  privacy: "Private by default. Manufacturers can always reach you through PatchMatch messaging; direct sharing is your choice.",
+  review: "Check everything, then confirm and submit.",
 };
 
 export function RfqWizard({ initialType, initialQty, prefill, signedInEmail, sharedEnabled = false, leadSource = "marketplace" }: { initialType?: string; initialQty?: string; prefill?: Record<string, string> | null; signedInEmail?: string | null; sharedEnabled?: boolean; leadSource?: string }) {
@@ -53,7 +55,9 @@ export function RfqWizard({ initialType, initialQty, prefill, signedInEmail, sha
     artwork: [],
     destinationCountry: "US",
     preferredContact: "EMAIL",
-    disclosureMode: "FULL_CONTACT",
+    disclosureMode: "PLATFORM_MESSAGING_ONLY",
+    consentDirectContact: false,
+    artworkHelpRequested: false,
     maxRecipients: 1,
     leadSource,
     repeatPotential: false,
@@ -191,8 +195,9 @@ export function RfqWizard({ initialType, initialQty, prefill, signedInEmail, sha
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={step} initial={reduce ? false : { opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={reduce ? undefined : { opacity: 0, x: -16 }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }} className="px-5 py-6 sm:px-8 sm:py-8">
               {current.key === "type" && <StepType data={data} set={set} error={err("patchType")} />}
-              {current.key === "use" && (
-                <div className="space-y-4">
+              {current.key === "type" && (
+                <div className="mt-8 space-y-4">
+                  <p className="text-sm font-semibold">How will the patches be used?</p>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup" aria-label="Intended use">
                     {INTENDED_USES.map((u) => (
                       <ChoiceCard key={u.code} selected={data.intendedUse === u.code} onSelect={() => set({ intendedUse: u.code })} title={u.label} description={u.blurb} />
@@ -264,6 +269,7 @@ export function RfqWizard({ initialType, initialQty, prefill, signedInEmail, sha
                   <Field id="artworkNotes" label="Artwork notes" optional hint="Colours (Pantone if known), placement, anything manufacturers should know." error={err("artworkNotes")}>
                     <Textarea id="artworkNotes" rows={4} value={String(data.artworkNotes ?? "")} onChange={(e) => set({ artworkNotes: e.target.value })} maxLength={2000} />
                   </Field>
+                  <Checkbox id="artworkHelpRequested" checked={!!data.artworkHelpRequested} onChange={(e) => set({ artworkHelpRequested: e.target.checked })} label="I need help with artwork" description="Manufacturers can digitise a sketch or rough logo — say so in your notes." />
                   {data.artwork.length === 0 && <p className="rounded-xl bg-warning/10 px-3 py-2 text-sm text-fg">No artwork yet? You can continue — but requests with artwork get far more accurate quotes.</p>}
                 </div>
               )}
@@ -301,8 +307,19 @@ export function RfqWizard({ initialType, initialQty, prefill, signedInEmail, sha
                   )}
                 </div>
               )}
+              {current.key === "intent" && (
+                <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Buying stage">
+                    {BUYING_STAGES.map((b) => (
+                      <ChoiceCard key={b.code} selected={data.buyingStage === b.code} onSelect={() => set({ buyingStage: b.code })} title={b.label} description={b.hint} />
+                    ))}
+                  </div>
+                  {err("buyingStage") && <p className="text-sm font-medium text-danger" role="alert">{err("buyingStage")}</p>}
+                </div>
+              )}
               {current.key === "contact" && <StepContact data={data} set={set} err={err} signedInEmail={signedInEmail} />}
-              {current.key === "review" && <StepReview data={data} set={set} err={err} goTo={go} sharedEnabled={sharedEnabled && leadSource === "marketplace"} single={leadSource !== "marketplace"} />}
+              {current.key === "privacy" && <StepPrivacy data={data} set={set} err={err} sharedEnabled={sharedEnabled && leadSource === "marketplace"} single={leadSource !== "marketplace"} />}
+              {current.key === "review" && <StepReview data={data} set={set} err={err} goTo={go} sharedEnabled={sharedEnabled && leadSource === "marketplace"} />}
             </motion.div>
           </AnimatePresence>
 
@@ -344,8 +361,10 @@ const HEADINGS: Record<string, string> = {
   artwork: "Upload your artwork",
   shipping: "When and where?",
   budget: "Do you have a budget in mind?",
-  contact: "How can manufacturers reach you?",
-  review: "Review and confirm",
+  intent: "Where are you in your buying process?",
+  contact: "Your contact details",
+  privacy: "Who may see your contact details?",
+  review: "Review and submit",
 };
 
 type SetFn = (patch: Partial<Data>) => void;
@@ -523,6 +542,14 @@ function StepShipping({ data, set, err }: { data: Data; set: SetFn; err: (k: str
       <Field id="requiredBy" label="Required delivery date" optional error={err("requiredBy")}>
         <Input id="requiredBy" type="date" min={today.toISOString().slice(0, 10)} value={String(data.requiredBy ?? "")} onChange={(e) => set({ requiredBy: e.target.value })} />
       </Field>
+      <div className="sm:col-span-2">
+        <p className="mb-2 text-sm font-medium">How flexible is the date? <span className="font-normal text-muted">(optional)</span></p>
+        <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Delivery flexibility">
+          {[["FIXED", "Fixed date", "Must arrive by then"], ["ONE_WEEK", "± 1 week", "A few days either way is fine"], ["FLEXIBLE", "Flexible", "Quality first"]].map(([v, t, d]) => (
+            <ChoiceCard key={v} selected={data.deliveryFlexibility === v} onSelect={() => set({ deliveryFlexibility: v })} title={t} description={d} />
+          ))}
+        </div>
+      </div>
       <Checkbox id="rush" checked={!!data.rush} onChange={(e) => set({ rush: e.target.checked })} label="This is a rush order" description="We'll prioritise manufacturers with rush capacity." />
       <Checkbox id="sampleBeforeProduction" checked={!!data.sampleBeforeProduction} onChange={(e) => set({ sampleBeforeProduction: e.target.checked })} label="I want to approve a sample before production" />
     </div>
@@ -564,19 +591,70 @@ function StepContact({ data, set, err, signedInEmail }: { data: Data; set: SetFn
   );
 }
 
-function StepReview({ data, set, err, goTo, sharedEnabled, single }: { data: Data; set: SetFn; err: (k: string) => string | undefined; goTo: (i: number) => void; sharedEnabled: boolean; single: boolean }) {
-  const mode = (data.disclosureMode as "FULL_CONTACT" | "PLATFORM_MESSAGING_ONLY") ?? "FULL_CONTACT";
+type PrivacyMode = "PLATFORM_MESSAGING_ONLY" | "BUYER_SELECTED" | "FULL_CONTACT";
+const PRIVACY_OPTIONS: { code: PrivacyMode; letter: string; title: string; description: string }[] = [
+  { code: "PLATFORM_MESSAGING_ONLY", letter: "A", title: "Keep my contact details private", description: "Receive quotations and messages through PatchMatch. Manufacturers never see your email, phone or company." },
+  { code: "BUYER_SELECTED", letter: "B", title: "Share only with manufacturers I select", description: "Everyone talks to you on PatchMatch first. You choose, manufacturer by manufacturer, who gets your direct contact details." },
+  { code: "FULL_CONTACT", letter: "C", title: "Let matched manufacturers contact me directly", description: "Verified manufacturers who take your request (up to the number you allow) receive your name, company, email, phone and website." },
+];
+const BUYING_STAGES = [
+  { code: "READY_7_DAYS", label: "Ready to order within 7 days", hint: "Artwork and budget are ready — I want quotes now." },
+  { code: "WITHIN_30_DAYS", label: "Planning to order within 30 days", hint: "Finalising details; ordering soon." },
+  { code: "COMPARING", label: "Comparing manufacturers", hint: "Collecting quotes to compare options." },
+  { code: "RESEARCHING", label: "Researching for later", hint: "Exploring prices and options for a future order." },
+];
+
+function StepPrivacy({ data, set, err, sharedEnabled, single }: { data: Data; set: SetFn; err: (k: string) => string | undefined; sharedEnabled: boolean; single: boolean }) {
+  const mode = (data.disclosureMode as PrivacyMode) ?? "PLATFORM_MESSAGING_ONLY";
+  const max = sharedEnabled && Number(data.maxRecipients) === 3 ? 3 : 1;
+  return (
+    <div className="space-y-7">
+      <div className="grid gap-3" role="radiogroup" aria-label="Contact privacy">
+        {PRIVACY_OPTIONS.map((o) => (
+          <ChoiceCard key={o.code} selected={mode === o.code} onSelect={() => set({ disclosureMode: o.code, consentDirectContact: o.code === "PLATFORM_MESSAGING_ONLY" ? false : data.consentDirectContact })} title={`${o.letter}. ${o.title}${o.code === "PLATFORM_MESSAGING_ONLY" ? " (recommended)" : ""}`} description={o.description} />
+        ))}
+      </div>
+      {mode !== "PLATFORM_MESSAGING_ONLY" && (
+        <div className="rounded-2xl border border-warning/40 bg-warning/8 p-4">
+          <Checkbox
+            id="consentDirectContact"
+            checked={!!data.consentDirectContact}
+            onChange={(e) => set({ consentDirectContact: e.target.checked })}
+            label="I agree to share my direct contact details as described above"
+            description={mode === "BUYER_SELECTED" ? "Only with manufacturers I approve, one at a time, from my dashboard. I can stop sharing for future manufacturers at any time." : `With up to ${max} verified manufacturer(s) who purchase access to this request. Already-shared details can't be recalled, but I can switch to private for anyone else.`}
+          />
+          {err("consentDirectContact") && <p className="mt-2 text-sm text-danger" role="alert">{err("consentDirectContact")}</p>}
+        </div>
+      )}
+      {sharedEnabled && (
+        <fieldset className="space-y-3">
+          <legend className="mb-2 text-sm font-semibold">How many manufacturers may take your request?</legend>
+          <div className="grid gap-3 sm:grid-cols-2" role="radiogroup">
+            <ChoiceCard selected={max === 1} onSelect={() => set({ maxRecipients: 1 })} title="One manufacturer (exclusive)" description="Only the first verified manufacturer to claim your request receives it." />
+            <ChoiceCard selected={max === 3} onSelect={() => set({ maxRecipients: 3 })} title="Up to 3 manufacturers" description="Up to three competing quotes. Never more than three manufacturers." />
+          </div>
+        </fieldset>
+      )}
+      {single && <p className="rounded-xl border border-line bg-surface-2/40 px-4 py-3 text-sm text-muted">Your request goes to <strong className="text-fg">one</strong> verified manufacturing partner, who sends you a quote.</p>}
+      <p className="text-xs text-muted">You can change this later from your dashboard. A manufacturer's purchase never overrides your choice.</p>
+    </div>
+  );
+}
+
+function StepReview({ data, set, err, goTo, sharedEnabled }: { data: Data; set: SetFn; err: (k: string) => string | undefined; goTo: (i: number) => void; sharedEnabled: boolean; single?: boolean }) {
+  const mode = (data.disclosureMode as PrivacyMode) ?? "PLATFORM_MESSAGING_ONLY";
   const max = sharedEnabled && Number(data.maxRecipients) === 3 ? 3 : 1;
   const rows: { step: number; label: string; value: string }[] = [
-    { step: 0, label: "Patch type", value: patchTypeName(String(data.patchType)) },
-    { step: 1, label: "Use", value: labelFor(INTENDED_USES, String(data.intendedUse)) + (data.intendedUseOther ? ` — ${data.intendedUseOther}` : "") },
+    { step: 0, label: "Patch type", value: `${patchTypeName(String(data.patchType))} · ${labelFor(INTENDED_USES, String(data.intendedUse))}${data.intendedUseOther ? ` — ${data.intendedUseOther}` : ""}` },
+    { step: 1, label: "Quantity", value: `${Number(data.quantity).toLocaleString()}${data.minQuantity ? ` (min ${data.minQuantity})` : ""}${data.repeatPotential ? " · repeat orders likely" : ""}${data.sampleRequired ? " · sample needed" : ""}` },
     { step: 2, label: "Size", value: data.width && data.height ? `${data.width} × ${data.height} ${String(data.unit).toLowerCase()}${data.shape ? `, ${data.shape}` : ""}${data.borderType ? `, ${labelFor(BORDERS, String(data.borderType))}` : ""}` : "Not specified" },
-    { step: 3, label: "Quantity", value: `${Number(data.quantity).toLocaleString()}${data.minQuantity ? ` (min ${data.minQuantity})` : ""}${data.repeatPotential ? " · repeat orders likely" : ""}${data.sampleRequired ? " · sample needed" : ""}` },
+    { step: 3, label: "Artwork", value: (data.artwork.length ? data.artwork.map((a) => a.filename).join(", ") : "None uploaded") + (data.artworkHelpRequested ? " · artwork help requested" : "") },
     { step: 4, label: "Backing", value: `${labelFor(BACKINGS, String(data.backing ?? ""))}${data.colorCount ? ` · ${data.colorCount} colours` : ""}${data.specialFinishing.length ? ` · ${data.specialFinishing.join(", ")}` : ""}` },
-    { step: 5, label: "Artwork", value: data.artwork.length ? data.artwork.map((a) => a.filename).join(", ") : "None uploaded" },
+    { step: 5, label: "Budget", value: data.budgetUndisclosed ? "Prefer not to disclose" : [data.budgetTotal && `$${data.budgetTotal} total`, data.targetUnit && `$${data.targetUnit}/patch`].filter(Boolean).join(" · ") || "Not specified" },
     { step: 6, label: "Delivery", value: `${[data.destinationState, countryName(String(data.destinationCountry))].filter(Boolean).join(", ")}${data.destinationPostal ? ` ${data.destinationPostal}` : ""}${data.requiredBy ? ` · by ${data.requiredBy}` : ""}${data.rush ? " · rush" : ""}` },
-    { step: 7, label: "Budget", value: data.budgetUndisclosed ? "Prefer not to disclose" : [data.budgetTotal && `$${data.budgetTotal} total`, data.targetUnit && `$${data.targetUnit}/patch`].filter(Boolean).join(" · ") || "Not specified" },
+    { step: 7, label: "Buying stage", value: BUYING_STAGES.find((b) => b.code === data.buyingStage)?.label ?? "—" },
     { step: 8, label: "Contact", value: [data.contactName, data.contactCompany, data.contactEmail, data.contactPhone].filter(Boolean).join(" · ") },
+    { step: 9, label: "Privacy", value: `${PRIVACY_OPTIONS.find((o) => o.code === mode)?.title ?? ""}${max > 1 ? " · up to 3 manufacturers" : " · one manufacturer"}` },
   ];
   return (
     <div className="space-y-7">
@@ -591,25 +669,15 @@ function StepReview({ data, set, err, goTo, sharedEnabled, single }: { data: Dat
           </div>
         ))}
       </dl>
-
-      <fieldset className="space-y-3">
-        <legend className="mb-2 text-sm font-semibold">How should manufacturers contact you?</legend>
-        <div className="grid gap-3 sm:grid-cols-2" role="radiogroup">
-          <ChoiceCard selected={mode === "FULL_CONTACT"} onSelect={() => set({ disclosureMode: "FULL_CONTACT" })} title="Share my contact details" description="An approved manufacturer receives your name, company, email, phone and website." />
-          <ChoiceCard selected={mode === "PLATFORM_MESSAGING_ONLY"} onSelect={() => set({ disclosureMode: "PLATFORM_MESSAGING_ONLY" })} title="PatchMatch messaging only" description="Your email and phone are never shared. Talk to manufacturers on the platform." />
-        </div>
-      </fieldset>
-
-      {sharedEnabled && (
-        <fieldset className="space-y-3">
-          <legend className="mb-2 text-sm font-semibold">How many manufacturers may quote?</legend>
-          <div className="grid gap-3 sm:grid-cols-2" role="radiogroup">
-            <ChoiceCard selected={max === 1} onSelect={() => set({ maxRecipients: 1 })} title="One manufacturer (exclusive)" description="Only the first verified manufacturer to claim your request receives it. Fewest contacts." />
-            <ChoiceCard selected={max === 3} onSelect={() => set({ maxRecipients: 3 })} title="Up to 3 manufacturers" description="Get up to three competing quotes. Your details go to no more than three verified manufacturers." />
-          </div>
-        </fieldset>
-      )}
-      {single && <p className="rounded-xl border border-line bg-surface-2/40 px-4 py-3 text-sm text-muted">Your request goes to <strong className="text-fg">one</strong> verified manufacturing partner, who contacts you directly with a quote.</p>}
+      <div className="rounded-2xl border border-line bg-surface-2/40 p-4 text-sm">
+        <p className="font-semibold">What happens next</p>
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted">
+          <li>Confirm your email (we send a link) and tell us you still want quotes.</li>
+          <li>Our team reviews your request, then matches it with suitable verified manufacturers.</li>
+          <li>Manufacturers who take your request send itemised quotes and message you on PatchMatch.</li>
+          <li>Compare, ask questions, and choose — or decline. Free, with no obligation to order.</li>
+        </ol>
+      </div>
 
       <fieldset className="space-y-4 rounded-2xl border border-line bg-surface-2/40 p-4">
         <legend className="sr-only">Consent</legend>

@@ -1,4 +1,5 @@
 import "server-only";
+import { marketplaceSettings } from "@/lib/settings";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { alertAdmins, notify, orgUserIds } from "@/lib/notifications";
@@ -158,7 +159,7 @@ export async function publishOpportunity(rfqId: string, actorId: string | null, 
   let maxUnlocks = 1;
   if (opts.distributionMode === "LIMITED_SHARED") {
     if (!(await featureEnabled("limited_shared_rfqs"))) throw new DomainError("DISABLED", "Limited shared RFQs are disabled until the buyer-consent workflow is approved.");
-    maxUnlocks = Math.min(opts.maxUnlocks ?? 2, rfq.maxRecipients);
+    maxUnlocks = Math.min(opts.maxUnlocks ?? 2, rfq.maxRecipients, (await marketplaceSettings()).sharedSellerLimit);
     if (maxUnlocks < 2) throw new DomainError("NO_CONSENT", `The buyer consented to at most ${rfq.maxRecipients} recipient(s).`);
   }
   if (rfq.opportunity && rfq.opportunity.unlockCount > 0) {

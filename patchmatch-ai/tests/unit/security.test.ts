@@ -136,7 +136,7 @@ describe("email templates", () => {
 describe("RFQ submission schema", () => {
   const valid = {
     patchType: "PVC", intendedUse: "STREETWEAR", unit: "IN", width: "3", height: "2", quantity: "250", artworkIds: [], destinationCountry: "US", contactName: "Sam Rivera",
-    contactEmail: "SAM@Example.com ", consentMatching: true, consentSharing: true, consentTerms: true, consentMarketing: false, disclosureMode: "FULL_CONTACT", website2: "",
+    contactEmail: "SAM@Example.com ", consentMatching: true, consentSharing: true, consentTerms: true, consentMarketing: false, disclosureMode: "FULL_CONTACT", consentDirectContact: true, buyingStage: "COMPARING", website2: "",
   };
   it("accepts a valid submission and normalises email", () => {
     const r = rfqSubmissionSchema.safeParse(valid);

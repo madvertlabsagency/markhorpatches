@@ -59,6 +59,7 @@ export async function createRfq(input: RfqSubmission, ctx: SubmitContext) {
     if (owned.length !== input.artworkIds.length) throw new DomainError("ARTWORK", "One or more artwork files could not be attached. Please re-upload them.");
   }
 
+  if (input.disclosureMode !== "PLATFORM_MESSAGING_ONLY" && !input.consentDirectContact) throw new DomainError("CONSENT", "Direct contact sharing needs your explicit consent.");
   const guestToken = randomToken(24);
   // Launch default: exclusive (1). Up to 3 recipients only when the buyer chose it in the marketplace
   // wizard AND the limited-shared feature is enabled. Landing-page leads are always single-manufacturer.
@@ -67,8 +68,10 @@ export async function createRfq(input: RfqSubmission, ctx: SubmitContext) {
   const currency = "USD";
 
   const rfq = await prisma.$transaction(async (tx) => {
-    let publicRef = newRfqRef();
-    for (let i = 0; i < 5 && (await tx.rfq.findUnique({ where: { publicRef } })); i++) publicRef = newRfqRef();
+    // Demo requests use a clearly distinct reference series (PM-DEMO-1001…).
+    const nextRef = async (i: number) => (ctx.isDemo ? `PM-DEMO-${1001 + (await tx.rfq.count({ where: { isDemo: true } })) + i * 7 + (i ? Math.floor(Math.random() * 50) : 0)}` : newRfqRef());
+    let publicRef = await nextRef(0);
+    for (let i = 1; i < 8 && (await tx.rfq.findUnique({ where: { publicRef } })); i++) publicRef = await nextRef(i);
     const status: RfqStatus = verifiedViaAccount ? "UNDER_REVIEW" : "VERIFICATION_PENDING";
     const created = await tx.rfq.create({
       data: {
@@ -88,6 +91,9 @@ export async function createRfq(input: RfqSubmission, ctx: SubmitContext) {
         disclosureMode: input.disclosureMode,
         maxRecipients,
         leadSource: input.leadSource,
+        buyingStage: input.buyingStage,
+        artworkHelpRequested: input.artworkHelpRequested,
+        deliveryFlexibility: input.deliveryFlexibility,
         emailVerifiedAt: verifiedViaAccount ? new Date() : null,
         guestAccessHash: sha256(guestToken),
         submittedAt: new Date(),
@@ -137,6 +143,9 @@ export async function createRfq(input: RfqSubmission, ctx: SubmitContext) {
         { ...consentBase, kind: "TERMS", granted: true, textHash: sha256(CONSENT_TEXT.TERMS) },
         { ...consentBase, kind: "SUPPLIER_MATCHING", granted: true, textHash: sha256(CONSENT_TEXT.SUPPLIER_MATCHING) },
         { ...consentBase, kind: "DATA_SHARING", granted: true, textHash: sha256(share), maxRecipients, disclosureMode: input.disclosureMode },
+        ...(input.disclosureMode !== "PLATFORM_MESSAGING_ONLY"
+          ? [{ ...consentBase, kind: "DATA_SHARING" as const, granted: input.consentDirectContact, textVersion: `${CONSENT_VERSION}:direct-contact`, textHash: sha256(`direct-contact:${input.disclosureMode}:${maxRecipients}`), maxRecipients, disclosureMode: input.disclosureMode }]
+          : []),
         { ...consentBase, kind: "MARKETING", granted: input.consentMarketing, textHash: sha256(CONSENT_TEXT.MARKETING) },
       ],
     });
@@ -173,7 +182,8 @@ export async function createRfq(input: RfqSubmission, ctx: SubmitContext) {
 }
 
 /** Buyer clicked the emailed link. */
-export async function verifyRfqEmail(token: string) {
+/** `inline`: the caller runs processing itself (demo pipeline) — no background job is queued. */
+export async function verifyRfqEmail(token: string, opts: { inline?: boolean } = {}) {
   const vt = await prisma.verificationToken.findUnique({ where: { tokenHash: sha256(token) } });
   if (!vt || vt.purpose !== "RFQ_EMAIL_VERIFY") return { ok: false as const, reason: "This link is invalid." };
   const rfqId = (vt.data as { rfqId?: string } | null)?.rfqId;
@@ -186,7 +196,7 @@ export async function verifyRfqEmail(token: string) {
     await tx.verificationToken.update({ where: { id: vt.id }, data: { usedAt: new Date() } });
     await tx.rfq.update({ where: { id: rfqId }, data: { emailVerifiedAt: new Date() } });
     if (rfq.status === "VERIFICATION_PENDING") await setRfqStatus(tx, rfqId, "UNDER_REVIEW", { note: "Email verified" });
-    await enqueue("rfq.process", { rfqId }, { dedupeKey: `rfq.process:${rfqId}:verify`, tx });
+    if (!opts.inline) await enqueue("rfq.process", { rfqId }, { dedupeKey: `rfq.process:${rfqId}:verify`, tx });
     // Link to an existing account with the same verified email.
     const user = await tx.user.findUnique({ where: { email: rfq.contactEmail }, include: { memberships: { include: { org: true } } } });
     const buyerOrg = user?.emailVerifiedAt ? user.memberships.find((m) => m.org.type === "BUYER")?.org : null;
@@ -234,7 +244,14 @@ export async function processRfq(rfqId: string) {
     if (rfq.status === "CLARIFICATION_REQUIRED") await setRfqStatus(tx, rfqId, "UNDER_REVIEW", { note: "Buyer updated details" });
   });
   await enqueue("ai.enrich_rfq", { rfqId }, { dedupeKey: `ai.enrich:${rfqId}:${Date.now()}` });
+  // Unlock price tier follows the published quality rules (Standard Verified / Contact-Ready / Premium).
+  await (await import("@/lib/domain/engagement")).refreshPricingTier(rfqId);
 
+  const { intakeMode } = await (await import("@/lib/settings")).marketplaceSettings();
+  if (intakeMode === "waitlist") {
+    await prisma.rfqStatusEvent.create({ data: { rfqId, from: rfq.status, to: rfq.status, note: "Waitlisted: supplier capacity is limited; matching will resume when capacity opens" } });
+    return;
+  }
   const autoQualify = await featureEnabled("auto_qualify_tier_a");
   if (!result.needsHumanReview && autoQualify) {
     await adminQualifyRfq(null, rfqId, { tier: "A", pricingTier: result.pricingTier, note: "Auto-qualified (Tier A, low risk)", source: "SYSTEM" });
@@ -259,7 +276,7 @@ export async function featureEnabled(key: string) {
 export async function adminQualifyRfq(
   actorId: string | null,
   rfqId: string,
-  opts: { tier: "A" | "B"; pricingTier: "STANDARD" | "HIGH_INTENT" | "PREMIUM" | "ENTERPRISE"; note?: string; source?: "ADMIN" | "SYSTEM" },
+  opts: { tier: "A" | "B"; pricingTier: "STANDARD" | "HIGH_INTENT" | "PREMIUM" | "ENTERPRISE"; note?: string; source?: "ADMIN" | "SYSTEM"; inline?: boolean },
 ) {
   const rfq = await prisma.rfq.findUniqueOrThrow({ where: { id: rfqId }, include: { qualifications: { where: { isCurrent: true } } } });
   if (!rfq.emailVerifiedAt) throw new DomainError("NOT_VERIFIED", "The buyer has not verified their email yet. Unverified RFQs cannot be qualified.");
@@ -276,7 +293,7 @@ export async function adminQualifyRfq(
       },
     });
     await setRfqStatus(tx, rfqId, "QUALIFIED", { actorId, note: opts.note });
-    await enqueue("rfq.match", { rfqId }, { dedupeKey: `rfq.match:${rfqId}:${Date.now()}`, tx });
+    if (!opts.inline) await enqueue("rfq.match", { rfqId }, { dedupeKey: `rfq.match:${rfqId}:${Date.now()}`, tx });
     if (actorId) await audit(actorId, "rfq.qualify", "Rfq", rfqId, { tier: opts.tier, pricingTier: opts.pricingTier, previousTier: current?.tier }, tx);
   });
   await notifyBuyer(rfqId, "rfq_qualified", "Your request is qualified", "We're now matching your request with verified manufacturers.");

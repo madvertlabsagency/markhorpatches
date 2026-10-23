@@ -48,6 +48,7 @@ export const stepBacking = z.object({
 export const stepArtwork = z.object({
   artworkIds: z.array(z.string().uuid()).max(10, "Up to 10 files").default([]),
   artworkNotes: optionalText(2000),
+  artworkHelpRequested: z.boolean().default(false),
 });
 
 export const stepShipping = z.object({
@@ -56,6 +57,7 @@ export const stepShipping = z.object({
   destinationPostal: optionalText(16),
   requiredBy: z.preprocess((v) => (v ? v : undefined), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a valid date").optional()),
   rush: z.boolean().default(false),
+  deliveryFlexibility: z.enum(["FIXED", "ONE_WEEK", "FLEXIBLE"]).optional(),
   sampleBeforeProduction: z.boolean().default(false),
 });
 
@@ -64,6 +66,10 @@ export const stepBudget = z.object({
   budgetTotal: optionalNumber(z.number().min(0).max(10_000_000)),
   targetUnit: optionalNumber(z.number().min(0).max(100_000)),
   budgetFlexibility: z.enum(["FIRM", "SOMEWHAT_FLEXIBLE", "FLEXIBLE"]).optional(),
+});
+
+export const stepIntent = z.object({
+  buyingStage: z.enum(["READY_7_DAYS", "WITHIN_30_DAYS", "COMPARING", "RESEARCHING"], { message: "Tell us where you are in your buying process." }),
 });
 
 export const stepContact = z.object({
@@ -75,14 +81,22 @@ export const stepContact = z.object({
   preferredContact: z.enum(["EMAIL", "PHONE", "WHATSAPP", "PLATFORM"]).default("EMAIL"),
 });
 
+export const stepPrivacy = z
+  .object({
+    /** A = PLATFORM_MESSAGING_ONLY (default), B = BUYER_SELECTED, C = FULL_CONTACT. */
+    disclosureMode: z.enum(["PLATFORM_MESSAGING_ONLY", "BUYER_SELECTED", "FULL_CONTACT"]).default("PLATFORM_MESSAGING_ONLY"),
+    /** Separate, explicit consent — required only for B and C (direct contact sharing). Never implied by the terms. */
+    consentDirectContact: z.boolean().default(false),
+    /** How many manufacturers may receive the request: 1 (exclusive, default) or up to 3 (limited shared, marketplace funnel only). */
+    maxRecipients: z.preprocess((v) => (v === undefined || v === "" ? 1 : Number(v)), z.union([z.literal(1), z.literal(3)])).default(1),
+    /** "marketplace" (full wizard) or "landing:<slug>" (single-manufacturer quote page). */
+    leadSource: z.string().regex(/^(marketplace|landing:[a-z0-9-]{1,40})$/).default("marketplace"),
+  })
+  .refine((d) => d.disclosureMode === "PLATFORM_MESSAGING_ONLY" || d.consentDirectContact, { message: "Tick the box to allow direct contact sharing, or keep your details private.", path: ["consentDirectContact"] });
+
 export const stepConsent = z.object({
   consentMatching: z.literal(true, { message: "You must agree to supplier matching to submit an RFQ." }),
   consentSharing: z.literal(true, { message: "You must agree to how your RFQ information is shared." }),
-  disclosureMode: z.enum(["FULL_CONTACT", "PLATFORM_MESSAGING_ONLY"]).default("FULL_CONTACT"),
-  /** How many manufacturers may receive the request: 1 (exclusive, default) or up to 3 (limited shared, marketplace funnel only). */
-  maxRecipients: z.preprocess((v) => (v === undefined || v === "" ? 1 : Number(v)), z.union([z.literal(1), z.literal(3)])).default(1),
-  /** "marketplace" (full wizard) or "landing:<slug>" (single-manufacturer quote page). */
-  leadSource: z.string().regex(/^(marketplace|landing:[a-z0-9-]{1,40})$/).default("marketplace"),
   consentTerms: z.literal(true, { message: "Please accept the Buyer Terms." }),
   consentMarketing: z.boolean().default(false),
   /** Honeypot — must stay empty. */
@@ -97,22 +111,26 @@ export const rfqSubmissionSchema = stepPatchType
   .and(stepArtwork)
   .and(stepShipping)
   .and(stepBudget)
+  .and(stepIntent)
   .and(stepContact)
+  .and(stepPrivacy)
   .and(stepConsent);
 
 export type RfqSubmission = z.infer<typeof rfqSubmissionSchema>;
 
+/** Buyer wizard order (11 steps incl. review). Intended use is asked alongside the patch type. */
 export const WIZARD_STEPS = [
-  { key: "type", title: "Patch type", schema: stepPatchType },
-  { key: "use", title: "Intended use", schema: stepUse },
-  { key: "size", title: "Dimensions", schema: stepDimensions },
+  { key: "type", title: "Patch type", schema: stepPatchType.and(stepUse) },
   { key: "quantity", title: "Quantity", schema: stepQuantity },
-  { key: "backing", title: "Backing & construction", schema: stepBacking },
+  { key: "size", title: "Size", schema: stepDimensions },
   { key: "artwork", title: "Artwork", schema: stepArtwork },
-  { key: "shipping", title: "Timeline & shipping", schema: stepShipping },
+  { key: "backing", title: "Backing & construction", schema: stepBacking },
   { key: "budget", title: "Budget", schema: stepBudget },
+  { key: "shipping", title: "Delivery", schema: stepShipping },
+  { key: "intent", title: "Buying stage", schema: stepIntent },
   { key: "contact", title: "Contact details", schema: stepContact },
-  { key: "review", title: "Review & consent", schema: stepConsent },
+  { key: "privacy", title: "Contact privacy", schema: stepPrivacy },
+  { key: "review", title: "Review & submit", schema: stepConsent },
 ] as const;
 
 /** Consent text is versioned; the hash of the exact text is stored with every consent record. */
@@ -122,12 +140,15 @@ export const CONSENT_TEXT = {
     "I ask PatchMatch AI to review my request and match it with verified manufacturers that appear able to fulfil it. Matching is assisted by automated systems and reviewed by people.",
   DATA_SHARING_FULL:
     "Before purchase, manufacturers see only an anonymised summary (no name, email, phone, exact address or identifying artwork detail). If a verified manufacturer purchases access, PatchMatch AI may share my name, company, email, phone, website and full artwork with that manufacturer so they can quote. My details will be shared with no more than {max} manufacturer(s) for this request.",
+  DATA_SHARING_SELECTED:
+    "Before purchase, manufacturers see only an anonymised summary. Verified manufacturers who purchase access receive my specifications and artwork and can message me on PatchMatch. My name, email, phone and website are shared only with manufacturers I personally select in my dashboard. My request will be shared with no more than {max} manufacturer(s).",
   DATA_SHARING_PLATFORM:
     "Before purchase, manufacturers see only an anonymised summary. If a verified manufacturer purchases access, they receive my full specifications and artwork and can contact me through PatchMatch AI messaging only — my email and phone are not shared. My request will be shared with no more than {max} manufacturer(s).",
   TERMS: "I agree to the Buyer Terms and Privacy Policy.",
   MARKETING: "Send me occasional tips and offers from PatchMatch AI. (Optional — you can unsubscribe at any time.)",
 } as const;
 
-export function sharingText(mode: "FULL_CONTACT" | "PLATFORM_MESSAGING_ONLY", max: number) {
-  return (mode === "FULL_CONTACT" ? CONSENT_TEXT.DATA_SHARING_FULL : CONSENT_TEXT.DATA_SHARING_PLATFORM).replace("{max}", String(max));
+export function sharingText(mode: "FULL_CONTACT" | "PLATFORM_MESSAGING_ONLY" | "BUYER_SELECTED", max: number) {
+  const t = mode === "FULL_CONTACT" ? CONSENT_TEXT.DATA_SHARING_FULL : mode === "BUYER_SELECTED" ? CONSENT_TEXT.DATA_SHARING_SELECTED : CONSENT_TEXT.DATA_SHARING_PLATFORM;
+  return t.replace("{max}", String(max));
 }

@@ -7,10 +7,11 @@
 
 export type PricingTierCode = "STANDARD" | "HIGH_INTENT" | "PREMIUM" | "ENTERPRISE";
 
+/** Pilot defaults (admin-configurable via pricing rules): $10 / $12.50 / $15. */
 export const DEFAULT_TIER_PRICES: Record<Exclude<PricingTierCode, "ENTERPRISE">, number> = {
-  STANDARD: 1500,
-  HIGH_INTENT: 2000,
-  PREMIUM: 2500,
+  STANDARD: 1000,
+  HIGH_INTENT: 1250,
+  PREMIUM: 1500,
 };
 
 export interface PricingRuleLike {

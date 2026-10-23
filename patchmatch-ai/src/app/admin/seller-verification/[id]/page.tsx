@@ -7,6 +7,9 @@ import { audit } from "@/lib/audit";
 import { PageHeader, Card, CardHeader, Badge, KeyValue } from "@/components/ui/primitives";
 import { Timeline } from "@/components/ui/data";
 import { VerificationDecisionForm } from "@/components/admin/VerificationDecisionForm";
+import { VerificationBadge } from "@/components/seller/VerificationBadge";
+import { ActionButton } from "@/components/ui/client";
+import { sellerBadgeAction } from "@/app/admin/actions";
 import { countryName, patchTypeName } from "@/lib/catalog";
 import { formatDateTime } from "@/lib/utils";
 import { statusTone, statusLabel } from "@/lib/ui-status";
@@ -36,6 +39,13 @@ export default async function VerifySeller({ params }: { params: Promise<{ id: s
           <Card><CardHeader title="Declared capabilities" /><ul className="divide-y divide-line text-sm">{s.capabilities.map((c) => <li key={c.id} className="px-5 py-2">{patchTypeName(c.patchType)} · MOQ {c.moq} · {c.standardDays}d std{c.rushDays ? ` / ${c.rushDays}d rush` : ""}{c.weeklyCapacity ? ` · ${c.weeklyCapacity}/wk` : ""}</li>)}</ul></Card>
         </div>
         <div className="space-y-6">
+          <Card><CardHeader title="Verification badges" description="Shown to buyers. Grant only after the check is actually done." /><div className="space-y-4 p-5 text-sm">
+            <VerificationBadge seller={s} showMeaning />
+            <div className="flex flex-wrap gap-2">
+              <ActionButton variant="secondary" size="sm" action={sellerBadgeAction.bind(null, s.id, "identity", !s.identityVerifiedAt)}>{s.identityVerifiedAt ? "Remove Identity Verified" : "Mark identity verified"}</ActionButton>
+              <ActionButton variant="secondary" size="sm" action={sellerBadgeAction.bind(null, s.id, "capability", !s.capabilityReviewedAt)}>{s.capabilityReviewedAt ? "Remove Capability Reviewed" : "Mark capability reviewed"}</ActionButton>
+            </div>
+          </div></Card>
           <Card><CardHeader title="Decision" description="The seller is notified with your reason." /><div className="p-5"><VerificationDecisionForm sellerId={s.id} status={s.verificationStatus} /></div></Card>
           <Card><CardHeader title="History" /><div className="p-5"><Timeline items={s.verifications.map((v, i) => ({ title: `${statusLabel(v.fromStatus)} → ${statusLabel(v.toStatus)}`, time: formatDateTime(v.createdAt), body: v.reason ?? undefined, tone: i === 0 ? "active" : "done" }))} /></div></Card>
         </div>

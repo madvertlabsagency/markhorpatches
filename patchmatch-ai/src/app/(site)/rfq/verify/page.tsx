@@ -3,6 +3,8 @@ import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { verifyRfqEmail } from "@/lib/domain/rfq";
 import { ButtonLink } from "@/components/ui/Button";
+import { IntentPrompt } from "@/components/rfq/BuyerControls";
+import { signPayload } from "@/lib/crypto";
 
 export const metadata: Metadata = { title: "Confirm your request", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -18,6 +20,9 @@ export default async function VerifyRfqPage({ searchParams }: { searchParams: Pr
             <CheckCircle2 className="mx-auto h-12 w-12 text-success" />
             <h1 className="mt-4 text-2xl font-semibold">{r.already ? "Already confirmed" : "Email confirmed"}</h1>
             <p className="mt-2 text-muted">Request <span className="tabular font-semibold text-fg">{r.rfq.publicRef}</span> is now with our review team. We'll email you as it progresses.</p>
+            <div className="mt-6 text-left">
+              <IntentPrompt auth={{ token: signPayload({ rfqId: r.rfq.id, p: "buyer" }, 30 * 86_400) }} status={r.rfq.intentStatus} confirmedAt={r.rfq.intentConfirmedAt?.toISOString() ?? null} />
+            </div>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <ButtonLink href={`/register?next=${encodeURIComponent("/buyer/rfqs")}`}>Create an account</ButtonLink>
               <ButtonLink href="/login" variant="secondary">Sign in</ButtonLink>

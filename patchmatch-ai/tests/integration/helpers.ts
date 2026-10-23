@@ -37,7 +37,7 @@ export function submission(over: Partial<RfqSubmission> = {}): RfqSubmission {
     backing: "IRON_ON", colorCount: 4, specialFinishing: [], artworkIds: [], artworkNotes: "Navy and white logo, clean vector available.", destinationCountry: "US", destinationState: "CA",
     destinationPostal: "90012", requiredBy: new Date(Date.now() + 45 * 86_400_000).toISOString().slice(0, 10), rush: false, sampleBeforeProduction: false, budgetUndisclosed: false,
     budgetTotal: 1500, contactName: "Jordan Lee", contactCompany: "North Loop Apparel", contactEmail: `buyer-${uid()}@gmail.com`, contactPhone: "+1 213 555 0100",
-    preferredContact: "EMAIL", consentMatching: true, consentSharing: true, disclosureMode: "FULL_CONTACT", consentTerms: true, consentMarketing: false, website2: "",
+    preferredContact: "EMAIL", consentMatching: true, consentSharing: true, disclosureMode: "FULL_CONTACT", consentDirectContact: true, buyingStage: "WITHIN_30_DAYS", consentTerms: true, consentMarketing: false, website2: "",
     ...over,
   } as RfqSubmission;
 }

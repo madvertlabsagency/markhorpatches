@@ -17,6 +17,16 @@ export const FUNNEL_EVENTS = [
   "RFQUnlocked",
   "QuoteSubmitted",
   "BuyerSelectedSeller",
+  "BuyerIntentConfirmed",
+  "RFQQualified",
+  "RFQPublished",
+  "QuoteViewed",
+  "QuoteRevisionRequested",
+  "BuyerMessageSent",
+  "SellerMessageSent",
+  "RfqClosed",
+  "QualityClaimSubmitted",
+  "QualityCreditIssued",
 ] as const;
 export type FunnelEvent = (typeof FUNNEL_EVENTS)[number];
 

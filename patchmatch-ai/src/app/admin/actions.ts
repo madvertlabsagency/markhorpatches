@@ -15,6 +15,7 @@ import { reconcilePayment } from "@/lib/domain/unlock";
 import { postMessage } from "@/lib/domain/messages";
 import { normalizeWeights, type FactorKey } from "@/lib/matching/engine";
 import { PERMISSIONS } from "@/lib/auth/rbac";
+import { saveMarketplaceSettings } from "@/lib/settings";
 import type { ActionState } from "@/lib/action-state";
 
 const ok = (message?: string, path?: string): ActionState => {
@@ -440,6 +441,38 @@ export async function bankSettingsAction(_p: ActionState, fd: FormData): Promise
     await prisma.platformSetting.upsert({ where: { key: "bankTransfer" }, create: { key: "bankTransfer", value }, update: { value } });
     await audit(admin.id, "settings.bank", "PlatformSetting", "bankTransfer");
     return ok("Saved.", "/admin/settings");
+  } catch (e) {
+    return toActionError(e);
+  }
+}
+
+export async function marketplaceSettingsAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const admin = await assertAdmin("settings:manage");
+    const n = (k: string) => Number(str(fd, k));
+    const reminders = str(fd, "quoteReminderHours").split(",").map((x) => Number(x.trim())).filter((x) => Number.isFinite(x) && x > 0).slice(0, 2);
+    const v = await saveMarketplaceSettings({
+      sharedSellerLimit: n("sharedSellerLimit"), contactReadyMaxAgeDays: n("contactReadyMaxAgeDays"), intentExpiryDays: n("intentExpiryDays"), quoteReminderHours: reminders,
+      sellerReminderHours: n("sellerReminderHours"), claimWindowDays: n("claimWindowDays"), sellerWeeklyCapacity: n("sellerWeeklyCapacity"), intakeMode: str(fd, "intakeMode") === "waitlist" ? "waitlist" : "open",
+    });
+    await audit(admin.id, "settings.marketplace", "PlatformSetting", "marketplace", v);
+    revalidatePath("/admin/settings");
+    return { ok: true, message: "Marketplace settings saved." };
+  } catch (e) {
+    return toActionError(e);
+  }
+}
+
+/** Evidence-based manufacturer badges: set only after the corresponding review was actually done. */
+export async function sellerBadgeAction(sellerId: string, badge: "identity" | "capability", on: boolean): Promise<ActionState> {
+  try {
+    const admin = await assertAdmin("sellers:verify");
+    const seller = await prisma.sellerProfile.findUniqueOrThrow({ where: { id: sellerId } });
+    if (on && badge === "capability" && !seller.identityVerifiedAt) throw new DomainError("ORDER", "Verify identity before marking capabilities reviewed.");
+    await prisma.sellerProfile.update({ where: { id: sellerId }, data: badge === "identity" ? { identityVerifiedAt: on ? new Date() : null } : { capabilityReviewedAt: on ? new Date() : null } });
+    await audit(admin.id, `seller.badge.${badge}.${on ? "grant" : "revoke"}`, "SellerProfile", sellerId);
+    revalidatePath(`/admin/seller-verification/${sellerId}`);
+    return { ok: true, message: on ? "Badge granted." : "Badge removed." };
   } catch (e) {
     return toActionError(e);
   }

@@ -119,9 +119,9 @@ describe("matching engine — hard filters", () => {
 describe("pricing engine", () => {
   const rule = (over: Partial<PricingRuleLike>): PricingRuleLike => ({ id: "r", tier: "STANDARD", priceMinor: 1500, minMinor: 500, maxMinor: 50_000, discountBps: 0, currency: "USD", priority: 0, active: true, ...over });
   it("falls back to published tier defaults", () => {
-    expect(priceOpportunity([], "STANDARD", "PVC", "EXCLUSIVE")?.priceMinor).toBe(1500);
-    expect(priceOpportunity([], "HIGH_INTENT", "PVC", "EXCLUSIVE")?.priceMinor).toBe(2000);
-    expect(priceOpportunity([], "PREMIUM", "PVC", "EXCLUSIVE")?.priceMinor).toBe(2500);
+    expect(priceOpportunity([], "STANDARD", "PVC", "EXCLUSIVE")?.priceMinor).toBe(1000);
+    expect(priceOpportunity([], "HIGH_INTENT", "PVC", "EXCLUSIVE")?.priceMinor).toBe(1250);
+    expect(priceOpportunity([], "PREMIUM", "PVC", "EXCLUSIVE")?.priceMinor).toBe(1500);
     expect(priceOpportunity([], "ENTERPRISE", "PVC", "EXCLUSIVE")).toBeNull();
   });
   it("prefers the most specific, highest-priority active rule and applies discounts with clamping", () => {

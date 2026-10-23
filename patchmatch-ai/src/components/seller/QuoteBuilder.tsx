@@ -12,7 +12,7 @@ import { FileUploader, type UploadedFile } from "@/components/forms/FileUploader
 
 type Existing = {
   id: string; status: string; quantity: number; unitPrice: number; setupFee: number; sampleFee: number; toolingFee: number; artworkFee: number; shipping: number; productionDays: number;
-  deliveryEstimate: string; moq?: number; samplePolicy: string; paymentTerms: string; revisionPolicy: string; notes: string;
+  deliveryEstimate: string; moq?: number; samplePolicy: string; paymentTerms: string; revisionPolicy: string; includedBacking?: string; inclusions?: string; exclusions?: string; notes: string;
 };
 
 export function QuoteBuilder({ rfqId, defaultQuantity, existing }: { rfqId: string; defaultQuantity: number; existing: Existing | null }) {
@@ -72,6 +72,12 @@ export function QuoteBuilder({ rfqId, defaultQuantity, existing }: { rfqId: stri
         <Field id="paymentTerms" label="Payment terms" optional><Textarea id="paymentTerms" name="paymentTerms" rows={2} defaultValue={existing?.paymentTerms} placeholder="e.g. 50% deposit, 50% before shipping" /></Field>
         <Field id="revisionPolicy" label="Revision policy" optional><Textarea id="revisionPolicy" name="revisionPolicy" rows={2} defaultValue={existing?.revisionPolicy} /></Field>
       </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Field id="includedBacking" label="Backing included" optional><Textarea id="includedBacking" name="includedBacking" rows={2} defaultValue={existing?.includedBacking} placeholder="e.g. Iron-on" /></Field>
+        <Field id="inclusions" label="Included" optional><Textarea id="inclusions" name="inclusions" rows={2} defaultValue={existing?.inclusions} placeholder="e.g. Digital proof, merrowed border" /></Field>
+        <Field id="exclusions" label="Not included" optional><Textarea id="exclusions" name="exclusions" rows={2} defaultValue={existing?.exclusions} placeholder="e.g. Import duties" /></Field>
+      </div>
+      <p className="text-xs text-muted">Prices, timelines and shipping are your estimates. Final terms are agreed directly with the buyer.</p>
       <Field id="notes" label="Message to the buyer" optional>
         <Textarea id="notes" name="notes" rows={5} value={v.notes} onChange={(e) => setV((s) => ({ ...s, notes: e.target.value }))} maxLength={3000} />
       </Field>

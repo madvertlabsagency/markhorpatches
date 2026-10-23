@@ -59,8 +59,27 @@ export const UNIT_PRICE: Record<DemoPatchType, [number, number]> = {
 };
 
 export const DEMO_PASSWORD_DEFAULT = "PatchMatch2026!";
+/** Presenter accounts. Reserved example.com addresses — no real person or inbox. */
 export const DEMO_ACCOUNTS = {
-  admin: { email: "admin@patchmatch.demo", name: "Ayesha Malik", label: "Admin" },
-  seller: { email: "seller@patchmatch.demo", name: "Hamza Qureshi", label: "Manufacturer", company: "Markhor Stitch Works" },
-  buyer: { email: "buyer@patchmatch.demo", name: "Olivia Carter", label: "Buyer", company: "Ridgeway Athletics" },
+  admin: { email: "demo-admin@example.com", name: "Ayesha Malik", label: "Admin" },
+  seller: { email: "demo-manufacturer@example.com", name: "Hamza Qureshi", label: "Manufacturer", company: "Markhor Stitch Works" },
+  buyer: { email: "demo-buyer@example.com", name: "Olivia Carter", label: "Buyer", company: "Ridgeway Athletics" },
 } as const;
+
+/** Fictional US buyer personas (spec examples). Phones use the reserved 555-01xx range. */
+export const BUYER_PERSONAS = [
+  { company: "Ridgeway Athletics", name: "Olivia Carter", city: "Austin", state: "TX", use: "SPORTS_TEAMS", type: "EMBROIDERED" },
+  { company: "Static Bloom Streetwear", name: "Marcus Lee", city: "Los Angeles", state: "CA", use: "STREETWEAR", type: "PVC" },
+  { company: "Lone Star Rec League", name: "Daniel Ortiz", city: "Houston", state: "TX", use: "SPORTS_TEAMS", type: "CHENILLE" },
+  { company: "Sunshine Merch Co.", name: "Emily Brooks", city: "Miami", state: "FL", use: "PROMOTIONAL", type: "PRINTED" },
+  { company: "Hudson Thread Label", name: "Grace Kim", city: "New York", state: "NY", use: "CLOTHING_BRAND", type: "WOVEN" },
+  { company: "Iron Kite Riders MC", name: "Tyler Hughes", city: "Phoenix", state: "AZ", use: "CLUBS", type: "EMBROIDERED" },
+  { company: "Cedar Ridge University Events", name: "Priya Shah", city: "Raleigh", state: "NC", use: "EVENTS", type: "SUBLIMATED" },
+  { company: "Juniper Lane Apparel", name: "Hannah Ross", city: "Portland", state: "OR", use: "CLOTHING_BRAND", type: "LEATHER" },
+  { company: "Promo Peak Distributors", name: "Kevin Walsh", city: "Chicago", state: "IL", use: "PROMOTIONAL", type: "PVC" },
+  { company: "Copperline Caps", name: "Sofia Rivera", city: "Denver", state: "CO", use: "HATS", type: "EMBROIDERED" },
+  { company: "Saltwater Surf Club", name: "Noah Bennett", city: "San Diego", state: "CA", use: "CLUBS", type: "WOVEN" },
+  { company: "Brickhouse Fire Dept. Assoc.", name: "Jordan Price", city: "Columbus", state: "OH", use: "UNIFORMS", type: "EMBROIDERED" },
+] as const;
+
+export const demoPhone = (i: number) => `+1 (555) 01${String(i % 100).padStart(2, "0")}`;

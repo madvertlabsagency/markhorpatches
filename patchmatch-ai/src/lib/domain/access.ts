@@ -51,7 +51,8 @@ export async function sellerRfqView(sellerId: string, rfqId: string): Promise<{ 
   if (!access.canView) return null;
   const rfq = await prisma.rfq.findUnique({ where: { id: rfqId }, include: rfqInclude });
   if (!rfq) return null;
-  const view = projectRfqForSeller(rfq, { unlocked: access.unlocked });
+  const conversation = access.unlocked ? await prisma.conversation.findUnique({ where: { rfqId_sellerId: { rfqId, sellerId } }, select: { contactSharedAt: true } }) : null;
+  const view = projectRfqForSeller(rfq, { unlocked: access.unlocked, contactShared: !!conversation?.contactSharedAt });
   const s = storage();
   const artwork = await Promise.all(
     rfq.artwork

@@ -98,11 +98,12 @@ export async function operationalQueues() {
   return { review, clarification, manual, verification, claims, failedPayments, deadJobs, reports, invoiceRequests };
 }
 
-export async function demandByPatchType(range: Range) {
-  const rows = await prisma.rfq.groupBy({ by: ["patchType"], where: { isDemo: false, createdAt: { gte: range.from, lte: range.to }, status: { not: "DRAFT" } }, _count: true });
+/** demoOnly=true reads fictional demo data instead (demo analytics view, always labelled). */
+export async function demandByPatchType(range: Range, demoOnly = false) {
+  const rows = await prisma.rfq.groupBy({ by: ["patchType"], where: { isDemo: demoOnly, createdAt: { gte: range.from, lte: range.to }, status: { not: "DRAFT" } }, _count: true });
   return rows.map((r) => ({ patchType: r.patchType, count: r._count })).sort((a, b) => b.count - a.count);
 }
 
-export async function fastestSellers(limit = 5) {
-  return prisma.sellerProfile.findMany({ where: { isDemo: false, avgResponseMinutes: { not: null } }, orderBy: { avgResponseMinutes: "asc" }, take: limit, select: { tradingName: true, legalName: true, avgResponseMinutes: true, quotesSubmitted: true } });
+export async function fastestSellers(limit = 5, demoOnly = false) {
+  return prisma.sellerProfile.findMany({ where: { isDemo: demoOnly, avgResponseMinutes: { not: null } }, orderBy: { avgResponseMinutes: "asc" }, take: limit, select: { tradingName: true, legalName: true, avgResponseMinutes: true, quotesSubmitted: true } });
 }

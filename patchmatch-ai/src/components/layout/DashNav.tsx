@@ -5,10 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import * as RDialog from "@radix-ui/react-dialog";
 import {
-  LayoutDashboard, FileText, Radar, MessageSquareQuote, MessagesSquare, Image, Bell, Settings, Inbox, Unlock, Receipt, CreditCard, ShieldAlert, BarChart3, Wrench, Images, BadgeCheck, Users, Building2, ClipboardCheck, Gauge, Store, Tags, Wallet, RotateCcw, Scale, Megaphone, ShieldBan, ScrollText, KeyRound, SlidersHorizontal, Sparkles, Search, Menu, X, Sun, Moon, Circle, Briefcase, Factory, Calculator, FileSearch, BookOpen, Activity,
+  LayoutDashboard, FileText, Radar, MessageSquareQuote, MessagesSquare, Image, Bell, Settings, Inbox, Unlock, Receipt, CreditCard, ShieldAlert, BarChart3, Wrench, Images, BadgeCheck, Users, Building2, ClipboardCheck, Gauge, Store, Tags, Wallet, RotateCcw, Scale, Megaphone, ShieldBan, ScrollText, KeyRound, SlidersHorizontal, Sparkles, Search, Menu, X, Sun, Moon, Circle, Briefcase, Factory, Calculator, FileSearch, BookOpen, Activity, FlaskConical,
 } from "lucide-react";
 
-const Icons = { BookOpen, Activity, LayoutDashboard, FileText, Radar, MessageSquareQuote, MessagesSquare, Image, Bell, Settings, Inbox, Unlock, Receipt, CreditCard, ShieldAlert, BarChart3, Wrench, Images, BadgeCheck, Users, Building2, ClipboardCheck, Gauge, Store, Tags, Wallet, RotateCcw, Scale, Megaphone, ShieldBan, ScrollText, KeyRound, SlidersHorizontal, Sparkles, Search, Menu, X, Sun, Moon, Circle, Briefcase, Factory, Calculator, FileSearch };
+const Icons = { BookOpen, Activity, FlaskConical, LayoutDashboard, FileText, Radar, MessageSquareQuote, MessagesSquare, Image, Bell, Settings, Inbox, Unlock, Receipt, CreditCard, ShieldAlert, BarChart3, Wrench, Images, BadgeCheck, Users, Building2, ClipboardCheck, Gauge, Store, Tags, Wallet, RotateCcw, Scale, Megaphone, ShieldBan, ScrollText, KeyRound, SlidersHorizontal, Sparkles, Search, Menu, X, Sun, Moon, Circle, Briefcase, Factory, Calculator, FileSearch };
 import { Logo } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
 

@@ -16,6 +16,9 @@ import { statusTone } from "@/lib/ui-status";
 import { cardCheckoutAvailable } from "@/lib/services/payments";
 import { featureEnabled } from "@/lib/domain/rfq";
 import type { FactorScore } from "@/lib/matching/engine";
+import { marketplaceSettings } from "@/lib/settings";
+import { BuyerReadiness, QualityPolicyNote } from "@/components/seller/BuyerReadiness";
+import { ProjectTracker } from "@/components/rfq/ProjectTracker";
 
 export const metadata: Metadata = { title: "Opportunity" };
 
@@ -28,6 +31,11 @@ export default async function OpportunityPage({ params, searchParams }: { params
   if (!result) notFound();
   const { view, access } = result;
   const s = view.spec;
+  const [readiness, project, settings] = await Promise.all([
+    prisma.rfq.findUniqueOrThrow({ where: { id }, select: { emailVerifiedAt: true, phoneVerifiedAt: true, intentStatus: true, intentConfirmedAt: true, buyingStage: true, artworkHelpRequested: true, disclosureMode: true, isDemo: true, _count: { select: { artwork: true } } } }),
+    prisma.project.findUnique({ where: { rfqId: id }, include: { events: { orderBy: { createdAt: "asc" } } } }),
+    marketplaceSettings(),
+  ]);
   const [wallet, qual, quote, conversation] = await Promise.all([
     prisma.wallet.findUnique({ where: { orgId: org.id } }),
     prisma.rfqQualification.findFirst({ where: { rfqId: id, isCurrent: true }, select: { tier: true, missingFields: true, clarificationQuestions: true } }),
@@ -55,6 +63,9 @@ export default async function OpportunityPage({ params, searchParams }: { params
           </div>
         }
       />
+      <BuyerReadiness r={readiness} pricingTier={opp.pricingTier} mode={opp.distributionMode} slots={opp.maxUnlocks - opp.unlockCount} max={opp.maxUnlocks} />
+      {view.locked && <QualityPolicyNote claimWindowDays={settings.claimWindowDays} />}
+      {!view.locked && project && project.sellerId === seller.id && <ProjectTracker project={{ ...project, rfqId: id }} audience="seller" />}
       {sp.payment === "cancelled" && <Alert tone="warning" title="Payment cancelled">You were not charged and the RFQ remains locked. Your reservation will be released shortly.</Alert>}
       {sp.payment === "failed" && <Alert tone="error" title="Payment failed">Your payment did not go through. The RFQ remains locked and you were not charged.</Alert>}
 
@@ -127,7 +138,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
             <Card id="quote">
               <CardHeader title={quote && quote.status !== "DRAFT" ? `Your quotation (v${quote.version} · ${quote.status.toLowerCase().replace("_", " ")})` : "Build your quotation"} description="Itemise every fee. The buyer compares quotes side by side." />
               <div className="p-5">
-                <QuoteBuilder rfqId={id} defaultQuantity={s.quantity} existing={quote ? { id: quote.id, status: quote.status, quantity: quote.quantity, unitPrice: quote.unitPriceMinor / 100, setupFee: quote.setupFeeMinor / 100, sampleFee: quote.sampleFeeMinor / 100, toolingFee: quote.toolingFeeMinor / 100, artworkFee: quote.artworkFeeMinor / 100, shipping: quote.shippingMinor / 100, productionDays: quote.productionDays, deliveryEstimate: quote.deliveryEstimate ?? "", moq: quote.moq ?? undefined, samplePolicy: quote.samplePolicy ?? "", paymentTerms: quote.paymentTerms ?? "", revisionPolicy: quote.revisionPolicy ?? "", notes: quote.notes ?? "" } : null} />
+                <QuoteBuilder rfqId={id} defaultQuantity={s.quantity} existing={quote ? { id: quote.id, status: quote.status, quantity: quote.quantity, unitPrice: quote.unitPriceMinor / 100, setupFee: quote.setupFeeMinor / 100, sampleFee: quote.sampleFeeMinor / 100, toolingFee: quote.toolingFeeMinor / 100, artworkFee: quote.artworkFeeMinor / 100, shipping: quote.shippingMinor / 100, productionDays: quote.productionDays, deliveryEstimate: quote.deliveryEstimate ?? "", moq: quote.moq ?? undefined, samplePolicy: quote.samplePolicy ?? "", paymentTerms: quote.paymentTerms ?? "", revisionPolicy: quote.revisionPolicy ?? "", includedBacking: quote.includedBacking ?? "", inclusions: quote.inclusions ?? "", exclusions: quote.exclusions ?? "", notes: quote.notes ?? "" } : null} />
               </div>
             </Card>
           )}

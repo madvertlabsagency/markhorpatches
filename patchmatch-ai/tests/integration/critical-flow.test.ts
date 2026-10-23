@@ -50,7 +50,7 @@ describe("critical workflow: RFQ → verify → qualify → match → anonymised
 
     expect(rfq.status).toBe("SELLER_NOTIFIED");
     expect(rfq.opportunity?.status).toBe("AVAILABLE");
-    expect(rfq.opportunity?.priceMinor).toBe(2000); // HIGH_INTENT default
+    expect(rfq.opportunity?.priceMinor).toBe(1250); // Contact-Ready pilot default ($12.50)
     expect(rfq.opportunity?.maxUnlocks).toBe(1);
 
     // Non-matching seller has no access at all.
@@ -75,7 +75,7 @@ describe("critical workflow: RFQ → verify → qualify → match → anonymised
     expect(await prisma.rfqReservation.count({ where: { rfqId: rfq.id, status: "ACTIVE" } })).toBe(0);
 
     // A forged webhook (bad signature) is rejected and changes nothing.
-    const forged = await handlePaymentWebhook("sandbox", JSON.stringify({ eventId: "evt_forged", providerRef: p1.providerRef, status: "PAID", amountMinor: 2000, currency: "USD" }), new Headers({ [SANDBOX_SIGNATURE_HEADER]: "t=1,v1=deadbeef" }));
+    const forged = await handlePaymentWebhook("sandbox", JSON.stringify({ eventId: "evt_forged", providerRef: p1.providerRef, status: "PAID", amountMinor: 1250, currency: "USD" }), new Headers({ [SANDBOX_SIGNATURE_HEADER]: "t=1,v1=deadbeef" }));
     expect(forged.status).toBe(400);
 
     // Card attempt #2 → verified PAID webhook → unlocked.
@@ -139,7 +139,7 @@ describe("exclusive RFQs cannot be oversold", () => {
     const debits = await prisma.walletLedgerEntry.count({ where: { type: "UNLOCK_DEBIT", unlock: { rfqId: rfq.id } } });
     expect(debits).toBe(1);
     const balances = await prisma.wallet.findMany({ where: { orgId: { in: contenders.map((c) => c.org.id) } } });
-    expect(balances.reduce((a, w) => a + w.balanceMinor, 0)).toBe(contenders.length * 10_000 - 2000);
+    expect(balances.reduce((a, w) => a + w.balanceMinor, 0)).toBe(contenders.length * 10_000 - 1250);
   });
 
   it("credits a seller whose card payment confirms after the RFQ sold out", async () => {
@@ -202,7 +202,7 @@ describe("dispute → credit decision → ledger", () => {
     const rfq = await qualifiedPublishedRfq(admin, {}, [s.seller.id]);
     const r = await startUnlock({ sellerId: s.seller.id, orgId: s.org.id, userId: s.user.id, userEmail: s.user.email, rfqId: rfq.id, method: "CREDITS" });
     const unlockId = (r as { unlockId: string }).unlockId;
-    expect((await prisma.wallet.findUniqueOrThrow({ where: { orgId: s.org.id } })).balanceMinor).toBe(3000);
+    expect((await prisma.wallet.findUniqueOrThrow({ where: { orgId: s.org.id } })).balanceMinor).toBe(3750);
     const d = await fileDispute({ sellerId: s.seller.id, userId: s.user.id, unlockId, reason: "INVALID_CONTACT", description: "The phone number is disconnected and email bounced twice." });
     await expect(fileDispute({ sellerId: s.seller.id, userId: s.user.id, unlockId, reason: "INVALID_CONTACT", description: "Duplicate claim for the same purchase here." })).rejects.toThrow(/already open/);
     await decideDispute({ adminId: admin.id, disputeId: d.id, decision: "CREDIT", note: "Verified bounce — credit issued." });

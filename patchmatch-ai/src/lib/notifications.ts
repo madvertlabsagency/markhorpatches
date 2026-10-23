@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { enqueue } from "@/lib/jobs/queue";
-import { siteUrl } from "@/lib/env";
+import { isDemoMode, siteUrl } from "@/lib/env";
 import { emailProvider } from "@/lib/services/email/provider";
 import { renderTemplate } from "@/lib/services/email/templates";
 import type { Prisma } from "@/generated/prisma/client";
@@ -32,7 +32,14 @@ export async function notify(input: NotifyInput, tx: Tx = prisma) {
   }
 }
 
+/** Reserved/fictional addresses used by demo personas never receive real email. */
+export function isSyntheticAddress(email: string) {
+  return /@([a-z0-9-]+\.)*(example\.(com|org|net)|patchmatch\.demo)$|\.(example|test|invalid|localhost)$/i.test(email.trim());
+}
+
 export async function queueEmail(to: string, template: string, data: Record<string, string | number | null | undefined>, dedupeKey: string, tx: Tx = prisma) {
+  // Demo isolation: a demo deployment and synthetic personas never send real email.
+  if (isDemoMode() || isSyntheticAddress(to)) return;
   await enqueue("email.send", { to, template, data, dedupeKey }, { dedupeKey: `email:${dedupeKey}`, tx });
 }
 

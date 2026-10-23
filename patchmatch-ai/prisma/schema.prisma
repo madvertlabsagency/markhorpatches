@@ -127,9 +127,51 @@ enum DecisionSource {
   ADMIN
 }
 
+/// Buyer's contact-privacy choice. A = PLATFORM_MESSAGING_ONLY (default), B = BUYER_SELECTED
+/// (contact shared only with manufacturers the buyer approves in chat), C = FULL_CONTACT (up to
+/// the consented number of matched manufacturers may contact the buyer directly after unlock).
 enum DisclosureMode {
   FULL_CONTACT
   PLATFORM_MESSAGING_ONLY
+  BUYER_SELECTED
+}
+
+enum BuyingStage {
+  READY_7_DAYS
+  WITHIN_30_DAYS
+  COMPARING
+  RESEARCHING
+}
+
+/// Buyer's (re)confirmed interest in receiving quotations — separate from contact verification and RFQ quality.
+enum BuyerIntent {
+  NOT_CONFIRMED
+  READY_FOR_QUOTES
+  RESEARCHING
+  NO_LONGER_INTERESTED
+  EXPIRED
+}
+
+enum MessageKind {
+  TEXT
+  QUOTE
+  PROOF
+  PROOF_APPROVED
+  PROOF_CHANGES
+  REVISION_REQUEST
+  CLARIFICATION_REQUEST
+  CONTACT_SHARED
+  SYSTEM
+}
+
+enum ProjectStatus {
+  SELECTED
+  PROOF_APPROVED
+  SAMPLE
+  IN_PRODUCTION
+  SHIPPED
+  DELIVERED
+  CANCELLED
 }
 
 enum DistributionMode {
@@ -539,6 +581,9 @@ model SellerProfile {
   quotesSubmitted    Int                @default(0)
   /// Delivery and satisfaction rates. Production: computed from confirmed orders and buyer
   /// feedback only (null until enough data). Demo databases: fictional values.
+  /// Evidence-based badges: set only when the corresponding review was actually completed.
+  identityVerifiedAt   DateTime?
+  capabilityReviewedAt DateTime?
   onTimeDeliveryPct  Int?
   satisfactionPct    Int?
   completedOrders    Int                @default(0)
@@ -712,6 +757,15 @@ model Rfq {
   /// Funnel the request came from: "marketplace" (buyer chose how many manufacturers may quote)
   /// or "landing:<slug>" (single-manufacturer quote page; always one recipient).
   leadSource       String         @default("marketplace")
+  buyingStage      BuyingStage?
+  intentStatus     BuyerIntent    @default(NOT_CONFIRMED)
+  intentConfirmedAt DateTime?
+  /// Set only after a real phone check by an approved provider (none integrated yet).
+  phoneVerifiedAt  DateTime?
+  artworkHelpRequested Boolean    @default(false)
+  deliveryFlexibility String?
+  /// Buyer opted out of reminder emails for this request.
+  remindersOptOut  Boolean        @default(false)
   isDemo           Boolean        @default(false)
   /// Created by the demo marketplace simulator (demo databases only); pruned automatically.
   simulated        Boolean        @default(false)
@@ -734,6 +788,7 @@ model Rfq {
   attribution     MarketingAttribution?
   reviews         SellerReview[]
   statusHistory   RfqStatusEvent[]
+  project         Project?
 
   @@index([status])
   @@index([contactEmail])
@@ -990,7 +1045,12 @@ model Quote {
   samplePolicy     String?
   paymentTerms     String?
   revisionPolicy   String?
+  inclusions       String?
+  exclusions       String?
+  includedBacking  String?
   notes            String?
+  revisionNote     String?
+  revisionRequestedAt DateTime?
   validUntil       DateTime?
   version          Int         @default(1)
   shortlisted      Boolean     @default(false)
@@ -1045,6 +1105,9 @@ model Conversation {
   buyerReadAt   DateTime?
   sellerReadAt  DateTime?
   lockedAt      DateTime?
+  /// Option B: when the buyer chose to share direct contact details with this manufacturer.
+  contactSharedAt DateTime?
+  reportedAt    DateTime?
   createdAt     DateTime      @default(now())
 
   messages Message[]
@@ -1060,6 +1123,9 @@ model Message {
   senderUserId   String?      @db.Uuid
   sender         User?        @relation(fields: [senderUserId], references: [id])
   body           String
+  kind           MessageKind  @default(TEXT)
+  /// Structured payload for non-text kinds (quote id, proof attachment ids, revision note…).
+  meta           Json?
   /// True when contact details were masked because disclosure was not authorised.
   redacted       Boolean      @default(false)
   flagged        Boolean      @default(false)
@@ -1534,4 +1600,34 @@ model ActivityEvent {
   @@index([createdAt])
   @@index([isDemo, public, createdAt])
   @@index([rfqId])
+}
+
+/// Post-selection project tracking (foundation for order management). Status is reported by the
+/// manufacturer and buyer; PatchMatch does not take order payments or guarantee delivery.
+model Project {
+  id         String        @id @default(uuid()) @db.Uuid
+  rfqId      String        @unique @db.Uuid
+  rfq        Rfq           @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  quoteId    String        @db.Uuid
+  sellerId   String        @db.Uuid
+  status     ProjectStatus @default(SELECTED)
+  isDemo     Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  events ProjectEvent[]
+
+  @@index([sellerId])
+}
+
+model ProjectEvent {
+  id        String        @id @default(uuid()) @db.Uuid
+  projectId String        @db.Uuid
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status    ProjectStatus
+  note      String?
+  actorId   String?       @db.Uuid
+  createdAt DateTime      @default(now())
+
+  @@index([projectId, createdAt])
 }

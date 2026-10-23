@@ -30,13 +30,32 @@ export function redactContactInfo(text: string | null | undefined): { text: stri
   return { text: out, redacted };
 }
 
+export type DisclosureModeCode = "FULL_CONTACT" | "PLATFORM_MESSAGING_ONLY" | "BUYER_SELECTED";
+
+/**
+ * Whether direct contact details may be released to an unlocked seller, given the buyer's CURRENT choice.
+ *  A (PLATFORM_MESSAGING_ONLY): never — PatchMatch messaging only.
+ *  B (BUYER_SELECTED): only after the buyer approved this specific manufacturer (contactShared).
+ *  C (FULL_CONTACT): yes, after a verified unlock.
+ * A seller's payment never overrides this.
+ */
+export function contactReleased(mode: DisclosureModeCode, contactShared: boolean) {
+  return mode === "FULL_CONTACT" || (mode === "BUYER_SELECTED" && contactShared);
+}
+
+export const PRIVACY_LABEL: Record<DisclosureModeCode, string> = {
+  PLATFORM_MESSAGING_ONLY: "Private — PatchMatch messaging only",
+  BUYER_SELECTED: "Shared only with manufacturers the buyer selects",
+  FULL_CONTACT: "Matched manufacturers may contact the buyer directly",
+};
+
 export interface RfqForDisclosure {
   id: string;
   publicRef: string;
   patchType: string;
   intendedUse: string;
   status: string;
-  disclosureMode: "FULL_CONTACT" | "PLATFORM_MESSAGING_ONLY";
+  disclosureMode: DisclosureModeCode;
   contactName: string;
   contactCompany: string | null;
   contactEmail: string;
@@ -98,7 +117,7 @@ export interface SellerRfqView {
   disclosedFields: string[];
 }
 
-export function projectRfqForSeller(rfq: RfqForDisclosure, opts: { unlocked: boolean }): SellerRfqView {
+export function projectRfqForSeller(rfq: RfqForDisclosure, opts: { unlocked: boolean; contactShared?: boolean }): SellerRfqView {
   if (!rfq.spec) throw new Error("RFQ has no specification");
   const s = rfq.spec;
   const notes = opts.unlocked ? s.notes : redactContactInfo(s.notes).text || null;
@@ -115,17 +134,18 @@ export function projectRfqForSeller(rfq: RfqForDisclosure, opts: { unlocked: boo
   if (!opts.unlocked) {
     return { id: rfq.id, publicRef: rfq.publicRef, locked: true, patchType: rfq.patchType, intendedUse: rfq.intendedUse, createdAt: rfq.createdAt, spec, contact: null, disclosedFields: [] };
   }
-  const messagingOnly = rfq.disclosureMode === "PLATFORM_MESSAGING_ONLY";
+  const released = contactReleased(rfq.disclosureMode, !!opts.contactShared);
+  const firstName = rfq.contactName.trim().split(/\s+/)[0] ?? "Buyer";
   const contact = {
-    name: rfq.contactName,
-    company: rfq.contactCompany,
-    email: messagingOnly ? null : rfq.contactEmail,
-    phone: messagingOnly ? null : rfq.contactPhone,
-    website: messagingOnly ? null : rfq.contactWebsite,
-    preferredContact: messagingOnly ? "PLATFORM" : rfq.preferredContact,
-    messagingOnly,
+    name: released ? rfq.contactName : firstName,
+    company: released ? rfq.contactCompany : null,
+    email: released ? rfq.contactEmail : null,
+    phone: released ? rfq.contactPhone : null,
+    website: released ? rfq.contactWebsite : null,
+    preferredContact: released ? rfq.preferredContact : "PLATFORM",
+    messagingOnly: !released,
   };
-  const disclosedFields = ["name", "company", "postal_code", "artwork_original", "notes"];
-  if (!messagingOnly) disclosedFields.push("email", "phone", "website");
+  const disclosedFields = ["first_name", "postal_code", "artwork_original", "notes"];
+  if (released) disclosedFields.push("name", "company", "email", "phone", "website");
   return { id: rfq.id, publicRef: rfq.publicRef, locked: false, patchType: rfq.patchType, intendedUse: rfq.intendedUse, createdAt: rfq.createdAt, spec, contact, disclosedFields };
 }

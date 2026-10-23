@@ -8,13 +8,14 @@ import { ClaimForm } from "@/components/seller/ClaimForm";
 import { formatDate, daysAgo } from "@/lib/utils";
 import { formatMoney } from "@/lib/money";
 import { statusTone } from "@/lib/ui-status";
-import { CLAIM_WINDOW_DAYS } from "@/lib/domain/finance";
+import { marketplaceSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Quality claims" };
 
 export default async function QualityClaims({ searchParams }: { searchParams: Promise<{ unlock?: string }> }) {
   const { seller } = await requireSeller("/seller/quality-claims");
   const sp = await searchParams;
+  const { claimWindowDays: CLAIM_WINDOW_DAYS } = await marketplaceSettings();
   const since = daysAgo(CLAIM_WINDOW_DAYS);
   const [eligible, claims] = await Promise.all([
     prisma.rfqUnlock.findMany({ where: { sellerId: seller.id, status: "ACTIVE", method: { not: "COMPLIMENTARY" }, createdAt: { gte: since }, disputes: { none: { status: { in: ["OPEN", "UNDER_REVIEW"] } } } }, include: { rfq: { select: { publicRef: true } } }, orderBy: { createdAt: "desc" } }),

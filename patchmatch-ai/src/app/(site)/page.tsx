@@ -19,17 +19,17 @@ export default function HomePage() {
             <h1 className="mt-5 text-[2.6rem] leading-[1.04] font-extrabold tracking-[-0.03em] sm:text-6xl lg:text-[4.2rem]">
               Your Patch.
               <br />
-              Our Network.
+              Your Specs.
               <br />
-              <span className="text-brand-gradient">Real Manufacturers.</span>
+              <span className="text-brand-gradient">The Right Manufacturer.</span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/75">Post your patch requirements, get matched with verified manufacturers in Pakistan, the US and beyond, and receive competitive quotes — free for buyers.</p>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/75">Describe your custom patch once. We check your request, match it with manufacturers who make that patch, and let you compare itemised quotes — free for buyers, with your contact details protected until you decide to share them.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href="/get-quotes" size="lg">
-                Get Free Quotes <ArrowRight className="h-4 w-4" />
+                Get Free Patch Quotes <ArrowRight className="h-4 w-4" />
               </ButtonLink>
               <ButtonLink href="/how-it-works" variant="outlineLight" size="lg">
-                How It Works
+                How PatchMatch Works
               </ButtonLink>
             </div>
             <div className="mt-8 max-w-xl">
@@ -37,10 +37,10 @@ export default function HomePage() {
             </div>
             <ul className="mt-8 grid max-w-xl grid-cols-2 gap-3 text-sm text-white/80 sm:grid-cols-4">
               {[
-                [BadgeCheck, "Verified manufacturers"],
-                [Sparkles, "Smart matching"],
-                [Scale, "Compare quotes"],
-                [ShieldCheck, "Secure & transparent"],
+                [Sparkles, "Free for buyers"],
+                [Lock, "Contact details protected"],
+                [BadgeCheck, "Reviewed manufacturers"],
+                [Scale, "Compare quotes, no obligation"],
               ].map(([Icon, t]) => {
                 const I = Icon as typeof BadgeCheck;
                 return (
@@ -267,7 +267,7 @@ export default function HomePage() {
       <FaqSection faqs={BUYER_FAQS} />
 
       {/* 11 · Final CTA */}
-      <CtaBand title="Get free custom patch quotes." body="Tell us about your patch in a few minutes. We'll match you with verified manufacturers." primary={{ label: "Get Free Custom Patch Quotes", href: "/get-quotes" }} secondary={{ label: "How it works", href: "/how-it-works" }} />
+      <CtaBand title="Get free custom patch quotes." body="Tell us about your patch in a few minutes. You choose who can contact you — and you're never obliged to order." primary={{ label: "Get Free Patch Quotes", href: "/get-quotes" }} secondary={{ label: "Buyer protection & privacy", href: "/buyer-protection" }} />
     </>
   );
 }

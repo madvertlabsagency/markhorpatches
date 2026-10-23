@@ -5,10 +5,10 @@ import { PatchArt } from "@/components/brand/PatchArt";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
 import { patchTypeName } from "@/lib/catalog";
-import { statusTone } from "@/lib/ui-status";
+import { TIER_LABEL as QUALITY_TIER } from "@/lib/rfq/tiers";
 import type { OpportunityCardData } from "@/lib/domain/opportunities";
 
-const TIER_LABEL: Record<string, string> = { A: "Tier A · Production ready", B: "Tier B · Needs clarification" };
+const STAGE: Record<string, string> = { READY_7_DAYS: "Ordering ≤ 7 days", WITHIN_30_DAYS: "Ordering ≤ 30 days", COMPARING: "Comparing", RESEARCHING: "Researching" };
 const MODE_LABEL: Record<string, string> = { EXCLUSIVE: "Exclusive", LIMITED_SHARED: "Limited shared", PRIVATE_INVITATION: "Private invitation", ADMIN_ASSIGNMENT: "Assigned to you" };
 
 export function OpportunityCard({ o }: { o: OpportunityCardData }) {
@@ -34,7 +34,7 @@ export function OpportunityCard({ o }: { o: OpportunityCardData }) {
           </div>
           <p className="mt-0.5 font-semibold">{o.quantity.toLocaleString()} × {patchTypeName(o.patchType)}</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {o.tier && <Badge tone={statusTone("tier", o.tier)}>{TIER_LABEL[o.tier] ?? `Tier ${o.tier}`}</Badge>}
+            {o.pricingTier && <Badge tone={o.pricingTier === "PREMIUM" ? "green" : o.pricingTier === "HIGH_INTENT" ? "blue" : "neutral"}>{QUALITY_TIER[o.pricingTier as keyof typeof QUALITY_TIER] ?? o.pricingTier}</Badge>}
             <Badge tone="neutral">{MODE_LABEL[o.mode]}</Badge>
             {isNew && <Badge tone="red" dot>New</Badge>}
             {available && o.noOffersYet && <Badge tone="amber">No offers yet — be first</Badge>}
@@ -47,7 +47,13 @@ export function OpportunityCard({ o }: { o: OpportunityCardData }) {
         <div className="flex items-center gap-1.5 text-muted"><CalendarClock className="h-3.5 w-3.5" /><dd>{o.requiredBy ? `By ${formatDate(o.requiredBy)}` : "Flexible"}</dd></div>
         <div className="flex items-center gap-1.5 text-muted"><Package className="h-3.5 w-3.5" /><dd>{o.budgetMinor ? `Budget ${formatMoney(o.budgetMinor, o.currency, { compact: true })}` : `Est. order ${formatMoney(o.estValueMinor, o.currency, { compact: true })}`}</dd></div>
         {o.rush && <div className="flex items-center gap-1.5 font-semibold text-warning"><Zap className="h-3.5 w-3.5" /> Rush</div>}
-        {o.messagingOnly && <div className="flex items-center gap-1.5 text-muted"><MessagesSquare className="h-3.5 w-3.5" /> Messaging only</div>}
+        {o.messagingOnly && <div className="flex items-center gap-1.5 text-muted"><MessagesSquare className="h-3.5 w-3.5" /> Messaging first</div>}
+        <div className="col-span-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
+          <span>{o.emailVerified ? "✓ Email verified" : "Email unverified"}</span>
+          <span>{o.intentReady ? `✓ Wants quotes${o.intentConfirmedAt ? ` · ${o.intentConfirmedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}` : "Intent not confirmed"}</span>
+          {o.buyingStage && <span>{STAGE[o.buyingStage]}</span>}
+          <span>{o.hasArtwork ? "Artwork attached" : o.artworkHelp ? "Needs artwork help" : "No artwork"}</span>
+        </div>
       </dl>
       <div className="mt-auto flex items-center justify-between gap-3 border-t border-line bg-surface-2/40 px-5 py-3">
         <div>

@@ -4,7 +4,7 @@ import { isDemoMode } from "@/lib/env";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isStaff } from "@/lib/auth/rbac";
 import { recentActivity, marketplaceStats } from "@/lib/activity";
-import { maybeSimulate } from "@/lib/demo/simulator";
+import { maybeSimulate } from "@/lib/demo/engine";
 import { rateLimit, LIMITS } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request";
 

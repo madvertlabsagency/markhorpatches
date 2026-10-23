@@ -1,4 +1,5 @@
 import "server-only";
+import { marketplaceSettings } from "@/lib/settings";
 import { recordRfqEvent } from "@/lib/activity";
 import { prisma } from "@/lib/db";
 import { siteUrl } from "@/lib/env";
@@ -13,7 +14,8 @@ import { assertTransition, canTransition, PAYMENT_TRANSITIONS } from "@/lib/stat
 import { paymentProvider, providerByName } from "@/lib/services/payments";
 import type { ProviderPaymentStatus } from "@/lib/services/payments/types";
 import { sellerAccess } from "@/lib/domain/access";
-import { DomainError } from "@/lib/domain/rfq";
+import { DomainError, notifyBuyer } from "@/lib/domain/rfq";
+import { enqueue } from "@/lib/jobs/queue";
 import type { PaymentStatus, Prisma } from "@/generated/prisma/client";
 
 type Tx = Prisma.TransactionClient;
@@ -51,6 +53,9 @@ async function assertSpendingLimits(tx: Tx, sellerId: string, priceMinor: number
   if (todays.length + pending.length >= seller.dailyRfqLimit) throw new DomainError("LIMIT", `You've reached your daily limit of ${seller.dailyRfqLimit} RFQ unlocks. Change it in Settings.`);
   const spent = [...todays, ...pending].reduce((a, u) => a + u.priceMinor, 0);
   if (spent + priceMinor > seller.maxDailySpendMinor) throw new DomainError("LIMIT", `This purchase would exceed your daily spending cap of ${formatMoney(seller.maxDailySpendMinor)}.`);
+  const { sellerWeeklyCapacity } = await marketplaceSettings(tx);
+  const week = await tx.rfqUnlock.count({ where: { sellerId, createdAt: { gte: new Date(Date.now() - 7 * 86_400_000) }, status: "ACTIVE" } });
+  if (week >= sellerWeeklyCapacity) throw new DomainError("CAPACITY", `You've reached the weekly capacity of ${sellerWeeklyCapacity} requests. This keeps requests flowing to manufacturers who can respond quickly.`);
 }
 
 /** Grants access atomically. Caller must hold the opportunity lock. */
@@ -100,6 +105,10 @@ async function afterUnlock(unlockId: string) {
   });
   await trackEvent("RFQUnlocked", { rfqId: unlock.rfqId, orgId: unlock.seller.orgId, props: { method: unlock.method, priceMinor: unlock.priceMinor }, isDemo: unlock.isDemo });
   await recordRfqEvent("RFQ_UNLOCKED", unlock.rfqId, unlock.sellerId);
+  // Buyer: a manufacturer is reviewing the project (identity shown; buyer contact stays per consent).
+  await notifyBuyer(unlock.rfqId, `rfq_unlocked:${unlock.sellerId}`, "A manufacturer is reviewing your project", `${unlock.seller.tradingName ?? unlock.seller.legalName} unlocked your request and can now send a quotation and message you on PatchMatch.`);
+  // Seller follow-up if no quote within 24 hours.
+  await enqueue("seller.quote_reminder", { rfqId: unlock.rfqId, sellerId: unlock.sellerId }, { dedupeKey: `seller-reminder:${unlock.id}`, runAt: new Date(Date.now() + 24 * 3_600_000) });
 }
 
 export type StartUnlockResult =

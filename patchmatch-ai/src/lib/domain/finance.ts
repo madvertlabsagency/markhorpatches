@@ -1,3 +1,4 @@
+import { marketplaceSettings } from "@/lib/settings";
 import "server-only";
 import { prisma } from "@/lib/db";
 import { siteUrl } from "@/lib/env";
@@ -18,7 +19,8 @@ export async function fileDispute(args: { sellerId: string; userId: string; unlo
   if (unlock.sellerId !== args.sellerId) throw new DomainError("FORBIDDEN", "Not your purchase.");
   if (unlock.status !== "ACTIVE") throw new DomainError("INVALID", "This purchase was already refunded or credited.");
   if (unlock.method === "COMPLIMENTARY") throw new DomainError("INVALID", "Complimentary unlocks are not eligible for credit.");
-  if (Date.now() - unlock.createdAt.getTime() > CLAIM_WINDOW_DAYS * 86_400_000) throw new DomainError("WINDOW", `Claims must be filed within ${CLAIM_WINDOW_DAYS} days of purchase.`);
+  const { claimWindowDays } = await marketplaceSettings();
+  if (Date.now() - unlock.createdAt.getTime() > claimWindowDays * 86_400_000) throw new DomainError("WINDOW", `Claims must be filed within ${claimWindowDays} days of purchase.`);
   if (unlock.disputes.some((d) => d.status === "OPEN" || d.status === "UNDER_REVIEW")) throw new DomainError("DUPLICATE", "A claim is already open for this purchase.");
   if (args.description.trim().length < 20) throw new DomainError("INVALID", "Please describe the problem (at least 20 characters).");
   const dispute = await prisma.$transaction(async (tx) => {

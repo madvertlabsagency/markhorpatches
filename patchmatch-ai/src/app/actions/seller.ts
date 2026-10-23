@@ -173,7 +173,7 @@ export async function trackPreviewAction(rfqId: string) {
 export async function saveQuoteAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
   try {
     const { user, seller } = await assertSeller("quote:write");
-    const input = quoteInputSchema.parse(Object.fromEntries(["quantity", "unitPrice", "setupFee", "sampleFee", "toolingFee", "artworkFee", "shipping", "productionDays", "deliveryEstimate", "moq", "samplePolicy", "paymentTerms", "revisionPolicy", "notes", "validDays"].map((k) => [k, str(fd, k) || undefined])));
+    const input = quoteInputSchema.parse(Object.fromEntries(["quantity", "unitPrice", "setupFee", "sampleFee", "toolingFee", "artworkFee", "shipping", "productionDays", "deliveryEstimate", "moq", "samplePolicy", "paymentTerms", "revisionPolicy", "includedBacking", "inclusions", "exclusions", "notes", "validDays"].map((k) => [k, str(fd, k) || undefined])));
     const submit = str(fd, "intent") === "submit";
     const q = await saveQuote({ sellerId: seller.id, userId: user.id, rfqId: str(fd, "rfqId"), input: { ...input, currency: "USD" }, submit, revisionNote: str(fd, "revisionNote") || undefined });
     const attachIds = all(fd, "attachmentIds");
@@ -227,7 +227,10 @@ export async function sellerSendMessageAction(_prev: ActionState, fd: FormData):
     const { user, seller } = await assertSeller();
     const conv = await prisma.conversation.findUnique({ where: { id: str(fd, "conversationId") } });
     if (!conv || conv.sellerId !== seller.id) throw new DomainError("NOT_FOUND", "Conversation not found.");
-    const r = await postMessage({ rfqId: conv.rfqId, sellerId: seller.id, side: "SELLER", userId: user.id, body: str(fd, "body"), attachmentIds: all(fd, "attachmentIds") });
+    const kind = z.enum(["TEXT", "PROOF", "CLARIFICATION_REQUEST"]).catch("TEXT").parse(str(fd, "kind") || "TEXT");
+    const attachmentIds = all(fd, "attachmentIds");
+    if (kind === "PROOF" && !attachmentIds.length) throw new DomainError("INVALID", "Attach the proof image or PDF.");
+    const r = await postMessage({ rfqId: conv.rfqId, sellerId: seller.id, side: "SELLER", userId: user.id, body: str(fd, "body") || (kind === "PROOF" ? "Here is your artwork proof for review." : ""), attachmentIds, kind });
     revalidatePath("/seller/messages");
     return { ok: true, message: r.redacted ? "Sent. Contact details were hidden — this buyer chose platform messaging only." : undefined };
   } catch (e) {

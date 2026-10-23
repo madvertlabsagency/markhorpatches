@@ -2,12 +2,19 @@ import { DashboardShell } from "@/components/layout/DashboardShell";
 import type { NavGroup } from "@/components/layout/DashNav";
 import { requireAdmin } from "@/lib/auth/session";
 import { operationalQueues } from "@/lib/admin/metrics";
+import { isDemoMode } from "@/lib/env";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAdmin("admin:view");
   const q = await operationalQueues();
   const nav: NavGroup[] = [
-    { items: [{ label: "Command center", href: "/admin", icon: "Gauge", exact: true }, { label: "AI assistant", href: "/admin/assistant", icon: "Sparkles" }] },
+    {
+      items: [
+        { label: "Command center", href: "/admin", icon: "Gauge", exact: true },
+        ...(isDemoMode() ? [{ label: "Demo control center", href: "/admin/demo", icon: "FlaskConical" as const }] : []),
+        { label: "AI assistant", href: "/admin/assistant", icon: "Sparkles" },
+      ],
+    },
     {
       title: "Marketplace",
       items: [

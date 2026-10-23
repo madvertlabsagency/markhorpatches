@@ -1,6 +1,7 @@
 export const MAIN_NAV = [
   { label: "How it works", href: "/how-it-works" },
   { label: "Patch types", href: "/patch-types" },
+  { label: "Buyer protection", href: "/buyer-protection" },
   { label: "Manufacturers", href: "/manufacturers" },
   { label: "Sell on PatchMatch", href: "/become-a-seller" },
   { label: "Live", href: "/live" },
@@ -12,6 +13,9 @@ export const FOOTER_NAV = [
     links: [
       { label: "Get free quotes", href: "/get-quotes" },
       { label: "How it works", href: "/how-it-works" },
+      { label: "Buyer protection & privacy", href: "/buyer-protection" },
+      { label: "Compare quotes", href: "/compare-quotes" },
+      { label: "FAQ", href: "/faq" },
       { label: "Bulk custom patches", href: "/bulk-custom-patches" },
       { label: "Rush custom patches", href: "/rush-custom-patches" },
       { label: "Track a request", href: "/rfq/track" },

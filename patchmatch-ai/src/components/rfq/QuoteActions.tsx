@@ -40,6 +40,11 @@ export function QuoteActions({ rfqId, quoteId, status, shortlisted, selectable, 
           Ask a question
         </button>
       )}
+      {open && status !== "CLARIFICATION_REQUESTED" && (
+        <button type="button" disabled={pending} onClick={() => run("REVISION", undefined, "What should the manufacturer change? (price, quantity, timeline, backing…)")} className="text-electric hover:underline disabled:opacity-50">
+          Request revision
+        </button>
+      )}
       {open && selectable && (
         <button type="button" disabled={pending} onClick={() => run("SELECT", "Select this manufacturer as your preferred supplier? They will be notified. You still agree the order directly with them.")} className="text-success hover:underline disabled:opacity-50">
           Select

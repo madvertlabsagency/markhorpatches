@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const PAGES = ["/", "/how-it-works", "/get-quotes", "/patch-types", "/patch-types/embroidered", "/custom-patches/hats", "/become-a-seller", "/seller-pricing", "/verification", "/manufacturers", "/rfq-quality-policy", "/data-sharing-policy", "/blog", "/help"];
+const PAGES = ["/", "/how-it-works", "/get-quotes", "/patch-types", "/patch-types/embroidered", "/custom-patches/hats", "/become-a-seller", "/seller-pricing", "/verification", "/manufacturers", "/rfq-quality-policy", "/data-sharing-policy", "/blog", "/help", "/buyer-protection", "/compare-quotes", "/faq"];
 
 test("public pages render without client errors", async ({ page }) => {
   const errors: string[] = [];

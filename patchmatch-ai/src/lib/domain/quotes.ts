@@ -1,3 +1,4 @@
+import { scheduleQuoteReminders } from "@/lib/domain/engagement";
 import "server-only";
 import { recordRfqEvent } from "@/lib/activity";
 import { z } from "zod";
@@ -31,6 +32,9 @@ export const quoteInputSchema = z.object({
   samplePolicy: z.string().trim().max(500).optional(),
   paymentTerms: z.string().trim().max(500).optional(),
   revisionPolicy: z.string().trim().max(500).optional(),
+  includedBacking: z.string().trim().max(120).optional(),
+  inclusions: z.string().trim().max(1000).optional(),
+  exclusions: z.string().trim().max(1000).optional(),
   notes: z.string().trim().max(3000).optional(),
   validDays: z.preprocess((v) => (v === "" || v == null ? 30 : Number(v)), z.number().int().min(1).max(180)),
 });
@@ -52,7 +56,7 @@ export async function saveQuote(args: { sellerId: string; userId: string; rfqId:
   const data = {
     quantity: i.quantity, unitPriceMinor: t.unitMinor, setupFeeMinor: toMinor(i.setupFee), sampleFeeMinor: toMinor(i.sampleFee), toolingFeeMinor: toMinor(i.toolingFee),
     artworkFeeMinor: toMinor(i.artworkFee), shippingMinor: toMinor(i.shipping), totalMinor: t.totalMinor, currency: i.currency, productionDays: i.productionDays,
-    deliveryEstimate: i.deliveryEstimate, moq: i.moq, samplePolicy: i.samplePolicy, paymentTerms: i.paymentTerms, revisionPolicy: i.revisionPolicy, notes: i.notes,
+    deliveryEstimate: i.deliveryEstimate, moq: i.moq, samplePolicy: i.samplePolicy, paymentTerms: i.paymentTerms, revisionPolicy: i.revisionPolicy, includedBacking: i.includedBacking, inclusions: i.inclusions, exclusions: i.exclusions, notes: i.notes,
     validUntil: new Date(Date.now() + i.validDays * 86_400_000), isDemo: rfq.isDemo,
   };
 
@@ -93,7 +97,10 @@ export async function saveQuote(args: { sellerId: string; userId: string; rfqId:
       await queueEmail(rfq.contactEmail, "quote_received", { ...data, url: siteUrl(`/rfq/track/${rfq.publicRef}`) }, `quote:${quote.id}:v${quote.version}:guest`);
     }
     await trackEvent("QuoteSubmitted", { rfqId: rfq.id, orgId: seller.orgId, props: { totalMinor: quote.totalMinor, version: quote.version }, isDemo: rfq.isDemo });
-    if (quote.version === 1) await recordRfqEvent("QUOTE_SENT", rfq.id, seller.id, { valueMinor: quote.totalMinor });
+    if (quote.version === 1) {
+      await recordRfqEvent("QUOTE_SENT", rfq.id, seller.id, { valueMinor: quote.totalMinor });
+      await scheduleQuoteReminders(quote.id, rfq.id);
+    }
     await refreshSellerResponseTime(args.sellerId);
   }
   return quote;
@@ -108,12 +115,15 @@ export async function withdrawQuote(sellerId: string, userId: string, quoteId: s
 }
 
 /** Buyer-side quote actions (caller must have verified RFQ ownership). */
-export async function buyerQuoteAction(args: { rfqId: string; quoteId: string; userId: string; action: "VIEW" | "SHORTLIST" | "UNSHORTLIST" | "REJECT" | "CLARIFY" | "SELECT"; message?: string }) {
+export async function buyerQuoteAction(args: { rfqId: string; quoteId: string; userId: string; action: "VIEW" | "SHORTLIST" | "UNSHORTLIST" | "REJECT" | "CLARIFY" | "REVISION" | "SELECT"; message?: string }) {
   const q = await prisma.quote.findUniqueOrThrow({ where: { id: args.quoteId }, include: { seller: true, rfq: true } });
   if (q.rfqId !== args.rfqId || q.status === "DRAFT") throw new DomainError("NOT_FOUND", "Quote not found.");
   switch (args.action) {
     case "VIEW":
-      if (q.status === "SUBMITTED" || q.status === "REVISED") await prisma.quote.update({ where: { id: q.id }, data: { status: "VIEWED", viewedAt: new Date() } });
+      if (q.status === "SUBMITTED" || q.status === "REVISED") {
+        await prisma.quote.update({ where: { id: q.id }, data: { status: "VIEWED", viewedAt: new Date() } });
+        await trackEvent("QuoteViewed", { rfqId: q.rfqId, isDemo: q.isDemo });
+      }
       return;
     case "SHORTLIST":
     case "UNSHORTLIST":
@@ -127,7 +137,17 @@ export async function buyerQuoteAction(args: { rfqId: string; quoteId: string; u
       assertTransition("quote", QUOTE_TRANSITIONS, q.status, "CLARIFICATION_REQUESTED");
       await prisma.quote.update({ where: { id: q.id }, data: { status: "CLARIFICATION_REQUESTED" } });
       const { postMessage } = await import("@/lib/domain/messages");
-      await postMessage({ rfqId: q.rfqId, sellerId: q.sellerId, side: "BUYER", userId: args.userId, body: `Clarification requested on your quote: ${args.message ?? ""}`.trim() });
+      await postMessage({ rfqId: q.rfqId, sellerId: q.sellerId, side: "BUYER", userId: args.userId, kind: "CLARIFICATION_REQUEST", meta: { quoteId: q.id }, body: `Question about your quote: ${args.message ?? ""}`.trim() });
+      return;
+    }
+    case "REVISION": {
+      const note = (args.message ?? "").trim();
+      if (note.length < 3) throw new DomainError("INVALID", "Tell the manufacturer what to change.");
+      assertTransition("quote", QUOTE_TRANSITIONS, q.status, "CLARIFICATION_REQUESTED");
+      await prisma.quote.update({ where: { id: q.id }, data: { status: "CLARIFICATION_REQUESTED", revisionNote: note.slice(0, 1000), revisionRequestedAt: new Date() } });
+      const { postMessage } = await import("@/lib/domain/messages");
+      await postMessage({ rfqId: q.rfqId, sellerId: q.sellerId, side: "BUYER", userId: args.userId, kind: "REVISION_REQUEST", meta: { quoteId: q.id }, body: `Revision requested: ${note}` });
+      await trackEvent("QuoteRevisionRequested", { rfqId: q.rfqId, isDemo: q.isDemo });
       return;
     }
     case "SELECT": {
@@ -135,6 +155,11 @@ export async function buyerQuoteAction(args: { rfqId: string; quoteId: string; u
       await prisma.$transaction(async (tx) => {
         await tx.quote.update({ where: { id: q.id }, data: { status: "ACCEPTED", decidedAt: new Date() } });
         await tx.rfq.update({ where: { id: q.rfqId }, data: { selectedQuoteId: q.id } });
+        // Project tracking starts at selection (status reported by both sides; no payment handled by PatchMatch).
+        const project = await tx.project.upsert({ where: { rfqId: q.rfqId }, create: { rfqId: q.rfqId, quoteId: q.id, sellerId: q.sellerId, isDemo: q.isDemo }, update: { quoteId: q.id, sellerId: q.sellerId, status: "SELECTED" } });
+        await tx.projectEvent.create({ data: { projectId: project.id, status: "SELECTED", note: `Buyer selected ${q.seller.tradingName ?? q.seller.legalName}`, actorId: args.userId } });
+        // Other quotes are declined automatically so manufacturers aren't left waiting.
+        await tx.quote.updateMany({ where: { rfqId: q.rfqId, id: { not: q.id }, status: { in: ["SUBMITTED", "VIEWED", "REVISED", "CLARIFICATION_REQUESTED"] } }, data: { status: "REJECTED", decidedAt: new Date() } });
         await setRfqStatus(tx, q.rfqId, "SELLER_SELECTED", { actorId: args.userId, note: `Selected ${q.seller.tradingName ?? q.seller.legalName}` });
         await audit(args.userId, "quote.select", "Quote", q.id, { rfqId: q.rfqId }, tx);
       });

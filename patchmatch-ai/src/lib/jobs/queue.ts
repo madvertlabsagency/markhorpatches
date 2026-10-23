@@ -16,7 +16,9 @@ export type JobType =
   | "rfq.notify_sellers"
   | "reservations.expire"
   | "seller.metrics"
-  | "ai.enrich_rfq";
+  | "ai.enrich_rfq"
+  | "buyer.quote_reminder"
+  | "seller.quote_reminder";
 
 type Tx = Prisma.TransactionClient | typeof prisma;
 

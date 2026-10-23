@@ -162,7 +162,7 @@ export async function transitionVerification(sellerId: string, to: VerificationS
   assertTransition("verification", VERIFICATION_TRANSITIONS, seller.verificationStatus, to);
   if ((to === "REJECTED" || to === "INFO_REQUIRED" || to === "SUSPENDED") && !opts.reason?.trim()) throw new DomainError("INVALID", "A reason is required.");
   await prisma.$transaction(async (tx) => {
-    await tx.sellerProfile.update({ where: { id: sellerId }, data: { verificationStatus: to, verifiedAt: to === "VERIFIED" ? new Date() : seller.verifiedAt } });
+    await tx.sellerProfile.update({ where: { id: sellerId }, data: { verificationStatus: to, verifiedAt: to === "VERIFIED" ? new Date() : seller.verifiedAt, ...(to === "VERIFIED" && opts.isAdmin && !seller.identityVerifiedAt ? { identityVerifiedAt: new Date() } : {}) } });
     await tx.sellerVerification.create({ data: { sellerId, fromStatus: seller.verificationStatus, toStatus: to, reason: opts.reason, requestedInfo: opts.requestedInfo, reviewerId: opts.isAdmin ? opts.actorId : null } });
     if (to === "SUSPENDED" || to === "REJECTED") await tx.rfqReservation.updateMany({ where: { sellerId, status: "ACTIVE" }, data: { status: "RELEASED", releasedReason: `Seller ${to.toLowerCase()}` } });
     if (opts.isAdmin) await audit(opts.actorId, `seller.verification.${to.toLowerCase()}`, "SellerProfile", sellerId, { from: seller.verificationStatus, to, reason: opts.reason }, tx);

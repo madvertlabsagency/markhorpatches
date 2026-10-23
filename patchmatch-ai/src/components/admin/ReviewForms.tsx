@@ -14,7 +14,7 @@ export function ReviewForms({ rfqId, suggestedTier, suggestedPricing, questions 
           <input type="hidden" name="rfqId" value={rfqId} />
           <div className="grid grid-cols-2 gap-3">
             <Field id="tier" label="Tier"><Select id="tier" name="tier" defaultValue={suggestedTier}><option value="A">A — Production ready</option><option value="B">B — Needs clarification</option></Select></Field>
-            <Field id="pricingTier" label="Pricing tier"><Select id="pricingTier" name="pricingTier" defaultValue={suggestedPricing}><option value="STANDARD">Standard</option><option value="HIGH_INTENT">High intent</option><option value="PREMIUM">Premium</option><option value="ENTERPRISE">Enterprise (manual price)</option></Select></Field>
+            <Field id="pricingTier" label="Pricing tier"><Select id="pricingTier" name="pricingTier" defaultValue={suggestedPricing}><option value="STANDARD">Standard Verified</option><option value="HIGH_INTENT">Contact-Ready</option><option value="PREMIUM">Premium Production-Ready</option><option value="ENTERPRISE">Enterprise (manual price)</option></Select></Field>
           </div>
           <Field id="note" label="Note" optional><Input id="note" name="note" maxLength={300} /></Field>
         </ActionForm>

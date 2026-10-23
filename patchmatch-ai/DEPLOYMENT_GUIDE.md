@@ -19,9 +19,10 @@ The demo deployment shows the fictional marketplace with live simulated activity
 4. Redeploy. The build performs these steps in order:
    1. Applies the migrations.
    2. Runs the production-safe seed.
-   3. Seeds the demo, because `DEMO_MODE=true`. This takes about a minute the first time: 200 manufacturers, 40 buyers and 160 requests, with brand-kit artwork in Blob.
+   3. Seeds the demo, because `DEMO_MODE=true`. This takes under a minute: 20 fictional manufacturers, 12 buyer personas and ~40 PM-DEMO requests, with brand-kit artwork in Blob. An older demo dataset is replaced automatically.
    4. Builds the app.
-5. Open `/demo` and choose **Admin**, **Manufacturer** or **Buyer**. Each account's password is shown on that page. While anyone has the site open, the live simulator adds new requests, applications, claims and offers every few seconds. It runs only on demo databases and prunes simulated rows after 6 hours.
+5. Open `/demo` (or go straight to `/demo/admin`, `/demo/manufacturer`, `/demo/buyer`). As admin, the **Demo control center** (`/admin/demo`) starts/pauses the simulation, sets rates, runs scenarios A–F and resets the demo. Optional: have any external scheduler call `GET /api/cron/demo` every minute with `Authorization: Bearer $CRON_SECRET` to keep activity flowing with no browser open (Hobby crons only run daily).
+   Each account's password is shown on that page. While anyone has the site open, the live simulator adds new requests, applications, claims and offers every few seconds. It runs only on demo databases and prunes simulated rows after 6 hours.
 
 **For the real launch**, use a new Neon database, remove `DEMO_MODE`, `ALLOW_SANDBOX_PAYMENTS` and `ADMIN_MFA_REQUIRED`, set `PAYMENTS_PROVIDER=manual`, and redeploy. Demo data never appears in production reporting (`isDemo`).
 

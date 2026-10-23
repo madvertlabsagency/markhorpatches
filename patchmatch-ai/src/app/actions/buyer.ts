@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { assertBuyer, getCurrentUser } from "@/lib/auth/session";
 import { buyerCancelRfq, buyerUpdateRfq, DomainError } from "@/lib/domain/rfq";
 import { buyerQuoteAction } from "@/lib/domain/quotes";
+import { updateProjectStatus } from "@/lib/domain/projects";
 import { postMessage, markConversationRead } from "@/lib/domain/messages";
 import { guard, str, toActionError } from "@/lib/actions";
 import { audit } from "@/lib/audit";
@@ -21,12 +22,12 @@ async function ownRfq(rfqId: string) {
   return { user, rfq };
 }
 
-export async function quoteAction(rfqId: string, quoteId: string, action: "VIEW" | "SHORTLIST" | "UNSHORTLIST" | "REJECT" | "SELECT" | "CLARIFY", message?: string): Promise<ActionState> {
+export async function quoteAction(rfqId: string, quoteId: string, action: "VIEW" | "SHORTLIST" | "UNSHORTLIST" | "REJECT" | "SELECT" | "CLARIFY" | "REVISION", message?: string): Promise<ActionState> {
   try {
     const { user } = await ownRfq(rfqId);
     await buyerQuoteAction({ rfqId, quoteId, userId: user.id, action, message });
     revalidatePath(`/buyer/rfqs/${rfqId}`);
-    return { ok: true, message: action === "SELECT" ? "Manufacturer selected — they've been notified." : "Updated." };
+    return { ok: true, message: action === "SELECT" ? "Manufacturer selected — they've been notified." : action === "REVISION" ? "Revision requested — the manufacturer has been notified." : "Updated." };
   } catch (e) {
     return toActionError(e);
   }
@@ -94,7 +95,12 @@ export async function buyerSendMessageAction(_prev: ActionState, fd: FormData): 
     const conv = await prisma.conversation.findUnique({ where: { id: str(fd, "conversationId") } });
     if (!conv) throw new DomainError("NOT_FOUND", "Conversation not found.");
     const { user } = await ownRfq(conv.rfqId);
-    const r = await postMessage({ rfqId: conv.rfqId, sellerId: conv.sellerId, side: "BUYER", userId: user.id, body: str(fd, "body"), attachmentIds: fd.getAll("attachmentIds").map(String).filter(Boolean) });
+    const kind = z.enum(["TEXT", "CLARIFICATION_REQUEST", "PROOF_APPROVED", "PROOF_CHANGES", "REVISION_REQUEST"]).catch("TEXT").parse(str(fd, "kind") || "TEXT");
+    const r = await postMessage({ rfqId: conv.rfqId, sellerId: conv.sellerId, side: "BUYER", userId: user.id, body: str(fd, "body"), attachmentIds: fd.getAll("attachmentIds").map(String).filter(Boolean), kind });
+    if (kind === "PROOF_APPROVED") {
+      const project = await prisma.project.findUnique({ where: { rfqId: conv.rfqId } });
+      if (project?.status === "SELECTED" && project.sellerId === conv.sellerId) await updateProjectStatus({ rfqId: conv.rfqId, status: "PROOF_APPROVED", actorId: user.id, side: "BUYER", note: "Proof approved in chat" });
+    }
     revalidatePath("/buyer/messages");
     return { ok: true, message: r.redacted ? "Sent. Contact details were hidden because you chose platform messaging only." : undefined };
   } catch (e) {

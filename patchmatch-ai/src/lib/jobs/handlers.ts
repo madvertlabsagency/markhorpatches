@@ -10,6 +10,7 @@ import { rfqEnrichTask, type ArtworkStats } from "@/lib/ai/tasks";
 import { redactContactInfo } from "@/lib/rfq/disclosure";
 import { storage } from "@/lib/services/storage";
 import { artworkStats } from "@/lib/services/storage/previews";
+import { buyerQuoteReminder, sellerQuoteReminder } from "@/lib/domain/engagement";
 import type { JobHandler } from "./queue";
 
 async function enrichRfq(rfqId: string) {
@@ -54,6 +55,8 @@ export const JOB_HANDLERS: Record<string, JobHandler> = {
     await runMatching(String(p.rfqId));
   },
   "ai.enrich_rfq": async (p) => enrichRfq(String(p.rfqId)),
+  "buyer.quote_reminder": async (p) => void (await buyerQuoteReminder(String(p.quoteId), Number(p.n ?? 1))),
+  "seller.quote_reminder": async (p) => void (await sellerQuoteReminder(String(p.rfqId), String(p.sellerId))),
   "reservations.expire": async () => {
     await expireReservations();
   },
