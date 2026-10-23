@@ -1,0 +1,6 @@
+cache/
+out/seg/
+out/final/
+out/audio/
+__pycache__/
+scripts/__pycache__/
