@@ -1,0 +1,287 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#06152F;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+// Niksol Energy motion-graphics plates (three.js). Each scene is a pure function of time:
+// window.renderAt(t) poses everything for time t (seconds) and renders one frame.
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W = 1080, H = 1920;
+const SCENE = new URLSearchParams(location.search).get('scene') || 'panels';
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 400);
+const ease = p => p < 0 ? 0 : p > 1 ? 1 : p * p * (3 - 2 * p);
+const easeOut = p => { p = Math.min(1, Math.max(0, p)); return 1 - Math.pow(1 - p, 3); };
+const prog = (t, t0, d) => Math.min(1, Math.max(0, (t - t0) / d));
+
+// ---------- sky (dawn gradient, brand navy -> electric blue -> warm horizon) + environment reflections
+function skyMaterial(sunDir) {
+  return new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false,
+    uniforms: { sun: { value: sunDir } },
+    vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader: `varying vec3 vP; uniform vec3 sun;
+      void main(){ float h = clamp(vP.y,-0.2,1.0);
+        vec3 zen = vec3(0.012,0.04,0.11); vec3 mid = vec3(0.02,0.16,0.42); vec3 hor = vec3(0.95,0.48,0.16);
+        float sd = max(dot(normalize(vP), normalize(sun)),0.0);
+        vec3 c = mix(mid, zen, smoothstep(0.05,0.6,h));
+        c = mix(c, hor, pow(1.0-smoothstep(-0.05,0.25,h),2.0)*(0.35+0.65*pow(sd,3.0)));
+        c += vec3(1.0,0.75,0.45)*pow(sd,180.0)*3.0 + vec3(1.0,0.6,0.3)*pow(sd,12.0)*0.25;
+        gl_FragColor = vec4(c,1.0);}`
+  });
+}
+const sunDir = new THREE.Vector3(-0.55, 0.12, -1).normalize();
+const sky = new THREE.Mesh(new THREE.SphereGeometry(300, 48, 24), skyMaterial(sunDir));
+scene.add(sky);
+{
+  const pm = new THREE.PMREMGenerator(renderer);
+  const envScene = new THREE.Scene();
+  envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), skyMaterial(sunDir)));
+  scene.environment = pm.fromScene(envScene, 0.02).texture;
+}
+scene.fog = new THREE.Fog(0x071a3a, 30, 140);
+
+const hemi = new THREE.HemisphereLight(0x6fa8ff, 0x0a1428, 0.7);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffc58a, 2.6);
+sun.position.copy(sunDir.clone().multiplyScalar(60));
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 160 });
+scene.add(sun);
+const rim = new THREE.DirectionalLight(0x3fa9ff, 0.8);
+rim.position.set(20, 15, 25);
+scene.add(rim);
+
+// ---------- ground with engineering grid
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400),
+  new THREE.MeshStandardMaterial({ color: 0x07122a, roughness: 0.95, metalness: 0.0, envMapIntensity: 0.15 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+const grid = new THREE.GridHelper(200, 100, 0x00b4ff, 0x0a4a8a);
+grid.material.transparent = true; grid.material.opacity = 0.55; grid.material.fog = false; grid.position.y = 0.01;
+scene.add(grid);
+
+// ---------- solar panel (portrait, 144 half-cut mono cells) texture
+function panelTexture() {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 1024;
+  const g = c.getContext('2d');
+  g.fillStyle = '#c9d3e2'; g.fillRect(0, 0, 512, 1024);
+  const cols = 6, rows = 24, m = 10, gap = 4;
+  const cw = (512 - 2 * m - (cols - 1) * gap) / cols, ch = (1024 - 2 * m - (rows - 1) * gap - 10) / rows;
+  for (let r = 0; r < rows; r++) for (let k = 0; k < cols; k++) {
+    const x = m + k * (cw + gap), y = m + r * (ch + gap) + (r >= rows / 2 ? 10 : 0);
+    const gr = g.createLinearGradient(x, y, x + cw, y + ch);
+    gr.addColorStop(0, '#0d2348'); gr.addColorStop(1, '#091a38');
+    g.fillStyle = gr; g.fillRect(x, y, cw, ch);
+    g.fillStyle = 'rgba(170,190,215,0.55)';
+    for (let b = 1; b <= 3; b++) g.fillRect(x + (cw * b) / 4 - 0.7, y, 1.4, ch);
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+const PANEL_W = 1.13, PANEL_H = 2.28, PANEL_T = 0.035;
+const panelTop = new THREE.MeshPhysicalMaterial({ map: panelTexture(), roughness: 0.1, metalness: 0.45,
+  clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 2.2 });
+const alu = new THREE.MeshStandardMaterial({ color: 0xd8dee8, roughness: 0.35, metalness: 0.9 });
+const steel = new THREE.MeshStandardMaterial({ color: 0x9aa6b6, roughness: 0.45, metalness: 0.85 });
+
+function makePanel() {
+  const grp = new THREE.Group();
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(PANEL_W, PANEL_T, PANEL_H), alu);
+  frame.castShadow = true; frame.receiveShadow = true;
+  const top = new THREE.Mesh(new THREE.PlaneGeometry(PANEL_W - 0.04, PANEL_H - 0.04), panelTop);
+  top.rotation.x = -Math.PI / 2; top.position.y = PANEL_T / 2 + 0.002;
+  grp.add(frame, top);
+  return grp;
+}
+
+// A mounting table: 2 panels high (portrait) x n wide, tilted toward the sun.
+const TILT = THREE.MathUtils.degToRad(20);
+function makeTable(n, opts = {}) {
+  const table = new THREE.Group();
+  const deck = new THREE.Group();
+  deck.rotation.x = TILT;
+  deck.position.y = 1.35;
+  table.add(deck);
+  const panels = [];
+  for (let i = 0; i < n; i++) for (let j = 0; j < 2; j++) {
+    const p = makePanel();
+    p.position.set((i - (n - 1) / 2) * (PANEL_W + 0.02), 0.06, (j - 0.5) * (PANEL_H + 0.02));
+    deck.add(p); panels.push(p);
+  }
+  const rails = [], posts = [];
+  for (const z of [-1.9, -0.6, 0.6, 1.9]) {
+    const r = new THREE.Mesh(new THREE.BoxGeometry(n * (PANEL_W + 0.02) + 0.2, 0.06, 0.05), steel);
+    r.position.set(0, 0, z); r.castShadow = true; deck.add(r); rails.push(r);
+  }
+  for (let i = 0; i <= Math.ceil(n / 2); i++) {
+    const x = (i / Math.ceil(n / 2) - 0.5) * n * (PANEL_W + 0.02);
+    for (const [z, h] of [[-1.55, 0.75], [1.55, 1.95]]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, h, 0.08), steel);
+      post.position.set(x, h / 2, z * Math.cos(TILT)); post.castShadow = true; table.add(post); posts.push(post);
+    }
+    const brace = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 3.3), steel);
+    brace.position.set(x, 1.35, 0); brace.rotation.x = TILT; table.add(brace); posts.push(brace);
+  }
+  return { table, deck, panels, rails, posts };
+}
+
+// ---------------------------------------------------------------- scenes
+let update = () => {};
+
+if (SCENE === 'panels') {
+  // Field of tables; camera dollies low along a row and rises over the array.
+  const rows = [];
+  for (let r = 0; r < 9; r++) for (let c = -1; c <= 1; c++) {
+    const { table } = makeTable(12);
+    table.position.set(c * 15.2, 0, -r * 6.2);
+    scene.add(table); rows.push(table);
+  }
+  update = t => {
+    const p = ease(t / 6);
+    camera.position.set(-9 + 14 * p, 1.6 + 5.5 * p, 7 - 10 * p);
+    camera.lookAt(new THREE.Vector3(2 + 4 * p, 0.8, -10 - 6 * p));
+    // sun glint sweeps across the glass
+    const a = -0.75 + 0.5 * p;
+    sun.position.set(Math.sin(a) * 60, 10 + 4 * p, -Math.cos(a) * 60);
+    sky.material.uniforms.sun.value.copy(sun.position).normalize();
+  };
+}
+
+if (SCENE === 'build') {
+  // Mounting structure rises as a cyan wireframe, turns to galvanised steel, then panels land one by one.
+  const N = 3;
+  const T = makeTable(N);
+  scene.add(T.table);
+  const wireMat = new THREE.LineBasicMaterial({ color: 0x00d9ff, transparent: true, opacity: 1 });
+  const wires = [];
+  for (const m of [...T.posts, ...T.rails]) {
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), wireMat);
+    m.add(e); wires.push(e);
+    m.userData.mat = m.material = m.material.clone();
+    m.material.transparent = true;
+  }
+  T.panels.forEach(p => p.userData.home = p.position.clone());
+  update = t => {
+    // structure grows 0-1.4 s
+    T.posts.forEach((m, i) => { const q = easeOut(prog(t, 0.05 * i, 0.6)); m.scale.set(1, Math.max(q, 0.001), 1); m.visible = q > 0; });
+    T.rails.forEach((m, i) => { const q = easeOut(prog(t, 0.7 + 0.12 * i, 0.5)); m.scale.set(Math.max(q, 0.001), 1, 1); m.visible = q > 0; });
+    const solid = prog(t, 1.4, 0.8);
+    T.posts.concat(T.rails).forEach(m => { m.material.opacity = 0.08 + 0.92 * solid; });
+    wireMat.opacity = 1 - 0.75 * solid;
+    // panels drop in 2.2 s onward, 0.22 s apart
+    T.panels.forEach((p, i) => {
+      const q = prog(t, 2.2 + 0.4 * i, 0.5);
+      p.visible = q > 0;
+      const h = p.userData.home;
+      p.position.set(h.x, h.y + (1 - easeOut(q)) * 2.5, h.z);
+    });
+    const a = 0.75 - 0.45 * ease(t / 5);
+    const d = 11 - 1.5 * ease(t / 5);
+    camera.position.set(Math.sin(a) * d, 3.6 + 1.2 * ease(t / 5), Math.cos(a) * d);
+    camera.lookAt(0, 1.2, 0);
+  };
+}
+
+if (SCENE === 'inverter') {
+  // Three wall-mounted string inverters power up; energy pulses run through the DC/AC cables.
+  scene.fog = new THREE.Fog(0x071a3a, 8, 40);
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(30, 12),
+    new THREE.MeshStandardMaterial({ color: 0x1a2a44, roughness: 0.9 }));
+  wall.position.set(0, 4, -1.2); wall.receiveShadow = true; scene.add(wall);
+  sun.position.set(6, 10, 8);
+  const body = new THREE.MeshPhysicalMaterial({ color: 0xf2f5f9, roughness: 0.35, metalness: 0.05, clearcoat: 0.6 });
+  const fins = new THREE.MeshStandardMaterial({ color: 0x5a6472, roughness: 0.5, metalness: 0.7 });
+  const units = [];
+  function screenTex() {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 160;
+    return { c, g: c.getContext('2d'), tex: new THREE.CanvasTexture(c) };
+  }
+  for (let i = 0; i < 3; i++) {
+    const g = new THREE.Group();
+    const box = new THREE.Mesh(new RoundedBoxGeometry(1.5, 1.9, 0.6, 6, 0.08), body);
+    box.castShadow = true;
+    const side = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.8, 0.62), fins);
+    side.position.x = 0.55;
+    const s = screenTex();
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.39),
+      new THREE.MeshBasicMaterial({ map: s.tex, toneMapped: false }));
+    scr.position.set(-0.2, 0.25, 0.302);
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffa000, toneMapped: false }));
+    led.position.set(-0.2, -0.08, 0.31);
+    g.add(box, side, scr, led);
+    g.position.set((i - 1) * 2.3, 2.6, -0.85);
+    scene.add(g);
+    // cables down to trunking
+    const pts = [new THREE.Vector3(g.position.x - 0.3, 1.65, -0.7), new THREE.Vector3(g.position.x - 0.3, 0.9, -0.7),
+                 new THREE.Vector3(g.position.x + 0.4, 0.55, -0.7), new THREE.Vector3(3.6, 0.55, -0.7)];
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const ctex = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 4;
+      const x = c.getContext('2d'); const gr = x.createLinearGradient(0, 0, 256, 0);
+      gr.addColorStop(0, '#062040'); gr.addColorStop(0.45, '#062040'); gr.addColorStop(0.5, '#7ff0ff');
+      gr.addColorStop(0.55, '#062040'); gr.addColorStop(1, '#062040'); x.fillStyle = gr; x.fillRect(0, 0, 256, 4);
+      const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.repeat.set(3, 1); return t; })();
+    const cable = new THREE.Mesh(new THREE.TubeGeometry(curve, 80, 0.035, 8),
+      new THREE.MeshBasicMaterial({ map: ctex, toneMapped: false }));
+    scene.add(cable);
+    units.push({ g, s, led, ctex, on: 0.9 + 0.35 * i });
+  }
+  const trunk = new THREE.Mesh(new THREE.BoxGeometry(9, 0.25, 0.3), fins);
+  trunk.position.set(0.5, 0.45, -0.75); scene.add(trunk);
+  function drawScreen(u, k, t) {
+    const { g, tex } = u.s;
+    g.fillStyle = '#020a18'; g.fillRect(0, 0, 256, 160);
+    if (k > 0) {
+      g.globalAlpha = k;
+      g.fillStyle = '#0a3a7a'; g.fillRect(8, 8, 240, 26);
+      g.fillStyle = '#7fe6ff'; g.font = 'bold 18px sans-serif'; g.fillText('ONLINE', 16, 28);
+      for (let b = 0; b < 8; b++) {
+        const h = 20 + 70 * (0.5 + 0.5 * Math.sin(t * 3 + b * 0.9 + u.on));
+        g.fillStyle = b % 2 ? '#00d9ff' : '#008dff'; g.fillRect(16 + b * 28, 150 - h, 18, h);
+      }
+      g.globalAlpha = 1;
+    }
+    tex.needsUpdate = true;
+  }
+  update = t => {
+    units.forEach(u => {
+      const k = ease(prog(t, u.on, 0.35));
+      drawScreen(u, k, t);
+      u.led.material.color.setHex(k > 0.5 ? 0x22ff88 : 0xffa000);
+      u.ctex.offset.x = k > 0 ? -t * 1.6 : 0;
+      u.ctex.repeat.set(k > 0 ? 3 : 0.0001, 1);
+    });
+    const p = ease(t / 4.5);
+    camera.fov = 34; camera.updateProjectionMatrix();
+    camera.position.set(-5.2 + 1.4 * p, 2.6 + 0.3 * p, 3.4 - 0.6 * p);
+    camera.lookAt(0.9 - 0.4 * p, 2.1, -0.85);
+  };
+}
+
+const composer = new EffectComposer(renderer);
+composer.setSize(W, H);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(W / 2, H / 2), 0.55, 0.5, 0.82));
+composer.addPass(new OutputPass());
+window.renderAt = t => { update(t); composer.render(); return true; };
+window.ready = true;
+</script></body></html>

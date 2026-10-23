@@ -22,6 +22,10 @@ CLIPS = {
     "flow_dashboard": ("assets/video/flow_dashboard.mp4", 1080, 1920),
     "flow_dashboard_b": ("assets/video/flow_dashboard_b.mp4", 1080, 1920),
     "flow_dashboard_c": ("assets/video/flow_dashboard_c.mp4", 1080, 1920),
+    # three.js motion-graphics plates rendered by mg/render_mg.mjs (already 1080x1920 @ 25 fps)
+    "mg_panels": ("assets/video/mg_panels.mp4", 1080, 1920),
+    "mg_build": ("assets/video/mg_build.mp4", 1080, 1920),
+    "mg_inverter": ("assets/video/mg_inverter.mp4", 1080, 1920),
     # Real project footage, cached near native size; the renderer crops a
     # 9:16 window per frame (pan / push-in) and upscales it.
     "real_035": ("assets/video/real_035.mp4", 2048, 1080),

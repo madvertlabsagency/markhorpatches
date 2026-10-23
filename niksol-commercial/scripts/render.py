@@ -628,7 +628,7 @@ HOOK_CUTS = [
     (2.85, ("yusuf", 16.05, 1.2, 1.1, 0.4, 0.5)),
     (3.55, ("yusuf", 17.05, 1.32, 1.26, 0.27, 0.38)),
     (4.30, ("still", "bg_vertical_rooftop", 1.15, 1.02, 0.6)),
-    (5.15, ("yusuf", 5.0, 1.12, 1.02, 0.45, 0.5)),
+    (5.15, ("mg", "mg_panels", 0.4, 1.08, 1.0)),
 ]
 
 
@@ -645,6 +645,9 @@ def sc_hook(t):
     if src[0] == "yusuf":
         _, ts, z0, z1, cx, cy = src
         im = plate("real_yusuf", ts + lt, zoom=z0 + (z1 - z0) * ease_out(p), cx=cx, cy=cy)
+    elif src[0] == "mg":
+        _, name, ts, z0, z1 = src
+        im = plate(name, ts + lt, zoom=z0 + (z1 - z0) * ease_out(p))
     elif src[0] == "035":
         _, ts, z0, z1, cx = src
         im = plate("real_035", ts + lt, zoom=z0 + (z1 - z0) * ease_out(p), cx=cx)
@@ -805,9 +808,11 @@ def sc_epc_flow(t):
         im = darken(im, 0.62)
         paste(im, grid_overlay(), 0, 0, anchor="tl", alpha=0.5)
     else:
-        seg = "rows" if anchor == "install" else "breakers"
-        im = yusuf_plate(seg, lt, t1 - t0, speed=1.0, zoom0=1.0, zoom1=1.05, cx0=0.45, cx1=0.5)
-        im = darken(im, 0.45)
+        if anchor == "install":
+            im = plate("mg_build", 2.75 + lt, zoom=1.04)
+        else:
+            im = plate("mg_inverter", 0.95 + lt, zoom=1.0 + 0.03 * lt)
+        im = darken(im, 0.35)
     stage_t = {0: A["site"], 1: A["direct"], 2: A["install"]}[stage]
     draw_band(im, 270, 420, strength=170)
     epc_tracker(im, t, stage, stage_t)
@@ -854,8 +859,8 @@ def sc_quality(t):
     if t < A["inverters"]:
         t0 = 39.30
         lt = t - t0
-        im = plate("real_yusuf", 8.6 + lt * 0.55, zoom=1.0 + 0.05 * lt / 3.15, cx=0.6)
-        im = darken(im, 0.25)
+        im = plate("mg_panels", 2.2 + lt * 0.9, zoom=1.0 + 0.04 * lt / 3.15)
+        im = darken(im, 0.15)
         draw_band(im, 420, 900, strength=190)
         quality_pips(im, 0)
         rise_text(im, text_img("ONLY", BOLD, 48, CYAN, track=14), 540, 500, t, 39.6, dist=15)
@@ -864,8 +869,8 @@ def sc_quality(t):
         return im
     if t < A["custom"]:
         t0 = A["inverters"]
-        im = yusuf_plate("inverters", t - t0, 1.22, speed=0.8, zoom0=1.26, zoom1=1.3, cx0=0.25, cx1=0.3, cy=0.38)
-        im = darken(im, 0.55)
+        im = plate("mg_inverter", 2.6 + (t - t0), zoom=1.02)
+        im = darken(im, 0.4)
         quality_pips(im, 1)
         scale_in(im, badge_img("badge_inverters", 900, 660), 540, 740, t, t0, dur=0.3, s0=0.85, hold_zoom=0.02)
         return flash(im, t, t0, 0.12, 0.25)
@@ -877,8 +882,8 @@ def sc_quality(t):
         return flash(im, t, t0, 0.12, 0.25)
     t0 = A["warranty"]
     lt = t - t0
-    im = plate("real_035", 6.6 + lt * 0.35, zoom=1.08 - 0.04 * clamp(lt / 2.15), cx=0.78, cy=0.45)
-    im = darken(im, 0.45)
+    im = plate("mg_build", 0.1 + lt * 0.95, zoom=1.04)
+    im = darken(im, 0.35)
     quality_pips(im, 3)
     p = ease_out(prog(t, t0, 0.6))
     fr = Image.new("RGBA", (W, H), (0, 0, 0, 0))
@@ -1188,7 +1193,31 @@ def render_frame(t):
                     im.paste(nxt, (0, 0), m)
                     edge_glow(im, edge, k=1 - abs(p - 0.5) * 1.2)
     im.paste(vignette(), (0, 0), vignette())
+    k = logo_bug_alpha(t)
+    if k > 0:
+        paste(im, logo_bug(), 1035, 195, anchor="r", alpha=k)
     return im
+
+
+@functools.lru_cache(maxsize=None)
+def logo_bug():
+    lg = logo_rgba()
+    s = 190 / lg.width
+    return lg.resize((int(lg.width * s), int(lg.height * s)), Image.LANCZOS)
+
+
+# Brand bug hidden on frames that already show the Niksol brand (titles, project cards, partnership board, end card).
+BUG_OFF = [(10.17, 16.85), (29.87, 32.71), (62.04, 99.0)]
+
+
+def logo_bug_alpha(t, fade=0.25):
+    k = clamp((t - 0.3) / 0.4)
+    for a, b in BUG_OFF:
+        if a <= t <= b:
+            return 0.0
+        d = (a - t) if t < a else (t - b)
+        k = min(k, clamp(d / fade))
+    return k * 0.92
 
 
 def main():
