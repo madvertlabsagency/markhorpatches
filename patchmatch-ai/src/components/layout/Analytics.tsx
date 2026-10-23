@@ -1,13 +1,55 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Script from "next/script";
+import Link from "next/link";
+
+const COOKIE = "pm_analytics_consent";
+
+function readConsent(): "granted" | "denied" | null {
+  const m = document.cookie.match(new RegExp(`(?:^|; )${COOKIE}=(granted|denied)`));
+  return (m?.[1] as "granted" | "denied" | undefined) ?? null;
+}
 
 /**
- * Tag loaders — rendered only when the corresponding ID is configured. Events sent to ad
- * platforms carry no buyer PII and never artwork (see lib/analytics/conversions.ts).
+ * Tag loaders — rendered only when the corresponding ID is configured AND the visitor has
+ * opted in. Nothing loads before consent. Events sent to ad platforms carry no buyer PII and
+ * never artwork.
  */
 export function Analytics() {
   const ga = process.env.NEXT_PUBLIC_GA4_ID;
   const gtm = process.env.NEXT_PUBLIC_GTM_ID;
   const pixel = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+  const configured = !!(ga || gtm || pixel);
+  const [consent, setConsent] = useState<"granted" | "denied" | null | undefined>(undefined);
+
+  useEffect(() => {
+    // Cookie is only readable after mount; the banner must not render during SSR.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (configured) setConsent(readConsent());
+  }, [configured]);
+
+  if (!configured || consent === undefined) return null;
+
+  const choose = (value: "granted" | "denied") => {
+    document.cookie = `${COOKIE}=${value}; Path=/; Max-Age=${60 * 60 * 24 * 180}; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+    setConsent(value);
+  };
+
+  if (consent === null) {
+    return (
+      <div role="dialog" aria-label="Analytics cookies" className="fixed inset-x-3 bottom-3 z-[90] mx-auto max-w-xl rounded-2xl border border-line bg-surface p-4 text-sm shadow-[var(--shadow-lift)] sm:inset-x-auto sm:right-4">
+        <p className="text-fg">We use optional analytics and advertising cookies to measure how visitors find PatchMatch AI. They are off unless you allow them.</p>
+        <p className="mt-1 text-muted">See our <Link href="/privacy" className="underline">privacy policy</Link>.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" onClick={() => choose("granted")} className="rounded-xl bg-electric px-3.5 py-2 font-semibold text-navy">Allow analytics</button>
+          <button type="button" onClick={() => choose("denied")} className="rounded-xl border border-line px-3.5 py-2 font-semibold">Decline</button>
+        </div>
+      </div>
+    );
+  }
+  if (consent !== "granted") return null;
+
   return (
     <>
       {gtm && (
