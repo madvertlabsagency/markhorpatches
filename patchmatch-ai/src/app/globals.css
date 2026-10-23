@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ───────────────────────── PATCHMATCH AI DESIGN TOKENS ─────────────────────────
+   Brand palette (fixed) + semantic tokens (swap in dark mode).
+   Use semantic classes in components: bg-bg, bg-surface, text-fg, text-muted, border-line…
+*/
+@theme {
+  --color-navy: #0A0F1C;
+  --color-ink: #101827;
+  --color-deep: #121C2E;
+  --color-electric: #00B4FF;
+  --color-cyan: #00E5FF;
+  --color-offwhite: #F7F9FC;
+  --color-mist: #E5EAF0;
+  --color-success: #16A34A;
+  --color-warning: #F59E0B;
+  --color-danger: #DC2626;
+
+  --font-display: var(--font-space-grotesk), "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --radius-3xl: 1.5rem;
+
+  --shadow-card: 0 1px 2px rgb(10 15 28 / 0.04), 0 1px 1px rgb(10 15 28 / 0.03);
+  --shadow-lift: 0 1px 2px rgb(10 15 28 / 0.06), 0 16px 40px -16px rgb(10 15 28 / 0.22);
+  --shadow-glow: 0 12px 40px -12px rgb(0 180 255 / 0.55);
+
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-pulse-ring: pulse-ring 2.4s var(--ease-brand) infinite;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-float: float 8s ease-in-out infinite;
+
+  @keyframes pulse-ring {
+    0% { transform: scale(0.85); opacity: 0.7; }
+    80%, 100% { transform: scale(1.6); opacity: 0; }
+  }
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+    50% { transform: translateY(-8px) rotate(var(--r, 0deg)); }
+  }
+}
+
+@theme inline {
+  --color-bg: var(--pm-bg);
+  --color-surface: var(--pm-surface);
+  --color-surface-2: var(--pm-surface-2);
+  --color-fg: var(--pm-fg);
+  --color-muted: var(--pm-muted);
+  --color-line: var(--pm-line);
+  --color-primary: var(--pm-primary);
+  --color-primary-fg: var(--pm-primary-fg);
+  --color-ring: var(--pm-ring);
+}
+
+@layer base {
+  :root {
+    --pm-bg: #F7F9FC;
+    --pm-surface: #FFFFFF;
+    --pm-surface-2: #F1F4F9;
+    --pm-fg: #0A0F1C;
+    --pm-muted: #5B6B80;
+    --pm-line: #E5EAF0;
+    --pm-primary: #00B4FF;
+    --pm-primary-fg: #0A0F1C;
+    --pm-ring: #00B4FF;
+    --gradient-brand: linear-gradient(115deg, #0A0F1C 0%, #12305A 45%, #00B4FF 85%, #00E5FF 100%);
+    --header-h: 4rem;
+    color-scheme: light;
+  }
+  .dark {
+    --pm-bg: #0A0F1C;
+    --pm-surface: #101827;
+    --pm-surface-2: #121C2E;
+    --pm-fg: #F7F9FC;
+    --pm-muted: #94A3B8;
+    --pm-line: #1F2A3D;
+    --pm-primary: #00B4FF;
+    --pm-primary-fg: #0A0F1C;
+    --pm-ring: #00E5FF;
+    color-scheme: dark;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-bg font-sans text-fg;
+    overflow-x: clip;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+  p { text-wrap: pretty; }
+  ::selection { background: var(--color-cyan); color: var(--color-navy); }
+  :focus-visible {
+    outline: 2px solid var(--pm-ring);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  }
+}
+
+@layer components {
+  .container-page { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .eyebrow { @apply font-display text-xs font-semibold tracking-[0.14em] text-electric uppercase; }
+  .card { @apply rounded-2xl border border-line bg-surface shadow-[var(--shadow-card)]; }
+  .skeleton {
+    background: linear-gradient(90deg, var(--pm-surface-2) 25%, var(--pm-line) 37%, var(--pm-surface-2) 63%);
+    background-size: 400% 100%;
+    @apply animate-shimmer rounded-md;
+  }
+  .stitch { outline: 1.5px dashed currentColor; outline-offset: -6px; }
+  .grid-bg {
+    background-image: linear-gradient(to right, rgb(10 15 28 / 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgb(10 15 28 / 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .dark .grid-bg, .grid-bg-dark {
+    background-image: linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .prose-pm { @apply max-w-none text-[15px] leading-7 text-fg; }
+  .prose-pm h2 { @apply mt-10 mb-3 text-2xl font-semibold; }
+  .prose-pm h3 { @apply mt-6 mb-2 text-lg font-semibold; }
+  .prose-pm p { @apply mb-4 text-muted; }
+  .prose-pm ul { @apply mb-4 list-disc space-y-1.5 pl-5 text-muted; }
+  .prose-pm ol { @apply mb-4 list-decimal space-y-1.5 pl-5 text-muted; }
+  .prose-pm a { @apply font-medium text-electric underline-offset-2 hover:underline; }
+  .prose-pm strong { @apply font-semibold text-fg; }
+}
