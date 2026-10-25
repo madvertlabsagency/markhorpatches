@@ -36,6 +36,16 @@ function putWithProgress(url: string, file: File, headers: Record<string, string
 }
 
 /** Drag-and-drop uploader → signed direct upload → server verification. Reports READY files only. */
+/** Parses a JSON API response; a crashed or timed-out server (empty / HTML body) becomes a readable error. */
+async function readJson(res: Response): Promise<any> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(res.ok ? "Unexpected server response." : `Upload service error (${res.status}). Please try again, or email the file to our team.`);
+  }
+}
+
 export function FileUploader({ purpose, value, onChange, maxFiles, label = "Drop files here or browse", compact }: { purpose: UploadPurpose; value: UploadedFile[]; onChange: (files: UploadedFile[]) => void; maxFiles?: number; label?: string; compact?: boolean }) {
   const [items, setItems] = useState<Item[]>([]);
   const [drag, setDrag] = useState(false);
@@ -57,7 +67,7 @@ export function FileUploader({ purpose, value, onChange, maxFiles, label = "Drop
       if (!v.ok) return update(key, { status: "error", error: v.reason });
       try {
         const signRes = await fetch("/api/uploads/sign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: file.name, contentType: file.type, size: file.size, purpose }) });
-        const sign = await signRes.json();
+        const sign = await readJson(signRes);
         if (!signRes.ok) throw new Error(sign.error ?? "Upload could not start");
         const target = sign.upload as UploadTarget;
         if (target.kind === "vercel-blob") {
@@ -68,7 +78,7 @@ export function FileUploader({ purpose, value, onChange, maxFiles, label = "Drop
         }
         update(key, { status: "verifying", progress: 100 });
         const doneRes = await fetch("/api/uploads/complete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: sign.id }) });
-        const done = await doneRes.json();
+        const done = await readJson(doneRes);
         if (!doneRes.ok) throw new Error(done.error ?? "Verification failed");
         const uploaded: UploadedFile = { id: done.id, filename: done.filename, previewUrl: done.previewUrl, extension: done.extension, size: done.size };
         update(key, { status: "done", file: uploaded });

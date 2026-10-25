@@ -51,5 +51,9 @@ export function siteUrl(path = "") {
 
 export const isDemoMode = () => process.env.DEMO_MODE === "true";
 
+/** True only when a real email provider and its key are configured (otherwise emails are logged, not sent). */
+export const emailSendingEnabled = () =>
+  (process.env.EMAIL_PROVIDER === "resend" && !!process.env.RESEND_API_KEY) || (process.env.EMAIL_PROVIDER === "postmark" && !!process.env.POSTMARK_SERVER_TOKEN);
+
 /** Admin MFA is enforced in production unless explicitly disabled (never recommended). */
 export const adminMfaRequired = () => (process.env.ADMIN_MFA_REQUIRED ?? (process.env.NODE_ENV === "production" ? "true" : "false")) === "true";

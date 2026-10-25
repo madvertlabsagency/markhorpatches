@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { storageErrorMessage } from "@/lib/services/storage/errors";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { storage } from "@/lib/services/storage";
@@ -18,6 +19,16 @@ const body = z.object({
 
 /** Step 1 of an upload: authorise, validate metadata, create a PENDING attachment and a short-lived upload URL. */
 export async function POST(req: Request) {
+  try {
+    return await handle(req);
+  } catch (e) {
+    // Never answer with an empty body: the uploader shows this message to the user.
+    console.error(`[uploads/sign]`, e);
+    return NextResponse.json({ error: storageErrorMessage(e) }, { status: 500 });
+  }
+}
+
+async function handle(req: Request) {
   const ip = await clientIp();
   const rl = rateLimit(`upload:${ip}`, LIMITS.upload.limit, LIMITS.upload.windowMs);
   if (!rl.ok) return NextResponse.json({ error: "Too many uploads. Please wait a few minutes." }, { status: 429 });

@@ -750,6 +750,14 @@ function Confirmation({ result, email, signedInEmail }: { result: Extract<Submit
             </p>
           </div>
         )}
+        {!result.verified && result.demoVerifyUrl && (
+          <div className="rounded-xl border border-warning/40 bg-warning/8 p-4 text-sm">
+            <p><strong>Demo mode:</strong> emails are not sent in the demo, so confirm here instead.</p>
+            <a href={result.demoVerifyUrl} className="mt-3 inline-flex h-10 items-center gap-2 rounded-xl bg-electric px-4 font-semibold text-[var(--pm-primary-fg)]">
+              <MailCheck className="h-4 w-4" /> Verify my request now
+            </a>
+          </div>
+        )}
         <ol className="space-y-3 text-sm">
           {["Email verification", "Our team reviews your request (usually within 1 business day)", "Matching with verified manufacturers", "Quotes arrive — compare and choose"].map((s, i) => (
             <li key={s} className="flex items-center gap-3">

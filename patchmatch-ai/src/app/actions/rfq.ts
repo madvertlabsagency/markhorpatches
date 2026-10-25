@@ -16,7 +16,7 @@ import { conciergeTask } from "@/lib/ai/tasks";
 import { trackEvent } from "@/lib/analytics/events";
 import { ensureBuyerOrg } from "@/lib/domain/orgs";
 
-export type SubmitResult = { ok: true; ref: string; rfqId: string; trackUrl: string; verified: boolean } | { ok: false; error: string; step?: number; fieldErrors?: Record<string, string> };
+export type SubmitResult = { ok: true; ref: string; rfqId: string; trackUrl: string; verified: boolean; demoVerifyUrl?: string } | { ok: false; error: string; step?: number; fieldErrors?: Record<string, string> };
 
 export async function submitRfqAction(payload: unknown): Promise<SubmitResult> {
   const ip = await clientIp();
@@ -40,7 +40,7 @@ export async function submitRfqAction(payload: unknown): Promise<SubmitResult> {
     try {
       attribution = JSON.parse(jar.get("pm_attr")?.value ?? "{}");
     } catch {}
-    const { rfq, guestToken } = await createRfq(parsed.data, {
+    const { rfq, guestToken, demoVerifyToken } = await createRfq(parsed.data, {
       userId: sameEmail ? user!.id : null,
       userEmailVerified: sameEmail && !!user!.emailVerifiedAt,
       buyerOrgId,
@@ -52,7 +52,7 @@ export async function submitRfqAction(payload: unknown): Promise<SubmitResult> {
     });
     // Remember guest access on this device so the tracking page works without the email link.
     jar.set(`pm_rfq_${rfq.publicRef}`, guestToken, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 90 * 86_400, path: "/" });
-    return { ok: true, ref: rfq.publicRef, rfqId: rfq.id, trackUrl: siteUrl(`/rfq/track/${rfq.publicRef}?t=${guestToken}`), verified: !!rfq.emailVerifiedAt };
+    return { ok: true, ref: rfq.publicRef, rfqId: rfq.id, trackUrl: siteUrl(`/rfq/track/${rfq.publicRef}?t=${guestToken}`), verified: !!rfq.emailVerifiedAt, demoVerifyUrl: demoVerifyToken ? `/rfq/verify?token=${demoVerifyToken}` : undefined };
   } catch (e) {
     const r = toActionError(e);
     return { ok: false, error: r && !r.ok ? r.error : "Something went wrong." };

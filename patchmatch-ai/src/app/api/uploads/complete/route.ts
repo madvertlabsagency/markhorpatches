@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { storageErrorMessage } from "@/lib/services/storage/errors";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -6,6 +7,16 @@ import { guestOwnerHash, signedFileUrl, verifyAndFinalize } from "@/lib/files";
 
 /** Step 2: the server verifies the stored bytes (size, magic bytes, SVG safety) and builds metadata-free previews. */
 export async function POST(req: Request) {
+  try {
+    return await handle(req);
+  } catch (e) {
+    // Never answer with an empty body: the uploader shows this message to the user.
+    console.error(`[uploads/complete]`, e);
+    return NextResponse.json({ error: storageErrorMessage(e) }, { status: 500 });
+  }
+}
+
+async function handle(req: Request) {
   const parsed = z.object({ id: z.string().uuid() }).safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   const user = await getCurrentUser();

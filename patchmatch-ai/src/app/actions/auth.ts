@@ -7,7 +7,7 @@ import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession, destroySession, getSession, markSessionMfaVerified, revokeAllSessions, requireUser } from "@/lib/auth/session";
 import { decrypt, encrypt, randomToken, sha256 } from "@/lib/crypto";
 import { generateTotpSecret, verifyTotp } from "@/lib/auth/totp";
-import { siteUrl } from "@/lib/env";
+import { emailSendingEnabled, isDemoMode, siteUrl } from "@/lib/env";
 import { queueEmail } from "@/lib/notifications";
 import { ensureBuyerOrg } from "@/lib/domain/orgs";
 import { audit } from "@/lib/audit";
@@ -44,9 +44,10 @@ export async function registerAction(_prev: ActionState, fd: FormData): Promise<
       .parse({ name: str(fd, "name"), email: str(fd, "email"), password: fd.get("password"), role: str(fd, "role") || "buyer", terms: fd.get("terms") });
     const existing = await prisma.user.findUnique({ where: { email: data.email } });
     if (existing) return { ok: false, error: "An account with this email already exists. Sign in or reset your password." };
-    const user = await prisma.user.create({ data: { email: data.email, name: data.name, passwordHash: await hashPassword(data.password) } });
+    // Demo deployments never send email, so new demo accounts start verified (DEMO_MODE only).
+    const user = await prisma.user.create({ data: { email: data.email, name: data.name, passwordHash: await hashPassword(data.password), ...(isDemoMode() ? { emailVerifiedAt: new Date(), isDemo: true } : {}) } });
     if (data.role === "buyer") await ensureBuyerOrg(user.id);
-    await sendVerification(user.id, user.email, user.name);
+    if (!isDemoMode()) await sendVerification(user.id, user.email, user.name);
     await createSession(user.id, { ip: await clientIp(), userAgent: await userAgent() });
     await audit(user.id, "user.register", "User", user.id, { role: data.role });
   } catch (e) {
@@ -157,6 +158,7 @@ export async function resendVerificationAction(): Promise<ActionState> {
   if (limited) return limited;
   const user = await requireUser();
   if (user.emailVerifiedAt) return { ok: true, message: "Your email is already verified." };
+  if (!emailSendingEnabled()) return { ok: false, error: "Email sending isn't switched on yet. Our team will confirm your email manually during verification." };
   await sendVerification(user.id, user.email, user.name);
   return { ok: true, message: "Verification email sent." };
 }

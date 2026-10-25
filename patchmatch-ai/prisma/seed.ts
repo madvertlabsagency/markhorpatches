@@ -36,6 +36,10 @@ async function main() {
     if (!existing) {
       await prisma.user.create({ data: { email, name: "Platform Admin", passwordHash: await bcrypt.hash(password, 12), platformRole: "SUPER_ADMIN", emailVerifiedAt: new Date() } });
       console.log(`[seed] created super admin ${email} — sign in and enable two-factor authentication.`);
+    } else if (existing.platformRole !== "SUPER_ADMIN") {
+      // The operator named an account that already signed up: promote it (its own password is kept).
+      await prisma.user.update({ where: { id: existing.id }, data: { platformRole: "SUPER_ADMIN", emailVerifiedAt: existing.emailVerifiedAt ?? new Date() } });
+      console.log(`[seed] promoted existing account ${email} to super admin (password unchanged).`);
     }
   } else {
     console.log("[seed] SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD not set — skipping admin user.");

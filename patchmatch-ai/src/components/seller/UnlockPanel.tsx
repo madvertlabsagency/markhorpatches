@@ -48,10 +48,15 @@ export function UnlockPanel({ rfqId, priceMinor, currency, balanceMinor, purchas
                 <Wallet className="h-4 w-4" /> Unlock with credits
               </Button>
               <p className="text-center text-xs text-muted">Balance {formatMoney(balanceMinor, currency)}{!enough && <> · <Link href="/seller/billing" className="font-semibold text-electric">Add credits</Link></>}</p>
-              {cardEnabled && (
+              {cardEnabled ? (
                 <Button variant="secondary" className="w-full" disabled={!ack} loading={pending} onClick={() => buy("CARD")}>
                   <CreditCard className="h-4 w-4" /> Pay by card
                 </Button>
+              ) : (
+                <div className="rounded-xl border border-dashed border-line px-3 py-2.5 text-center">
+                  <p className="flex items-center justify-center gap-2 text-sm font-semibold text-muted"><CreditCard className="h-4 w-4" /> Pay by card — coming soon</p>
+                  <p className="mt-0.5 text-xs text-muted">Beta: card payments aren&apos;t enabled yet. Use credits, or <Link href="/seller/billing" className="font-semibold text-electric">request an invoice</Link>.</p>
+                </div>
               )}
             </div>
           </>

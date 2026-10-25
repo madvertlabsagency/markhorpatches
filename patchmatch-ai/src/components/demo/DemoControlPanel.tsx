@@ -124,7 +124,7 @@ export function DemoControlPanel({ settings, presets, scenarios }: { settings: D
             <Button size="sm" variant="danger" disabled={pending || confirmText !== "RESET"} onClick={() => window.confirm("Delete ALL demo data and rebuild the baseline? Demo sessions will be signed out.") && run("Full demo reset", () => demoFullResetAction(confirmText))}>
               Full reset &amp; reseed
             </Button>
-            <p className="w-full text-xs text-muted">Deletes every demo record (isDemo only) and rebuilds 20 manufacturers, 12 buyers and ~40 requests. Can take a minute.</p>
+            <p className="w-full text-xs text-muted">Deletes every demo record (isDemo only) and rebuilds 60 manufacturers, 30 buyers and ~120 requests. Can take a few minutes.</p>
           </div>
         </section>
       </div>

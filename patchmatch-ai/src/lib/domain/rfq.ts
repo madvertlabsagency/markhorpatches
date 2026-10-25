@@ -61,6 +61,7 @@ export async function createRfq(input: RfqSubmission, ctx: SubmitContext) {
 
   if (input.disclosureMode !== "PLATFORM_MESSAGING_ONLY" && !input.consentDirectContact) throw new DomainError("CONSENT", "Direct contact sharing needs your explicit consent.");
   const guestToken = randomToken(24);
+  let demoVerifyToken: string | undefined;
   // Launch default: exclusive (1). Up to 3 recipients only when the buyer chose it in the marketplace
   // wizard AND the limited-shared feature is enabled. Landing-page leads are always single-manufacturer.
   const sharedAllowed = input.leadSource === "marketplace" && input.maxRecipients > 1 && (await featureEnabled("limited_shared_rfqs"));
@@ -165,6 +166,8 @@ export async function createRfq(input: RfqSubmission, ctx: SubmitContext) {
       await enqueue("rfq.process", { rfqId: created.id }, { dedupeKey: `rfq.process:${created.id}:submit`, tx });
     } else {
       const token = randomToken();
+      // Demo deployments never send email, so the confirmation screen shows this link instead.
+      if (ctx.isDemo) demoVerifyToken = token;
       await tx.verificationToken.create({ data: { tokenHash: sha256(token), purpose: "RFQ_EMAIL_VERIFY", email: input.contactEmail, data: { rfqId: created.id }, expiresAt: new Date(Date.now() + 72 * 3_600_000) } });
       await queueEmail(
         input.contactEmail,
@@ -178,7 +181,7 @@ export async function createRfq(input: RfqSubmission, ctx: SubmitContext) {
   });
 
   await trackEvent("RFQSubmitted", { rfqId: rfq.id, userId: ctx.userId ?? undefined, props: { patchType: input.patchType, quantity: input.quantity, verifiedViaAccount }, isDemo: rfq.isDemo });
-  return { rfq, guestToken };
+  return { rfq, guestToken, demoVerifyToken };
 }
 
 /** Buyer clicked the emailed link. */

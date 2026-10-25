@@ -1,7 +1,7 @@
 /**
  * DEMO ENVIRONMENT SEED — fictional data only (see src/lib/demo/baseline.ts).
  *
- *  • 3 presenter accounts, 20 fictional manufacturers, 12 fictional US buyer personas and ~40
+ *  • 3 presenter accounts, 60 fictional manufacturers, 30 fictional US buyers and ~120
  *    PM-DEMO-#### requests pushed through the real pipeline. Every record is isDemo=true and every
  *    page shows the "DEMO MODE — SIMULATED ACTIVITY" banner. Production reporting excludes isDemo data.
  *  • Idempotent: skips when the current baseline is present; an older demo dataset is wiped first.

@@ -139,20 +139,22 @@ export async function savePreferences(sellerId: string, userId: string, input: z
 export async function verificationChecklist(sellerId: string) {
   const s = await prisma.sellerProfile.findUniqueOrThrow({ where: { id: sellerId }, include: { capabilities: true, documents: true, portfolio: true, org: { include: { members: { include: { user: true } } } } } });
   const owner = s.org.members.find((m) => m.role === "OWNER")?.user;
+  // Pilot: only capabilities are required to apply. Documents, photos and samples speed things up,
+  // but the review team can verify a manufacturer manually (call, video tour, documents by email).
   const items = [
-    { key: "email", label: "Account email verified", done: !!owner?.emailVerifiedAt },
-    { key: "capabilities", label: "Manufacturing capabilities added", done: s.capabilities.length > 0 && s.shippingCountries.length > 0 },
-    { key: "registration", label: "Business registration document uploaded", done: s.documents.some((d) => d.kind === "BUSINESS_REGISTRATION") },
-    { key: "factory", label: "At least 2 factory photos uploaded", done: s.documents.filter((d) => d.kind === "FACTORY_PHOTO").length >= 2 },
-    { key: "portfolio", label: "At least 3 portfolio samples", done: s.portfolio.length >= 3 },
+    { key: "capabilities", label: "Manufacturing capabilities added", done: s.capabilities.length > 0 && s.shippingCountries.length > 0, required: true, href: "/seller/capabilities" },
+    { key: "email", label: "Account email verified", done: !!owner?.emailVerifiedAt, required: false, href: null },
+    { key: "registration", label: "Business registration document uploaded", done: s.documents.some((d) => d.kind === "BUSINESS_REGISTRATION"), required: false, href: "#documents" },
+    { key: "factory", label: "At least 2 factory photos uploaded", done: s.documents.filter((d) => d.kind === "FACTORY_PHOTO").length >= 2, required: false, href: "#documents" },
+    { key: "portfolio", label: "At least 3 portfolio samples", done: s.portfolio.length >= 3, required: false, href: "/seller/portfolio" },
   ];
-  return { items, ready: items.every((i) => i.done), seller: s };
+  return { items, ready: items.every((i) => i.done || !i.required), complete: items.every((i) => i.done), seller: s };
 }
 
 export async function submitForVerification(sellerId: string, userId: string) {
-  const { ready, seller } = await verificationChecklist(sellerId);
-  if (!ready) throw new DomainError("INCOMPLETE", "Complete every checklist item before submitting.");
-  await transitionVerification(sellerId, "PENDING_REVIEW", { actorId: userId, reason: "Submitted by seller" });
+  const { ready, complete, seller } = await verificationChecklist(sellerId);
+  if (!ready) throw new DomainError("INCOMPLETE", "Add your manufacturing capabilities before submitting.");
+  await transitionVerification(sellerId, "PENDING_REVIEW", { actorId: userId, reason: complete ? "Submitted by seller" : "Submitted for manual verification (some documents to follow)" });
   await recordSellerEvent("SELLER_APPLIED", sellerId);
   await alertAdmins("New seller verification", `${seller.legalName} (${seller.country}) submitted for verification.`, `/admin/seller-verification/${seller.id}`, `seller_verify:${seller.id}:${Date.now()}`, ["SUPER_ADMIN", "ADMIN", "REVIEWER"]);
 }

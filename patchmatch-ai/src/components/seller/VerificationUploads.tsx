@@ -59,7 +59,7 @@ export function VerificationUploads({ editable, ready, canSubmit, docs }: { edit
             Submit for review
           </Button>
         )}
-        {canSubmit && !ready && <p className="text-xs text-muted">Complete the checklist to submit.</p>}
+        {canSubmit && !ready && <p className="text-xs text-muted">Add your manufacturing capabilities to submit. Documents are optional — our team can verify you manually.</p>}
       </div>
     </Card>
   );

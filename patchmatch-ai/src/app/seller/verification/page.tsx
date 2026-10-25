@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ResendVerificationButton } from "@/components/seller/ResendVerificationButton";
 import { prisma } from "@/lib/db";
 import { requireSeller } from "@/lib/auth/session";
 import { verificationChecklist } from "@/lib/domain/sellers";
@@ -30,11 +32,29 @@ export default async function VerificationPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader title="Checklist" />
-            <ul className="divide-y divide-line">{items.map((i) => <li key={i.key} className="flex items-center justify-between gap-3 px-5 py-3 text-sm"><span>{i.label}</span><Badge tone={i.done ? "green" : "neutral"}>{i.done ? "Done" : "To do"}</Badge></li>)}</ul>
+            <ul className="divide-y divide-line">
+              {items.map((i) => (
+                <li key={i.key} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+                  <span>
+                    {i.label} <span className="text-xs text-muted">{i.required ? "· required" : "· optional"}</span>
+                  </span>
+                  {i.done ? (
+                    <Badge tone="green">Done</Badge>
+                  ) : i.key === "email" ? (
+                    <ResendVerificationButton />
+                  ) : i.href ? (
+                    <Link href={i.href} className="rounded-full border border-electric/40 px-3 py-1 text-xs font-semibold text-electric hover:bg-electric/10">Do this →</Link>
+                  ) : (
+                    <Badge tone="neutral">To do</Badge>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="border-t border-line px-5 py-3 text-xs text-muted">Only capabilities are required to apply. Our team verifies manufacturers manually — by phone, WhatsApp or video call — and may ask you to email documents instead of uploading them.</p>
           </Card>
           {history.length > 0 && <Card><CardHeader title="History" /><div className="p-5"><Timeline items={history.map((h, i) => ({ title: statusLabel(h.toStatus), time: formatDateTime(h.createdAt), body: h.reason ?? undefined, tone: i === 0 ? "active" : "done" }))} /></div></Card>}
         </div>
-        <VerificationUploads editable={editable} ready={ready} canSubmit={editable} docs={docs.map((d) => ({ id: d.id, kind: d.kind, name: d.attachment.originalFilename, attachmentId: d.attachmentId, createdAt: d.createdAt.toISOString() }))} />
+        <div id="documents" className="scroll-mt-24"><VerificationUploads editable={editable} ready={ready} canSubmit={editable} docs={docs.map((d) => ({ id: d.id, kind: d.kind, name: d.attachment.originalFilename, attachmentId: d.attachmentId, createdAt: d.createdAt.toISOString() }))} /></div>
       </div>
     </>
   );

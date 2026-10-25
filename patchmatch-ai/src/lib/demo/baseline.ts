@@ -11,16 +11,16 @@ import { buyerQuoteAction } from "@/lib/domain/quotes";
 import { postMessage } from "@/lib/domain/messages";
 import { fileDispute, decideDispute } from "@/lib/domain/finance";
 import { createDemoRfq, createDemoSeller, rnd } from "./factory";
-import { BUYER_PERSONAS, DEMO_ACCOUNTS, DEMO_PATCH_TYPES, type DemoPatchType } from "./catalog";
+import { BUYER_BRANDS, BUYER_PERSONAS, DEMO_ACCOUNTS, DEMO_PATCH_TYPES, FIRST_NAMES, LAST_NAMES, type DemoPatchType } from "./catalog";
 import { quoteAs, purgeRfqs } from "./engine";
 import { assertDemo } from "./settings";
 
 /**
  * DEMO BASELINE — the fictional marketplace a demo database starts from (and returns to on a full
- * reset): 3 presenter accounts, 20 manufacturers (Pakistan / US / India), 12 US buyer personas and
- * ~40 PM-DEMO-#### requests pushed through the real pipeline. Every record is isDemo=true.
+ * reset): 3 presenter accounts, 60 manufacturers (Pakistan / US / India), 30 US buyers and ~120
+ * PM-DEMO-#### requests pushed through the real pipeline. Every record is isDemo=true.
  */
-export const DEMO_BASELINE_VERSION = 2;
+export const DEMO_BASELINE_VERSION = 3;
 const daysAgo = (d: number, h = 0) => new Date(Date.now() - d * 86_400_000 - h * 3_600_000);
 type Log = (msg: string) => void;
 
@@ -92,14 +92,14 @@ export async function seedDemoBaseline(opts: { passwordHash: string; log?: Log }
   const star = await createDemoSeller({ market: "PK", email: DEMO_ACCOUNTS.seller.email, name: DEMO_ACCOUNTS.seller.name, company: DEMO_ACCOUNTS.seller.company, passwordHash, allTypes: true, star: true, credits: 50_000, createdAt: daysAgo(420), reviewerId: admin.id });
   await prisma.sellerProfile.update({ where: { id: star.seller.id }, data: { city: "Sialkot", region: "Punjab", factoryLocation: "Small Industrial Estate, Sialkot" } });
 
-  // ── 19 more manufacturers (20 total): verified, applications under review, info requested, suspended ──
-  const statuses = [...Array(14).fill("VERIFIED"), "PENDING_REVIEW", "PENDING_REVIEW", "PENDING_REVIEW", "INFO_REQUIRED", "SUSPENDED"] as const;
+  // ── 59 more manufacturers (60 total): verified, applications under review, info requested, suspended ──
+  const statuses = [...Array(46).fill("VERIFIED"), ...Array(7).fill("PENDING_REVIEW"), ...Array(3).fill("INFO_REQUIRED"), "UNVERIFIED", "SUSPENDED", "SUSPENDED"] as ("VERIFIED" | "PENDING_REVIEW" | "INFO_REQUIRED" | "UNVERIFIED" | "SUSPENDED")[];
   for (const status of statuses) {
     await createDemoSeller({ status, passwordHash, credits: status === "VERIFIED" ? 10_000 : 0, createdAt: status === "PENDING_REVIEW" ? daysAgo(rnd.int(0, 6), rnd.int(0, 20)) : undefined, reviewerId: admin.id });
   }
-  log("[demo] 20 manufacturers");
+  log(`[demo] ${statuses.length + 1} manufacturers`);
 
-  // ── 12 US buyer personas (the presenter buyer is the first) ──
+  // ── 30 US buyers: 12 named personas (the presenter buyer is the first) + 18 more fictional brands ──
   const buyers: { userId: string; orgId: string; name: string; email: string; company: string }[] = [];
   for (const [i, p] of BUYER_PERSONAS.entries()) {
     const email = i === 0 ? DEMO_ACCOUNTS.buyer.email : `${p.name.toLowerCase().replace(/[^a-z]+/g, ".")}.demo@example.com`;
@@ -107,16 +107,24 @@ export async function seedDemoBaseline(opts: { passwordHash: string; log?: Log }
     const org = await prisma.organization.create({ data: { type: "BUYER", name: p.company, slug: `demo-buyer-${i + 1}`, country: "US", isDemo: true, members: { create: { userId: user.id, role: "OWNER" } }, buyerProfile: { create: { companyName: p.company } } } });
     buyers.push({ userId: user.id, orgId: org.id, name: p.name, email, company: p.company });
   }
+  const personaCompanies = new Set<string>(BUYER_PERSONAS.map((p) => p.company));
+  for (const [j, company] of BUYER_BRANDS.filter((b) => !personaCompanies.has(b)).slice(0, 18).entries()) {
+    const name = `${rnd.pick(FIRST_NAMES)} ${rnd.pick(LAST_NAMES)}`;
+    const email = `buyer${j + 13}.demo@example.com`;
+    const user = await prisma.user.create({ data: { email, name, passwordHash, emailVerifiedAt: daysAgo(rnd.int(10, 90)), isDemo: true } });
+    const org = await prisma.organization.create({ data: { type: "BUYER", name: company, slug: `demo-buyer-${j + 13}`, country: "US", isDemo: true, members: { create: { userId: user.id, role: "OWNER" } }, buyerProfile: { create: { companyName: company } } } });
+    buyers.push({ userId: user.id, orgId: org.id, name, email, company });
+  }
 
-  // ── ~40 requests through the real pipeline ──
+  // ── ~120 requests through the real pipeline ──
   let made = 0;
   let unlocked = 0;
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 120; i++) {
     const persona = BUYER_PERSONAS[i % BUYER_PERSONAS.length];
-    const buyer = i < 6 ? buyers[0] : rnd.chance(0.7) ? buyers[i % buyers.length] : undefined;
-    const created = i < 6 ? daysAgo(rnd.int(0, 10), rnd.int(1, 20)) : daysAgo(rnd.int(0, 20), rnd.int(0, 23));
+    const buyer = i < 8 ? buyers[0] : rnd.chance(0.7) ? buyers[i % buyers.length] : undefined;
+    const created = i < 8 ? daysAgo(rnd.int(0, 10), rnd.int(1, 20)) : daysAgo(rnd.int(0, 29), rnd.int(0, 23));
     const stopAt = i % 13 === 5 ? "unverified" : i % 11 === 3 ? "review" : undefined;
-    const landing = i >= 6 && rnd.chance(0.25);
+    const landing = i >= 8 && rnd.chance(0.25);
     let rfq;
     try {
       rfq = await createDemoRfq({
@@ -128,6 +136,7 @@ export async function seedDemoBaseline(opts: { passwordHash: string; log?: Log }
       log(`[demo] request ${i} skipped: ${(e as Error).message}`);
       continue;
     }
+    if (i % 20 === 19) log(`[demo] ${i + 1} requests…`);
     if (stopAt) continue;
     const opp = await prisma.opportunity.findUnique({ where: { rfqId: rfq.id } });
     if (!opp || rnd.chance(0.4)) continue; // leave a healthy pool of open opportunities
@@ -176,6 +185,6 @@ export async function seedDemoBaseline(opts: { passwordHash: string; log?: Log }
   // Demo emails are never sent and matching already ran inline.
   await prisma.backgroundJob.deleteMany({ where: { type: { in: ["email.send", "rfq.match", "ai.enrich_rfq"] } } });
   await prisma.platformSetting.upsert({ where: { key: "demo.version" }, create: { key: "demo.version", value: { version: DEMO_BASELINE_VERSION, seededAt: new Date().toISOString() } }, update: { value: { version: DEMO_BASELINE_VERSION, seededAt: new Date().toISOString() } } });
-  log(`[demo] seeded 20 manufacturers, ${buyers.length} buyers, ${made} requests (${unlocked} unlocks) in ${Math.round((Date.now() - t0) / 1000)}s`);
+  log(`[demo] seeded ${statuses.length + 1} manufacturers, ${buyers.length} buyers, ${made} requests (${unlocked} unlocks) in ${Math.round((Date.now() - t0) / 1000)}s`);
   return { requests: made, unlocks: unlocked };
 }
