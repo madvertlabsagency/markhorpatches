@@ -11,7 +11,13 @@ const opt = (name: string, fallback = '') => (process.env[name] || '').trim() ||
 const choice = (name: string, fallback = '') => opt(name, fallback).toLowerCase();
 
 export const env = {
-  siteUrl: () => opt('NEXT_PUBLIC_SITE_URL', 'http://localhost:3000').replace(/\/$/, ''),
+  // Public address of the funnel including the base path, e.g. https://madvertlabs.com/markhorpatches.
+  // NEXT_PUBLIC_SITE_URL may be given with or without the base path.
+  siteUrl: () => {
+    const base = process.env.NEXT_PUBLIC_BASE_PATH || '';
+    const url = opt('NEXT_PUBLIC_SITE_URL', 'http://localhost:3000').replace(/\/$/, '');
+    return base && !url.endsWith(base) ? url + base : url;
+  },
   supabaseUrl: () => req('NEXT_PUBLIC_SUPABASE_URL'),
   supabaseServiceKey: () => req('SUPABASE_SERVICE_ROLE_KEY'),
   artworkBucket: () => opt('SUPABASE_ARTWORK_BUCKET', 'rfq-artwork'),

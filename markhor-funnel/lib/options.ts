@@ -1,12 +1,13 @@
+import { withBase } from './base';
 // Funnel choices shared by the client form, the server validator and the PDF.
 // Copy rule: no em dashes or en dashes; use "to" for ranges.
 
 export const PATCH_TYPES = [
-  { key: 'emb', label: 'Embroidered', img: '/assets/embroidered.svg', desc: 'Classic textured embroidery for uniforms, teams and brands.' },
-  { key: 'pvc', label: 'PVC', img: '/assets/pvc.svg', desc: 'Durable dimensional rubber patches that last outdoors.' },
-  { key: 'che', label: 'Chenille', img: '/assets/chenille.svg', desc: 'Premium varsity and streetwear style with a soft raised feel.' },
-  { key: 'wov', label: 'Woven', img: '/assets/woven.svg', desc: 'Fine detail and small text with a flat, crisp finish.' },
-  { key: 'sub', label: 'Sublimation', img: '/assets/sublimation.svg', desc: 'Full color printed patches for photos and detailed artwork.' },
+  { key: 'emb', label: 'Embroidered', img: withBase('/assets/embroidered.svg'), desc: 'Classic textured embroidery for uniforms, teams and brands.' },
+  { key: 'pvc', label: 'PVC', img: withBase('/assets/pvc.svg'), desc: 'Durable dimensional rubber patches that last outdoors.' },
+  { key: 'che', label: 'Chenille', img: withBase('/assets/chenille.svg'), desc: 'Premium varsity and streetwear style with a soft raised feel.' },
+  { key: 'wov', label: 'Woven', img: withBase('/assets/woven.svg'), desc: 'Fine detail and small text with a flat, crisp finish.' },
+  { key: 'sub', label: 'Sublimation', img: withBase('/assets/sublimation.svg'), desc: 'Full color printed patches for photos and detailed artwork.' },
   { key: 'uns', label: 'Not sure', img: '', desc: '' },
 ] as const;
 

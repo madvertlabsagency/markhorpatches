@@ -5,6 +5,7 @@ import type { Status } from '@/lib/funnel/metrics';
 import { SETTING_FIELDS, type Settings } from '@/lib/funnel/settings';
 import { saveFunnelSettings } from './actions';
 import css from './funnel.module.css';
+import { withBase } from '@/lib/base';
 
 type Params = { range: string; from: string; to: string; campaign: string; adset: string; ad: string; all: boolean; demo: boolean };
 const DEFAULT: Params = { range: 'today', from: '', to: '', campaign: '', adset: '', ad: '', all: false, demo: false };
@@ -110,9 +111,9 @@ export default function FunnelDashboard({ settings }: { settings: Settings }) {
     if (params.range === 'custom' && (!params.from || !params.to)) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/funnel?${toQuery(params)}`, { cache: 'no-store' });
+      const res = await fetch(withBase(`/api/admin/funnel?${toQuery(params)}`), { cache: 'no-store' });
       if (res.status === 401) {
-        location.href = '/admin/login';
+        location.href = withBase('/admin/login');
         return;
       }
       const json = await res.json();
@@ -166,8 +167,8 @@ export default function FunnelDashboard({ settings }: { settings: Settings }) {
     <div className={css.page}>
       <header className={css.head}>
         <div className={css.brand}>
-          <img className={css.logoLight} src="/assets/madvert/logo-light.webp" alt="Madvert Labs" width={480} height={140} />
-          <img className={css.logoDark} src="/assets/madvert/logo-dark.webp" alt="Madvert Labs" width={480} height={128} />
+          <img className={css.logoLight} src={withBase('/assets/madvert/logo-light.webp')} alt="Madvert Labs" width={480} height={140} />
+          <img className={css.logoDark} src={withBase('/assets/madvert/logo-dark.webp')} alt="Madvert Labs" width={480} height={128} />
           <span className={css.brandRule} aria-hidden="true" />
           <div>
             <h1 className="hd">Funnel <span className={css.gt}>Health</span></h1>
@@ -175,7 +176,7 @@ export default function FunnelDashboard({ settings }: { settings: Settings }) {
           </div>
         </div>
         <div className={css.headSide}>
-          <a className={css.link} href="/admin">Leads</a>
+          <a className={css.link} href={withBase('/admin')}>Leads</a>
           <span className={css.live} aria-live="polite"><i className={loading ? css.liveBusy : ''} aria-hidden="true" />{updated ? `Updated ${ago(now - updated)}` : loading ? 'Loading' : ''}{loading && updated ? ', refreshing' : ''}</span>
           <button type="button" className={css.btn} onClick={() => load(p)} disabled={loading}>Refresh</button>
           <button type="button" className={css.btn} onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
@@ -459,7 +460,7 @@ export default function FunnelDashboard({ settings }: { settings: Settings }) {
         </details>
       </section>
       <footer className={css.foot}>
-        <img src="/assets/madvert/icon.webp" alt="" width={28} height={28} />
+        <img src={withBase('/assets/madvert/icon.webp')} alt="" width={28} height={28} />
         <span>Built by Madvert Labs. Beyond advertising, we build growth systems.</span>
       </footer>
     </div>

@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { track } from '@/lib/track-client';
 import { fe } from '@/lib/funnel-client';
 import { BUSINESS } from '@/lib/options';
+import { withBase } from '@/lib/base';
 
 export function PickTypeLink({ type }: { type: string }) {
   return (
@@ -133,13 +134,13 @@ export function ProcessReel() {
       loop
       playsInline
       preload="none"
-      poster="/assets/video/patch-lab-reel-poster.webp"
+      poster={withBase('/assets/video/patch-lab-reel-poster.webp')}
       width={1280}
       height={720}
       aria-label="Our patches being stitched on an embroidery machine, heat pressed onto a denim jacket and worn"
     >
-      <source src="/assets/video/patch-lab-reel.webm" type="video/webm" />
-      <source src="/assets/video/patch-lab-reel.mp4" type="video/mp4" />
+      <source src={withBase('/assets/video/patch-lab-reel.webm')} type="video/webm" />
+      <source src={withBase('/assets/video/patch-lab-reel.mp4')} type="video/mp4" />
     </video>
   );
 }

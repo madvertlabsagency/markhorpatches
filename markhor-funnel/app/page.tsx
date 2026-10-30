@@ -3,6 +3,7 @@ import QuoteForm from './components/QuoteForm';
 import FunnelTracker from './components/FunnelTracker';
 import { PickTypeLink, ProcessReel, TrustBox, UploadCta, ViewContentObserver } from './components/Interactive';
 import { BUSINESS, PATCH_TYPES } from '@/lib/options';
+import { withBase } from '@/lib/base';
 
 const PRODUCTION_TIME = process.env.NEXT_PUBLIC_PRODUCTION_TIME;
 const SHIPPING_TIME = process.env.NEXT_PUBLIC_SHIPPING_TIME;
@@ -37,18 +38,18 @@ const TRUST = [
 const REVIEWS: [string, string, string][] = [];
 
 const STEPS = [
-  { title: 'Tell us what you need', text: 'Select your patch type, size and quantity.', img: '/assets/art/step-1.webp', accent: '#0A8BD8' },
-  { title: 'Upload your artwork', text: 'Upload your logo, artwork, sketch or reference. No artwork yet? We will help.', img: '/assets/art/step-2.webp', accent: '#2AA8FF' },
-  { title: 'Get your quote and free mockup', text: 'Our patch team reviews your project and contacts you with pricing and a mockup within 24 hours.', img: '/assets/art/step-3.webp', accent: '#1257E6' },
+  { title: 'Tell us what you need', text: 'Select your patch type, size and quantity.', img: withBase('/assets/art/step-1.webp'), accent: '#0A8BD8' },
+  { title: 'Upload your artwork', text: 'Upload your logo, artwork, sketch or reference. No artwork yet? We will help.', img: withBase('/assets/art/step-2.webp'), accent: '#2AA8FF' },
+  { title: 'Get your quote and free mockup', text: 'Our patch team reviews your project and contacts you with pricing and a mockup within 24 hours.', img: withBase('/assets/art/step-3.webp'), accent: '#1257E6' },
 ];
 
 // A tile without a photo shows its brand color and icon instead.
 const MADE_FOR: { label: string; img?: string; alt?: string; color: string; icon: string }[] = [
-  { label: 'Clothing brands', img: '/assets/art/made-brands.webp', alt: 'Hoodies and jackets on a clothing rack, each with a custom embroidered patch', color: '#0A8BD8', icon: 'i-box' },
-  { label: 'Streetwear labels', img: '/assets/art/made-streetwear.webp', alt: 'Denim jacket back covered in colorful custom patches on a city street', color: '#2AA8FF', icon: 'i-star' },
-  { label: 'Small businesses', img: '/assets/art/made-small-business.webp', alt: 'Coffee shop apron with an embroidered latte patch on the chest', color: '#0B1F4D', icon: 'i-gift' },
-  { label: 'Sports teams', img: '/assets/art/made-teams.webp', alt: 'Team jerseys and caps with custom patches in a locker room', color: '#1257E6', icon: 'i-star' },
-  { label: 'Clubs and events', img: '/assets/art/made-clubs.webp', alt: 'Leather motorcycle club vest with large embroidered back patches', color: '#9BE3FF', icon: 'i-pin' },
+  { label: 'Clothing brands', img: withBase('/assets/art/made-brands.webp'), alt: 'Hoodies and jackets on a clothing rack, each with a custom embroidered patch', color: '#0A8BD8', icon: 'i-box' },
+  { label: 'Streetwear labels', img: withBase('/assets/art/made-streetwear.webp'), alt: 'Denim jacket back covered in colorful custom patches on a city street', color: '#2AA8FF', icon: 'i-star' },
+  { label: 'Small businesses', img: withBase('/assets/art/made-small-business.webp'), alt: 'Coffee shop apron with an embroidered latte patch on the chest', color: '#0B1F4D', icon: 'i-gift' },
+  { label: 'Sports teams', img: withBase('/assets/art/made-teams.webp'), alt: 'Team jerseys and caps with custom patches in a locker room', color: '#1257E6', icon: 'i-star' },
+  { label: 'Clubs and events', img: withBase('/assets/art/made-clubs.webp'), alt: 'Leather motorcycle club vest with large embroidered back patches', color: '#9BE3FF', icon: 'i-pin' },
 ];
 
 const FAQ: [string, string][] = [
@@ -87,7 +88,7 @@ export default function Page() {
 
       <header className="topbar">
         <a href="#top" className="brand">
-          <Image src="/assets/logo-160.webp" alt={`${BUSINESS.name} logo`} width={64} height={64} priority style={{ display: 'block' }} />
+          <Image src={withBase('/assets/logo-160.webp')} alt={`${BUSINESS.name} logo`} width={64} height={64} priority style={{ display: 'block' }} />
           <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.05 }}>
             <span className="hd brand-name">{BUSINESS.nameUpper}</span>
             <span className="brand-tag">{BUSINESS.tagline.toUpperCase()}</span>
@@ -129,7 +130,7 @@ export default function Page() {
             <div className="hero-art">
               <div className="hero-photo">
                 <Image
-                  src="/assets/art/hero-flatlay.webp"
+                  src={withBase('/assets/art/hero-flatlay.webp')}
                   alt="Embroidered, PVC, chenille, woven and sublimation custom patches laid out on a cream table"
                   width={1080}
                   height={1080}
@@ -279,7 +280,7 @@ export default function Page() {
 
         <section style={{ padding: '0 24px 56px' }}>
           <div className="wrap local">
-            <img className="local-photo" src="/assets/art/heat-press.webp" alt="A custom embroidered patch being heat pressed onto a denim jacket" width={960} height={536} loading="lazy" decoding="async" />
+            <img className="local-photo" src={withBase('/assets/art/heat-press.webp')} alt="A custom embroidered patch being heat pressed onto a denim jacket" width={960} height={536} loading="lazy" decoding="async" />
             <div style={{ flex: '1 1 380px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <span style={{ alignSelf: 'flex-start', fontSize: 13, fontWeight: 700, color: '#fff', background: 'var(--red)', padding: '5px 12px', borderRadius: 999 }}>Real people, real craft</span>
               <h2 className="hd" style={{ margin: 0, fontSize: 'clamp(28px, 3.2vw, 40px)', lineHeight: 1.08 }}>One Team From Mockup To Delivery</h2>
@@ -322,7 +323,7 @@ export default function Page() {
       <footer className="footer">
         <div className="wrap" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 24, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Image src="/assets/logo-160.webp" alt={`${BUSINESS.name} logo`} width={56} height={56} />
+            <Image src={withBase('/assets/logo-160.webp')} alt={`${BUSINESS.name} logo`} width={56} height={56} />
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <strong className="hd" style={{ color: '#fff' }}>{BUSINESS.nameUpper}</strong>
               <span style={{ fontSize: 13 }}>{BUSINESS.address || BUSINESS.tagline}</span>
@@ -331,8 +332,8 @@ export default function Page() {
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 14 }}>
             {BUSINESS.phoneTel && <a href={`tel:${BUSINESS.phoneTel}`}>{BUSINESS.phoneDisplay}</a>}
             {BUSINESS.email && <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>}
-            <a href="/privacy">Privacy Policy</a>
-            <a href="/terms">Terms</a>
+            <a href={withBase('/privacy')}>Privacy Policy</a>
+            <a href={withBase('/terms')}>Terms</a>
           </div>
         </div>
       </footer>

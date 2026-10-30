@@ -7,6 +7,7 @@ import { ownerWhatsAppLink } from '@/lib/service';
 import { summaryRows, type QuoteRow } from '@/lib/sync';
 import { logout, updateLead } from './actions';
 import { BUSINESS } from '@/lib/options';
+import { withBase } from '@/lib/base';
 
 export const metadata: Metadata = { title: 'Leads | Markhor Patches', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -49,15 +50,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <h1 className="hd" style={{ margin: 0, fontSize: 28 }}>Quote requests</h1>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <a href="/admin/funnel" className="btn" style={{ minHeight: 44, padding: '0 16px', background: 'var(--navy)', color: '#fff' }}>Funnel Health</a>
+          <a href={withBase('/admin/funnel')} className="btn" style={{ minHeight: 44, padding: '0 16px', background: 'var(--navy)', color: '#fff' }}>Funnel Health</a>
           <form action={logout}><button className="back" type="submit">Log out</button></form>
         </div>
       </div>
 
       <nav aria-label="Filter by status" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '16px 0 20px' }}>
-        <a href="/admin" className="btn" style={{ minHeight: 44, padding: '0 16px', background: filter ? '#fff' : 'var(--navy)', color: filter ? 'var(--navy)' : '#fff', border: '2px solid var(--navy)' }}>All</a>
+        <a href={withBase('/admin')} className="btn" style={{ minHeight: 44, padding: '0 16px', background: filter ? '#fff' : 'var(--navy)', color: filter ? 'var(--navy)' : '#fff', border: '2px solid var(--navy)' }}>All</a>
         {STATUSES.map(([k, label], i) => (
-          <a key={k} href={`/admin?status=${k}`} className="btn" style={{ minHeight: 44, padding: '0 16px', background: filter === k ? 'var(--navy)' : '#fff', color: filter === k ? '#fff' : 'var(--navy)', border: '2px solid var(--navy)' }}>
+          <a key={k} href={withBase(`/admin?status=${k}`)} className="btn" style={{ minHeight: 44, padding: '0 16px', background: filter === k ? 'var(--navy)' : '#fff', color: filter === k ? '#fff' : 'var(--navy)', border: '2px solid var(--navy)' }}>
             {label} ({counts[i].count ?? 0})
           </a>
         ))}

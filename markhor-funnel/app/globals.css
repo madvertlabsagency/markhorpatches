@@ -31,9 +31,9 @@ input:focus-visible, button:focus-visible, a:focus-visible, select:focus-visible
 }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-.bgp { background-image: url(/assets/bg-pattern-light.svg); background-size: 520px 520px; }
-.bgpd { background-image: url(/assets/bg-pattern-dark.svg); background-size: 520px 520px; }
-.i3 { display: inline-block; flex-shrink: 0; background-image: url(/assets/icons-3d-sprite.svg); background-repeat: no-repeat; }
+.bgp { background-image: var(--img-bg-light); background-size: 520px 520px; }
+.bgpd { background-image: var(--img-bg-dark); background-size: 520px 520px; }
+.i3 { display: inline-block; flex-shrink: 0; background-image: var(--img-icons); background-repeat: no-repeat; }
 .s64 { width: 64px; height: 64px; background-size: 768px 64px; }
 .s56 { width: 56px; height: 56px; background-size: 672px 56px; }
 .s44 { width: 44px; height: 44px; background-size: 528px 44px; }

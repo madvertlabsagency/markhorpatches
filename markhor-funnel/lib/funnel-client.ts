@@ -3,6 +3,7 @@
 // every few seconds, when the queue fills up, and with sendBeacon when the page is hidden.
 // Nothing here ever blocks rendering, and every failure is swallowed.
 import { deviceFrom, type Device, type FunnelEventName } from './funnel/events';
+import { withBase } from './base';
 
 const SID_KEY = 'cpl-fe-sid';
 const VID_KEY = 'cpl-fe-vid';
@@ -122,8 +123,8 @@ export function flush(useBeacon = false): void {
   const batch = queue.splice(0, 50);
   const body = payload(batch);
   try {
-    if (useBeacon && navigator.sendBeacon && navigator.sendBeacon('/api/fe', new Blob([body], { type: 'application/json' }))) return;
-    fetch('/api/fe', { method: 'POST', body, headers: { 'Content-Type': 'application/json' }, keepalive: true }).catch(() => undefined);
+    if (useBeacon && navigator.sendBeacon && navigator.sendBeacon(withBase('/api/fe'), new Blob([body], { type: 'application/json' }))) return;
+    fetch(withBase('/api/fe'), { method: 'POST', body, headers: { 'Content-Type': 'application/json' }, keepalive: true }).catch(() => undefined);
   } catch {
     /* never throw from analytics */
   }

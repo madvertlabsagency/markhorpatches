@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { BUSINESS, contactLine } from '@/lib/options';
+import { withBase } from '@/lib/base';
 
 export const metadata: Metadata = { title: 'Terms | Markhor Patches' };
 
@@ -7,7 +8,7 @@ export const metadata: Metadata = { title: 'Terms | Markhor Patches' };
 export default function Terms() {
   return (
     <main className="legal">
-      <p><a href="/">Back to {BUSINESS.name}</a></p>
+      <p><a href={withBase('/')}>Back to {BUSINESS.name}</a></p>
       <h1 className="hd">Terms</h1>
       <p>Requesting a quote on this website is free and does not commit you to an order.</p>
       <h2>Quotes and mockups</h2>

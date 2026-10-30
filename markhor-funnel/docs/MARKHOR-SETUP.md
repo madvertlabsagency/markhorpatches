@@ -28,7 +28,22 @@ cards, FAQ, final banner) and `lib/pdf.ts`.
 `REVIEWS` in `app/page.tsx` is empty, so the reviews section is hidden. Add only real customer
 reviews. Do not reuse Custom Patch Lab's reviews or rating.
 
-## 4. Accounts and settings
+## 4. Address: madvertlabs.com/markhorpatches
+The funnel is built with `basePath` `/markhorpatches` (`next.config.mjs`), and the madvertlabs.com
+Vercel project (repo `madvertlabsagency/madvert-labs`) forwards `/markhorpatches` to it with a rewrite.
+
+* Funnel Vercel project: name it `markhor-funnel` (so its address is `https://markhor-funnel.vercel.app`),
+  Root Directory `markhor-funnel`. On its own domain it answers at `https://markhor-funnel.vercel.app/markhorpatches`.
+* If the project gets a different address, set `MARKHOR_FUNNEL_URL` in the **madvertlabs.com** Vercel
+  project to it (no trailing slash) and redeploy that project.
+* In the funnel project set `NEXT_PUBLIC_SITE_URL=https://madvertlabs.com` (the code adds `/markhorpatches`).
+* Owner pages: `https://madvertlabs.com/markhorpatches/admin` and `/markhorpatches/admin/funnel`.
+* GHL WhatsApp webhook: `https://madvertlabs.com/markhorpatches/api/whatsapp/inbound?secret=...`
+* cron-job.org retry: `https://madvertlabs.com/markhorpatches/api/cron/retry`
+* To serve it from the root of its own domain instead, set `NEXT_PUBLIC_BASE_PATH` to an empty value
+  and change the cron path in `vercel.json` back to `/api/cron/retry`.
+
+## 5. Accounts and settings
 Follow `docs/DEPLOY.md` with Markhor's own:
 * Domain, for example `quote.markhorpatches.com` (the docs use this as a placeholder)
 * Supabase project (run `supabase/schema.sql`)

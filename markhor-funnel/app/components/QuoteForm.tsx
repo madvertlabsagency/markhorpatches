@@ -6,6 +6,7 @@ import { ARTWORK_EXTENSIONS, BUSINESS, BACKINGS, CONTACT_METHODS, DEADLINES, PAT
 import { getAttribution, track, uuid } from '@/lib/track-client';
 import { fe, flush, funnelIds, noteStep } from '@/lib/funnel-client';
 import { DIAL_CODES, joinPhone, toE164 } from '@/lib/phone';
+import { withBase } from '@/lib/base';
 
 const MAX_MB = Number(process.env.NEXT_PUBLIC_ARTWORK_MAX_MB || 25);
 const TURNSTILE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -184,7 +185,7 @@ export default function QuoteForm() {
     try {
       const folder = folderArg || f.folder || uuid();
       if (!f.folder) setF((p) => ({ ...p, folder }));
-      const res = await fetch('/api/upload/sign', {
+      const res = await fetch(withBase('/api/upload/sign'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: file.name, size: file.size, folder }),
@@ -322,7 +323,7 @@ export default function QuoteForm() {
     if (!f.eventId) setF((p) => ({ ...p, eventId }));
     const attr = { ...getAttribution(), ...funnelIds() };
     try {
-      const res = await fetch('/api/rfq', {
+      const res = await fetch(withBase('/api/rfq'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -571,7 +572,7 @@ export default function QuoteForm() {
               <input type="checkbox" checked={f.consent} onChange={(e) => set('consent', e.target.checked)} style={{ width: 22, height: 22, marginTop: 1, accentColor: 'var(--red)', flexShrink: 0 }} {...inv('consent')} />
               <span>
                 I agree that {BUSINESS.name} may contact me by phone, SMS, WhatsApp or email about this quote. Message and data rates may apply. See our{' '}
-                <a href="/privacy">Privacy Policy</a> and <a href="/terms">Terms</a>.
+                <a href={withBase('/privacy')}>Privacy Policy</a> and <a href={withBase('/terms')}>Terms</a>.
               </span>
             </label>
             <div ref={tsRef} style={{ marginTop: 12 }} />

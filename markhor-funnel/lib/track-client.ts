@@ -1,4 +1,5 @@
 'use client';
+import { withBase } from './base';
 // Browser side of Meta tracking. Every event goes to the Pixel and to /api/track (CAPI)
 // with the same event_id so Meta deduplicates them.
 
@@ -32,8 +33,8 @@ export function track(eventName: string, data: Record<string, string | number> =
   }
   if (mirror) {
     const payload = JSON.stringify({ eventName, eventId, url: location.href, fbp: cookie('_fbp'), fbc: cookie('_fbc'), customData: data });
-    if (navigator.sendBeacon) navigator.sendBeacon('/api/track', new Blob([payload], { type: 'application/json' }));
-    else fetch('/api/track', { method: 'POST', body: payload, headers: { 'Content-Type': 'application/json' }, keepalive: true }).catch(() => undefined);
+    if (navigator.sendBeacon) navigator.sendBeacon(withBase('/api/track'), new Blob([payload], { type: 'application/json' }));
+    else fetch(withBase('/api/track'), { method: 'POST', body: payload, headers: { 'Content-Type': 'application/json' }, keepalive: true }).catch(() => undefined);
   }
   return eventId;
 }

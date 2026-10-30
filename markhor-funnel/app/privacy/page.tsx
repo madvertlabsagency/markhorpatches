@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { BUSINESS, contactLine } from '@/lib/options';
+import { withBase } from '@/lib/base';
 
 export const metadata: Metadata = { title: 'Privacy Policy | Markhor Patches' };
 
@@ -7,7 +8,7 @@ export const metadata: Metadata = { title: 'Privacy Policy | Markhor Patches' };
 export default function Privacy() {
   return (
     <main className="legal">
-      <p><a href="/">Back to {BUSINESS.name}</a></p>
+      <p><a href={withBase('/')}>Back to {BUSINESS.name}</a></p>
       <h1 className="hd">Privacy Policy</h1>
       <p>This policy explains how {BUSINESS.name} uses the information you share when you request a quote on this website.</p>
       <h2>What we collect</h2>

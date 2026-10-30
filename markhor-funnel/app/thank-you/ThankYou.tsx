@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { BUSINESS, waVerifyText } from '@/lib/options';
+import { withBase } from '@/lib/base';
 
 const WA = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '').replace(/\D/g, '');
 
@@ -25,7 +26,7 @@ export default function ThankYou() {
   useEffect(() => {
     if (!last || verified) return;
     const t = setInterval(async () => {
-      const r = await fetch(`/api/rfq/status?id=${last.id}&code=${last.code}`).then((x) => x.json()).catch(() => null);
+      const r = await fetch(withBase(`/api/rfq/status?id=${last.id}&code=${last.code}`)).then((x) => x.json()).catch(() => null);
       if (r?.verified) setVerified(true);
     }, 4000);
     return () => clearInterval(t);
@@ -37,7 +38,7 @@ export default function ThankYou() {
   async function otpCall(action: 'send' | 'check') {
     if (!last) return;
     setMsg('');
-    const r = await fetch('/api/whatsapp/otp', {
+    const r = await fetch(withBase('/api/whatsapp/otp'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: last.id, code: last.code, action, otp: action === 'check' ? otp : undefined }),
@@ -52,7 +53,7 @@ export default function ThankYou() {
 
   return (
     <div className="ty">
-      <img src="/assets/logo-160.webp" alt="" width={96} height={96} style={{ borderRadius: '50%' }} />
+      <img src={withBase('/assets/logo-160.webp')} alt="" width={96} height={96} style={{ borderRadius: '50%' }} />
       <h1 className="hd" style={{ margin: '14px 0 8px', fontSize: 'clamp(28px, 3.6vw, 42px)' }}>Your Quote Request Is In!</h1>
       <p style={{ margin: '0 auto 22px', fontSize: 17, color: 'var(--muted)', maxWidth: 520 }}>
         Thanks{last?.first ? ` ${last.first}` : ''}. Our patch team has received your project details and will send your quote and free mockup within 24 hours.
@@ -114,7 +115,7 @@ export default function ThankYou() {
           </div>
         </>
       )}
-      <a href="/#quote" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, marginTop: 20, fontSize: 14 }}>Start another quote</a>
+      <a href={withBase('/#quote')} style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, marginTop: 20, fontSize: 14 }}>Start another quote</a>
     </div>
   );
 }

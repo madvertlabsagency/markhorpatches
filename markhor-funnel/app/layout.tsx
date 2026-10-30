@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import Tracking from './components/Tracking';
 import './globals.css';
+import { withBase } from '@/lib/base';
 
 // Self hosted (Archivo Black headings, DM Sans body) so the page never waits on a font CDN.
 const archivo = localFont({ src: './fonts/archivo-black-latin-400-normal.woff2', weight: '400', variable: '--font-archivo', display: 'swap' });
@@ -20,15 +21,25 @@ export const metadata: Metadata = {
   title: 'Markhor Patches, Get a Free Quote',
   description:
     'Custom patches for bold brands. Embroidered, PVC, chenille, woven and sublimation patches with a free mockup in 24 hours, no minimum order and $0 setup.',
-  icons: { icon: '/assets/logo-160.webp' },
-  openGraph: { title: 'Markhor Patches, Get a Free Quote', images: ['/assets/logo-240.png'] },
+  icons: { icon: withBase('/assets/logo-160.webp') },
+  openGraph: { title: 'Markhor Patches, Get a Free Quote', images: [withBase('/assets/logo-240.png')] },
 };
 
 export const viewport: Viewport = { themeColor: '#0B1F4D', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${archivo.variable} ${dm.variable}`}>
+    <html
+      lang="en"
+      className={`${archivo.variable} ${dm.variable}`}
+      style={
+        {
+          '--img-bg-light': `url(${withBase('/assets/bg-pattern-light.svg')})`,
+          '--img-bg-dark': `url(${withBase('/assets/bg-pattern-dark.svg')})`,
+          '--img-icons': `url(${withBase('/assets/icons-3d-sprite.svg')})`,
+        } as React.CSSProperties
+      }
+    >
       <body>
         {children}
         <Tracking />
